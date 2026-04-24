@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api
+  namespace: demo
+  labels:
+    app: demo-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-api
+  template:
+    metadata:
+      labels:
+        app: demo-api
+    spec:
+      containers:
+        - name: demo-api
+          image: quay.io/kuadrant/authorino-examples:talker-api
+          env:
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: PORT
+              value: "3000"
+          ports:
+            - containerPort: 3000
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-api
+  namespace: demo
+  labels:
+    app: demo-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: demo-api
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+

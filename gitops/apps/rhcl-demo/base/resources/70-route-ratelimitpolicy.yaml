@@ -1,0 +1,29 @@
+apiVersion: kuadrant.io/v1
+kind: RateLimitPolicy
+metadata:
+  name: demo-api-rlp
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "33"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: demo-api
+  limits:
+    general-user:
+      rates:
+        - limit: 5
+          window: 10s
+      counters:
+        - expression: auth.identity.userid
+      when:
+        - predicate: "auth.identity.userid != 'bob'"
+    bob-limit:
+      rates:
+        - limit: 2
+          window: 10s
+      when:
+        - predicate: "auth.identity.userid == 'bob'"
+
