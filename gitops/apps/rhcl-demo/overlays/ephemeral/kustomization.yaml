@@ -1,0 +1,89 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+configMapGenerator:
+  - name: rhcl-demo-config
+    namespace: openshift-ingress
+    literals:
+      # Set these two values per environment
+      - DEMO_HOSTNAME=rhcl-gw-openshift-ingress.apps.example.com
+      - CLUSTER_ISSUER=letsencrypt-production
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+replacements:
+  # Replace Route.spec.host
+  - source:
+      kind: ConfigMap
+      name: rhcl-demo-config
+      fieldPath: data.DEMO_HOSTNAME
+    targets:
+      - select:
+          kind: Route
+          name: rhcl-gw
+          namespace: openshift-ingress
+        fieldPaths:
+          - spec.host
+
+  # Replace Certificate.spec.dnsNames[0]
+  - source:
+      kind: ConfigMap
+      name: rhcl-demo-config
+      fieldPath: data.DEMO_HOSTNAME
+    targets:
+      - select:
+          kind: Certificate
+          name: rhcl-gw-tls
+          namespace: openshift-ingress
+        fieldPaths:
+          - spec.dnsNames.0
+
+  # Replace Certificate.spec.issuerRef.name
+  - source:
+      kind: ConfigMap
+      name: rhcl-demo-config
+      fieldPath: data.CLUSTER_ISSUER
+    targets:
+      - select:
+          kind: Certificate
+          name: rhcl-gw-tls
+          namespace: openshift-ingress
+        fieldPaths:
+          - spec.issuerRef.name
+
+  # Replace TLSPolicy.spec.issuerRef.name
+  - source:
+      kind: ConfigMap
+      name: rhcl-demo-config
+      fieldPath: data.CLUSTER_ISSUER
+    targets:
+      - select:
+          kind: TLSPolicy
+          name: rhcl-gw-tls
+          namespace: openshift-ingress
+        fieldPaths:
+          - spec.issuerRef.name
+
+  # Also replace placeholder strings in base manifests (safety net)
+  - source:
+      kind: ConfigMap
+      name: rhcl-demo-config
+      fieldPath: data.DEMO_HOSTNAME
+    targets:
+      - select:
+          kind: Certificate
+          name: rhcl-gw-tls
+          namespace: openshift-ingress
+        fieldPaths:
+          - spec.dnsNames.0
+      - select:
+          kind: Route
+          name: rhcl-gw
+          namespace: openshift-ingress
+        fieldPaths:
+          - spec.host
+

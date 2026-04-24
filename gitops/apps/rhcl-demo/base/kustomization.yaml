@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - resources/00-namespace.yaml
+  - resources/10-demo-api.yaml
+  - resources/15-ui.yaml
+  - resources/20-gateway.yaml
+  - resources/24-gateway-certificate.yaml
+  - resources/25-gateway-tlspolicy.yaml
+  - resources/30-httproute-api.yaml
+  - resources/31-httproute-ui.yaml
+  - resources/40-gateway-authpolicy.yaml
+  - resources/50-api-keys.yaml
+  - resources/60-route-authpolicy.yaml
+  - resources/62-ui-authpolicy.yaml
+  - resources/70-route-ratelimitpolicy.yaml
+  - resources/80-route-passthrough.yaml
+
+configMapGenerator:
+  - name: rhcl-ui
+    namespace: demo
+    files:
+      - index.html=ui/index.html
+
+generatorOptions:
+  disableNameSuffixHash: true
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+

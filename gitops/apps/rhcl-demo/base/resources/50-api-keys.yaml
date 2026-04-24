@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alice-key
+  namespace: demo
+  labels:
+    app: demo-api
+  annotations:
+    secret.kuadrant.io/user-id: alice
+    argocd.argoproj.io/sync-wave: "31"
+type: Opaque
+stringData:
+  api_key: IAMALICE
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bob-key
+  namespace: demo
+  labels:
+    app: demo-api
+  annotations:
+    secret.kuadrant.io/user-id: bob
+    argocd.argoproj.io/sync-wave: "31"
+type: Opaque
+stringData:
+  api_key: IAMBOB
+

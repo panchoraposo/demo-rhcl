@@ -1,0 +1,27 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-api
+  namespace: demo
+  labels:
+    app: demo-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  parentRefs:
+    - name: rhcl-gw
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /hello
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /health
+      backendRefs:
+        - name: demo-api
+          port: 80
+

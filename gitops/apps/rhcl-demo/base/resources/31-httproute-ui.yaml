@@ -1,0 +1,23 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-ui
+  namespace: demo
+  labels:
+    app: rhcl-ui
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  parentRefs:
+    - name: rhcl-gw
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: Exact
+            value: /
+      backendRefs:
+        - name: rhcl-ui
+          port: 80
+

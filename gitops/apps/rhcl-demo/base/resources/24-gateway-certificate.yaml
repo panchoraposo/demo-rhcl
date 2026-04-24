@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rhcl-gw-tls
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "21"
+spec:
+  secretName: rhcl-gw-tls
+  dnsNames:
+    - REPLACE_ME_DEMO_HOSTNAME
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: REPLACE_ME_CLUSTER_ISSUER
+

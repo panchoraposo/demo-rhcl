@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhcl-ui
+  namespace: demo
+  labels:
+    app: rhcl-ui
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rhcl-ui
+  template:
+    metadata:
+      labels:
+        app: rhcl-ui
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+      volumes:
+        - name: html
+          configMap:
+            name: rhcl-ui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rhcl-ui
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: rhcl-ui
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+
