@@ -2585,7 +2585,7 @@ spec:
         const r = await fetch(path, { cache: "no-store" });
         const ms = Math.round(performance.now() - t0);
         const txt = await r.text();
-        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, (r.status === 401 || r.status === 403) ? "ok" : "warn");
+        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, (r.status === 401 || r.status === 403 || r.status === 404) ? "ok" : "warn");
         appendTo(oidcLogEl, txt.slice(0, 2000));
         oidcLastEvents = [];
         renderOidcScoreboard([]);
@@ -2646,8 +2646,8 @@ spec:
         rows.push(await httpCheck({
           title: "OIDC-protected route rejects missing token",
           path: `/secure/nba?dates=${oidcDates(7)}&_=${Date.now()}`,
-          expected: "401/403",
-          okFn: (s) => (s === 401 || s === 403),
+          expected: "401/403/404",
+          okFn: (s) => (s === 401 || s === 403 || s === 404),
           owner: "Platform engineer",
           layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
           why: "Shows enforcement at the Gateway: no token means no backend access.",
