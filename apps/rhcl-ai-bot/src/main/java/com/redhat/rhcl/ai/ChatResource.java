@@ -20,11 +20,13 @@ public class ChatResource {
   private final JsonUtil json;
   private final EspnTool espn;
   private final OpenAiClient llm;
+  private final ToolDefinition espnNbaMeta;
 
   public ChatResource(JsonUtil json, EspnTool espn, OpenAiClient llm) {
     this.json = json;
     this.espn = espn;
     this.llm = llm;
+    this.espnNbaMeta = resolveToolMeta(espn, "nbaScoreboard");
   }
 
   @POST
@@ -41,7 +43,7 @@ public class ChatResource {
         String dates = extractDatesRange(userText);
         JsonNode sb = espn.nbaScoreboard(dates);
         String summary = summarizeNba(sb);
-        toolNote = "tool=espn_nba_scoreboard";
+        toolNote = "tool=" + espnNbaMeta.name();
 
         if (llm.enabled()) {
           ArrayNode prompt = json.mapper().createArrayNode();
@@ -173,6 +175,17 @@ public class ChatResource {
   private static String safe(String s) {
     if (s == null) return "";
     return s.length() > 800 ? s.substring(0, 800) : s;
+  }
+
+  private static ToolDefinition resolveToolMeta(Object instance, String methodName) {
+    try {
+      var m = instance.getClass().getMethod(methodName, String.class);
+      var ann = m.getAnnotation(ToolDefinition.class);
+      if (ann == null) throw new IllegalStateException("Missing @ToolDefinition on " + instance.getClass().getName() + "#" + methodName);
+      return ann;
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to resolve tool metadata for " + instance.getClass().getName() + "#" + methodName, e);
+    }
   }
 }
 

@@ -22,13 +22,13 @@ public class OpenAiClient {
 
   private final JsonUtil json;
 
-  @ConfigProperty(name = "rhcl.ai.openai.base-url")
+  @ConfigProperty(name = "rhcl.ai.openai.base-url", defaultValue = "https://api.openai.com/v1")
   String baseUrl;
 
-  @ConfigProperty(name = "rhcl.ai.openai.api-key")
+  @ConfigProperty(name = "rhcl.ai.openai.api-key", defaultValue = "")
   String apiKey;
 
-  @ConfigProperty(name = "rhcl.ai.openai.model")
+  @ConfigProperty(name = "rhcl.ai.openai.model", defaultValue = "gpt-4o-mini")
   String model;
 
   public OpenAiClient(JsonUtil json) {

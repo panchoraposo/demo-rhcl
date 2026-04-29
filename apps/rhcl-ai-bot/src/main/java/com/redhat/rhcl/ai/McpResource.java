@@ -17,10 +17,12 @@ import jakarta.ws.rs.core.Response;
 public class McpResource {
   private final JsonUtil json;
   private final EspnTool espn;
+  private final ToolDefinition espnNbaMeta;
 
   public McpResource(JsonUtil json, EspnTool espn) {
     this.json = json;
     this.espn = espn;
+    this.espnNbaMeta = resolveToolMeta(espn, "nbaScoreboard");
   }
 
   @GET
@@ -40,8 +42,8 @@ public class McpResource {
     ArrayNode tools = out.putArray("tools");
 
     ObjectNode t = json.obj();
-    t.put("name", "espn_nba_scoreboard");
-    t.put("description", "Fetch ESPN NBA scoreboard JSON (via in-cluster proxy)");
+    t.put("name", espnNbaMeta.name());
+    t.put("description", espnNbaMeta.description());
     ObjectNode schema = json.obj();
     schema.put("type", "object");
     ObjectNode props = json.obj();
@@ -62,7 +64,7 @@ public class McpResource {
     try {
       String name = req.path("name").asText("");
       JsonNode args = req.path("arguments");
-      if (!"espn_nba_scoreboard".equals(name)) {
+      if (!espnNbaMeta.name().equals(name)) {
         ObjectNode err = json.obj();
         err.put("error", "unknown_tool");
         err.put("name", name);
@@ -79,6 +81,17 @@ public class McpResource {
       err.put("error", "tool_call_failed");
       err.put("message", String.valueOf(e.getMessage()));
       return Response.status(500).entity(err).build();
+    }
+  }
+
+  private static ToolDefinition resolveToolMeta(Object instance, String methodName) {
+    try {
+      var m = instance.getClass().getMethod(methodName, String.class);
+      var ann = m.getAnnotation(ToolDefinition.class);
+      if (ann == null) throw new IllegalStateException("Missing @ToolDefinition on " + instance.getClass().getName() + "#" + methodName);
+      return ann;
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to resolve tool metadata for " + instance.getClass().getName() + "#" + methodName, e);
     }
   }
 }
