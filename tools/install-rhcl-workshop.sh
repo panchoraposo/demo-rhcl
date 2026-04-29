@@ -26,7 +26,7 @@ OIDC_HOSTNAME="${OIDC_HOSTNAME:-oidc-${DEMO_HOSTNAME}}"
 
 if [[ -z "${CLUSTER_ISSUER:-}" ]]; then
   CLUSTER_ISSUER="$(
-    oc get clusterissuer -o json 2>/dev/null | python3 -c 'import json,sys; j=json.load(sys.stdin); names=[x["metadata"]["name"] for x in j.get("items",[])];\n\ndef score(n):\n  s=0\n  n2=n.lower()\n  if "letsencrypt" in n2: s+=10\n  if "prod" in n2 or "production" in n2: s+=10\n  if "staging" in n2: s-=20\n  return s\n\nnames=sorted(names, key=lambda n:(-score(n), n))\nprint(names[0] if names else "")\n'
+    oc get clusterissuer -o json 2>/dev/null | python3 -c 'import json,sys; j=json.load(sys.stdin); names=[x["metadata"]["name"] for x in j.get("items",[])]; score=lambda n: (10 if "letsencrypt" in n.lower() else 0)+(10 if ("prod" in n.lower() or "production" in n.lower()) else 0)+(-20 if "staging" in n.lower() else 0); names=sorted(names, key=lambda n:(-score(n), n)); print(names[0] if names else "")'
   )"
 fi
 
