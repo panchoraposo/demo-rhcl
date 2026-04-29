@@ -585,7 +585,6 @@
       <aside class="side">
         <div class="nav">
           <button class="primary active" data-module="policies">AuthPolicy + RateLimitPolicy</button>
-          <button data-module="roles">Role separation</button>
           <button data-module="traffic">A/B + canary</button>
           <button data-module="external">External API (ESPN)</button>
           <button data-module="oidc">OIDC / Keycloak</button>
@@ -679,7 +678,7 @@
             </div>
           </section>
 
-          <section class="module" id="roles" data-module="roles">
+          <section class="module" id="roles" data-module="roles" style="display:none">
             <div class="moduleHero">
               <div class="k">Module</div>
               <div class="t"><b>Role separation</b> — infra owner vs platform vs developer</div>
@@ -924,7 +923,7 @@
             <div class="moduleHero">
               <div class="k">Module</div>
               <div class="t"><b>OIDC</b> — Keycloak + protected route</div>
-              <div class="d">Discover OIDC config (<code>/auth</code>), get a token, inspect claims, then call a protected API (<code>/secure</code>). Enforcement happens at the Gateway by <b>Kuadrant/Authorino</b> via <code>OIDCPolicy</code> + <code>AuthPolicy</code>.</div>
+              <div class="d">Discover OIDC config (<code>/auth</code>), get a token, inspect claims, then call a protected API (<code>/secure</code>). Enforcement happens at the Gateway by <b>Kuadrant/Authorino</b> via <code>AuthPolicy</code> (JWT validation using Keycloak as issuer).</div>
               <div class="row" style="margin-top:10px">
                 <button onclick="openYamlSet('oidc')">View policy YAML</button>
               </div>
@@ -954,7 +953,8 @@
                   <button class="good" onclick="getToken()">Get token</button>
                   <button onclick="showTokenClaims()">Show token claims</button>
                   <button class="good" onclick="callSecure()">GET protected NBA scoreboard</button>
-                  <button class="warn" onclick="callSecureNoToken()">Try without token</button>
+                  <button class="primary" onclick="loginViaGateway()">Login via Gateway</button>
+                  <button class="warn" onclick="callSecureNoToken()">Try without login</button>
                   <button class="warn" onclick="clearOidcToken()">Clear token</button>
                 </div>
                 <div class="row" style="margin-top:10px">
@@ -1303,8 +1303,8 @@ spec:
         - path: { type: PathPrefix, value: /auth }
       backendRefs:
         - kind: Service
-          name: keycloak
-          port: 80
+          name: keycloak-service
+          port: 8080
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -1321,10 +1321,10 @@ spec:
           urlRewrite:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /
+              replacePrefixMatch: /external
       backendRefs:
         - kind: Service
-          name: secure-api
+          name: external-proxy
           port: 80
 ` },
           { name: "AuthPolicy (allow Keycloak)", yaml: `apiVersion: kuadrant.io/v1
@@ -1343,20 +1343,6 @@ spec:
         allow-all:
           opa:
             rego: "allow = true"
-` },
-          { name: "OIDCPolicy (provider)", yaml: `apiVersion: extensions.kuadrant.io/v1alpha1
-kind: OIDCPolicy
-metadata:
-  name: secure-demo-oidc
-  namespace: demo
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: secure-demo
-  provider:
-    clientID: rhcl-ui
-    issuerURL: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl
 ` },
           { name: "AuthPolicy (JWT verify)", yaml: `apiVersion: kuadrant.io/v1
 kind: AuthPolicy
@@ -1390,7 +1376,7 @@ spec:
         "roles-dev": [
           { name: "API AuthPolicy (API keys)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: demo-api-auth\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: demo-api\n  defaults:\n    rules:\n      authentication:\n        api-key-users:\n          apiKey:\n            selector:\n              matchLabels:\n                app: demo-api\n` },
           { name: "RateLimitPolicy (per identity)", yaml: `apiVersion: kuadrant.io/v1\nkind: RateLimitPolicy\nmetadata:\n  name: demo-api-rlp\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: demo-api\n  limits:\n    general-user:\n      rates:\n        - limit: 5\n          window: 10s\n      counters:\n        - expression: auth.identity.userid\n` },
-          { name: "OIDCPolicy + JWT AuthPolicy", yaml: `apiVersion: extensions.kuadrant.io/v1alpha1\nkind: OIDCPolicy\nmetadata:\n  name: secure-demo-oidc\n  namespace: demo\nspec:\n  provider:\n    issuerURL: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl\n---\napiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: secure-demo-jwt\n  namespace: demo\nspec:\n  defaults:\n    rules:\n      authentication:\n        jwt:\n          jwt:\n            issuerUrl: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl\n` },
+          { name: "JWT AuthPolicy (OIDC issuer)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: secure-demo-jwt\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: secure-demo\n  defaults:\n    rules:\n      authentication:\n        jwt:\n          jwt:\n            issuerUrl: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl\n          credentials:\n            authorizationHeader:\n              prefix: \"Bearer\"\n` },
         ],
       };
 
@@ -1398,8 +1384,17 @@ spec:
       YAML_SETS["roles"] = [
         { name: "Infra: TLSPolicy + Route", yaml: YAML_SETS["roles-infra"].map(x => x.yaml).join("\n---\n") },
         { name: "Platform: deny-all + UI allow", yaml: YAML_SETS["roles-platform"].map(x => x.yaml).join("\n---\n") },
-        { name: "Dev: API auth + rate limit + OIDC", yaml: YAML_SETS["roles-dev"].map(x => x.yaml).join("\n---\n") },
+        { name: "Dev: API auth + rate limit + JWT", yaml: YAML_SETS["roles-dev"].map(x => x.yaml).join("\n---\n") },
       ];
+
+      function renderYaml(txt){
+        const host = (location && location.host) ? String(location.host) : "example.com";
+        const issuer = `https://${host}/auth/realms/rhcl`;
+        return String(txt || "")
+          .replaceAll("https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl", issuer)
+          .replaceAll("REPLACE_ME_DEMO_HOSTNAME", host)
+          .replaceAll("REPLACE_ME_CLUSTER_ISSUER", "letsencrypt-production-ec2");
+      }
 
       function openYamlSet(key){
         if (!yamlDlg || !yamlTabsEl || !yamlPreEl || !yamlTitleEl) return;
@@ -1422,12 +1417,12 @@ spec:
           b.addEventListener("click", () => {
             for (const bb of Array.from(yamlTabsEl.querySelectorAll("button"))) bb.classList.remove("primary");
             b.classList.add("primary");
-            yamlActiveText = String(it.yaml || "");
+            yamlActiveText = renderYaml(String(it.yaml || ""));
             yamlPreEl.textContent = yamlActiveText;
           });
           yamlTabsEl.appendChild(b);
         }
-        yamlActiveText = String(items[0].yaml || "");
+        yamlActiveText = renderYaml(String(items[0].yaml || ""));
         yamlPreEl.textContent = yamlActiveText;
         yamlDlg.showModal();
       }
@@ -1594,10 +1589,11 @@ spec:
           b.addEventListener("click", () => showModule(b.getAttribute("data-module")));
         }
         const fromHash = (location.hash || "").replace("#","").trim();
-        showModule(fromHash || "policies");
+        const allowed = new Set(["policies","traffic","external","oidc"]);
+        showModule(allowed.has(fromHash) ? fromHash : "policies");
         window.addEventListener("hashchange", () => {
           const h = (location.hash || "").replace("#","").trim();
-          showModule(h || "policies");
+          showModule(allowed.has(h) ? h : "policies");
         });
       }
 
@@ -2582,13 +2578,36 @@ spec:
         if (oidcReqEl) oidcReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
         appendTo(oidcLogEl, `[${now()}] GET ${path} (no token)`, "muted");
         const t0 = performance.now();
-        const r = await fetch(path, { cache: "no-store" });
+        const r = await fetch(path, { redirect: "manual", cache: "no-store" });
         const ms = Math.round(performance.now() - t0);
         const txt = await r.text();
-        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, (r.status === 401 || r.status === 403 || r.status === 404) ? "ok" : "warn");
-        appendTo(oidcLogEl, txt.slice(0, 2000));
+        const loc = r.headers.get("location") || "";
+        const ok = (r.status === 302 && loc.includes("/auth/realms/rhcl/")) || r.status === 401 || r.status === 403;
+        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, ok ? "ok" : "warn");
+        if (loc) appendTo(oidcLogEl, `redirect -> ${loc}`, "muted");
+        if (txt) appendTo(oidcLogEl, txt.slice(0, 2000));
         oidcLastEvents = [];
         renderOidcScoreboard([]);
+      }
+
+      async function loginViaGateway(){
+        oidcLogEl.textContent = "";
+        const dates = oidcDates(7);
+        const path = `/secure/nba?dates=${dates}&_=${Date.now()}`;
+        if (oidcReqEl) oidcReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
+        appendTo(oidcLogEl, `[${now()}] starting browser login via Gateway`, "muted");
+        try{
+          const r = await fetch(path, { redirect: "manual", cache: "no-store" });
+          const loc = r.headers.get("location") || "";
+          if (r.status === 302 && loc){
+            appendTo(oidcLogEl, `[${now()}] redirecting to Keycloak login…`, "ok");
+            window.location.assign(loc);
+            return;
+          }
+          appendTo(oidcLogEl, `[${now()}] expected 302 redirect, got ${r.status}`, "warn");
+        } catch (e){
+          appendTo(oidcLogEl, `[${now()}] login start failed: ${String(e)}`, "bad");
+        }
       }
 
       function clearOidcToken(){
@@ -2646,8 +2665,8 @@ spec:
         rows.push(await httpCheck({
           title: "OIDC-protected route rejects missing token",
           path: `/secure/nba?dates=${oidcDates(7)}&_=${Date.now()}`,
-          expected: "401/403/404",
-          okFn: (s) => (s === 401 || s === 403 || s === 404),
+          expected: "302 / 401 / 403",
+          okFn: (s) => (s === 302 || s === 401 || s === 403),
           owner: "Platform engineer",
           layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
           why: "Shows enforcement at the Gateway: no token means no backend access.",

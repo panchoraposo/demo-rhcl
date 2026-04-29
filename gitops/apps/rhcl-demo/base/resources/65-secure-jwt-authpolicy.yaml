@@ -20,6 +20,8 @@ spec:
           credentials:
             authorizationHeader:
               prefix: "Bearer"
+            cookie:
+              name: rhcl_token
       authorization:
         allow-all:
           opa:
