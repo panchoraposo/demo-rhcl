@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 
 @Path("/ai/v1/chat/completions")
@@ -84,7 +85,7 @@ public class ChatResource {
       choice.put("index", 0);
       ObjectNode msg = json.obj();
       msg.put("role", "assistant");
-      msg.put("content", answer);
+      msg.put("content", sanitizeAnswer(answer));
       choice.set("message", msg);
       choice.put("finish_reason", "stop");
       choices.add(choice);
@@ -190,12 +191,15 @@ public class ChatResource {
 
   private static String sanitizeAnswer(String text) {
     if (text == null) return "";
-    String s = text.replaceAll("(?s)<think>.*?</think>", "").trim();
-    int idx = s.toUpperCase().indexOf("FINAL:");
+    String s = text;
+    s = s.replaceAll("(?s)<think>.*?</think>", "");
+    s = s.replace("<think>", "").replace("</think>", "");
+    String lower = s.toLowerCase(Locale.ROOT);
+    int idx = lower.indexOf("final:");
     if (idx >= 0) {
-      return s.substring(idx + "FINAL:".length()).trim();
+      s = s.substring(idx + "final:".length());
     }
-    return s;
+    return s.trim();
   }
 }
 
