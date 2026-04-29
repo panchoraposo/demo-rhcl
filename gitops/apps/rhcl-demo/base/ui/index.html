@@ -34,7 +34,73 @@
           linear-gradient(180deg, var(--bg0), var(--bg1));
       }
 
-      .wrap{max-width:1100px; margin:0 auto; padding:28px 18px 40px;}
+      .shell{
+        display:grid;
+        grid-template-columns: 260px 1fr;
+        gap:14px;
+        min-height:100vh;
+        padding:18px;
+      }
+      @media (max-width: 980px){
+        .shell{grid-template-columns:1fr; padding:12px}
+      }
+      .side{
+        position:sticky;
+        top:18px;
+        height: calc(100vh - 36px);
+        border:1px solid var(--line);
+        border-radius:18px;
+        background:linear-gradient(180deg, rgba(15,22,48,.62), rgba(12,19,43,.40));
+        box-shadow:var(--shadow);
+        padding:14px;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+      }
+      @media (max-width: 980px){
+        .side{position:relative; top:auto; height:auto}
+      }
+      .side .brand{
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+        padding:6px 6px 2px;
+      }
+      .side .brand .h{
+        font-weight:650;
+        letter-spacing:.2px;
+        font-size:14px;
+      }
+      .side .brand .p{
+        color:var(--muted);
+        font-size:12px;
+        line-height:1.35;
+      }
+      .nav{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        margin-top:6px;
+      }
+      .nav button{
+        text-align:left;
+        padding:10px 12px;
+        border-radius:14px;
+      }
+      .nav button.active{
+        border-color: rgba(124,92,255,.55);
+        background: linear-gradient(180deg, rgba(124,92,255,.26), rgba(124,92,255,.12));
+      }
+      .nav .hint{
+        color:var(--muted);
+        font-size:12px;
+        padding:4px 6px 0;
+      }
+      .main{
+        min-width:0;
+      }
+
+      .wrap{max-width:1180px; margin:0 auto; padding:10px 6px 40px;}
       header{
         display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
         padding:18px 18px 14px;
@@ -64,6 +130,19 @@
         margin-top:14px;
       }
       @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+
+      .module{display:none}
+      .module.active{display:block}
+      .moduleHero{
+        margin-top:14px;
+        padding:14px 16px;
+        border:1px solid rgba(255,255,255,.10);
+        border-radius:18px;
+        background:rgba(0,0,0,.10);
+      }
+      .moduleHero .k{color:var(--muted); font-size:12px}
+      .moduleHero .t{font-size:16px; margin-top:6px}
+      .moduleHero .d{color:var(--muted); font-size:12px; margin-top:6px; line-height:1.45}
 
       .card{
         border:1px solid var(--line);
@@ -275,220 +354,289 @@
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <header>
-        <div class="title">
-          <h1>RHCL Demo — Policies Playground</h1>
-          <div class="sub">
-            Gateway API + Kuadrant (Connectivity Link): <b>AuthPolicy</b> (API keys) + <b>RateLimitPolicy</b> (429) on a simple API.
-          </div>
+    <div class="shell">
+      <aside class="side">
+        <div class="brand">
+          <div class="h">RHCL Workshop</div>
+          <div class="p">Switch use-cases live. Each menu item is a “module” for the talk.</div>
         </div>
-        <div class="tags">
-          <span class="tag"><b>Gateway API</b> (openshift-default)</span>
-          <span class="tag"><b>AuthPolicy</b> APIKEY</span>
-          <span class="tag"><b>RateLimitPolicy</b> per user</span>
+        <div class="nav">
+          <button class="primary active" data-module="policies">Policies playground</button>
+          <button data-module="roles">Role separation</button>
+          <button data-module="traffic">A/B + canary</button>
+          <button data-module="external">External API (ESPN)</button>
+          <button data-module="oidc">OIDC / Keycloak</button>
+          <div class="hint">Tip: you can deep-link with <code>#external</code>, <code>#traffic</code>, etc.</div>
+        </div>
+        <div class="row" style="margin-top:auto">
           <span class="tag" id="jsTag"><b>JS</b> booting…</span>
         </div>
-      </header>
+      </aside>
 
-      <div class="grid">
-        <div class="card">
-          <h2>
-            Try endpoints
-            <span class="pill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusText">Ready</span></span>
-          </h2>
+      <main class="main">
+        <div class="wrap">
+          <header>
+            <div class="title">
+              <h1>RHCL Demo — Use Cases</h1>
+              <div class="sub">
+                Gateway API + Kuadrant (Connectivity Link): Auth, rate-limit, TLS, traffic shaping, OIDC, and external API proxying.
+              </div>
+            </div>
+            <div class="tags">
+              <span class="tag"><b>Gateway API</b> (openshift-default)</span>
+              <span class="tag"><b>Kuadrant</b> policies</span>
+              <span class="tag"><b>Same-origin</b> UI</span>
+            </div>
+          </header>
 
-          <div class="row">
-            <div class="input">
-              <label>Authorization</label>
-              <input id="apikey" value="APIKEY IAMALICE" spellcheck="false" />
+          <section class="module active" id="policies" data-module="policies">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>Policies playground</b> — AuthPolicy + RateLimitPolicy</div>
+              <div class="d">Use API keys to demonstrate identity + rate limiting (429). The live log is your “audience screen”.</div>
             </div>
-            <button class="primary" onclick="setKey('APIKEY IAMALICE')">Alice</button>
-            <button class="primary" onclick="setKey('APIKEY IAMBOB')">Bob</button>
-            <button onclick="setKey('')">Empty</button>
-          </div>
 
-          <div class="row">
-            <button class="good" onclick="call('/health', false)">GET /health</button>
-            <button class="warn" onclick="call('/hello', false)">GET /hello (no header)</button>
-            <button class="good" onclick="call('/hello', true)">GET /hello (with header)</button>
-            <button class="primary" onclick="burst()">Burst (12 req, 1/s)</button>
-            <button onclick="clearLog()">Clear log</button>
-          </div>
+            <div class="grid">
+              <div class="card">
+                <h2>
+                  Try endpoints
+                  <span class="pill" id="statusPill"><span class="dot" id="statusDot"></span><span id="statusText">Ready</span></span>
+                </h2>
 
-          <div class="kpi" style="margin-top:12px">
-            <div class="box">
-              <div class="label">Last status</div>
-              <div class="value" id="kpiStatus">—</div>
-            </div>
-            <div class="box">
-              <div class="label">Latency (ms)</div>
-              <div class="value" id="kpiLatency">—</div>
-            </div>
-            <div class="box">
-              <div class="label">Active API key</div>
-              <div class="value" id="kpiUser">alice</div>
-            </div>
-          </div>
+                <div class="row">
+                  <div class="input">
+                    <label>Authorization</label>
+                    <input id="apikey" value="APIKEY IAMALICE" spellcheck="false" />
+                  </div>
+                  <button class="primary" onclick="setKey('APIKEY IAMALICE')">Alice</button>
+                  <button class="primary" onclick="setKey('APIKEY IAMBOB')">Bob</button>
+                  <button onclick="setKey('')">Empty</button>
+                </div>
 
-          <div class="chart">
-            <div class="sub" style="margin-bottom:10px">Latest burst results</div>
-            <div class="bars" id="bars"></div>
-            <div class="legend">
-              <span><span class="sw"></span> 200</span>
-              <span><span class="sw bad"></span> 401 / 403</span>
-              <span><span class="sw info"></span> 429</span>
+                <div class="row">
+                  <button class="good" onclick="call('/health', false)">GET /health</button>
+                  <button class="warn" onclick="call('/hello', false)">GET /hello (no header)</button>
+                  <button class="good" onclick="call('/hello', true)">GET /hello (with header)</button>
+                  <button class="primary" onclick="burst()">Burst (12 req, 1/s)</button>
+                  <button onclick="clearLog()">Clear log</button>
+                </div>
+
+                <div class="kpi" style="margin-top:12px">
+                  <div class="box">
+                    <div class="label">Last status</div>
+                    <div class="value" id="kpiStatus">—</div>
+                  </div>
+                  <div class="box">
+                    <div class="label">Latency (ms)</div>
+                    <div class="value" id="kpiLatency">—</div>
+                  </div>
+                  <div class="box">
+                    <div class="label">Active API key</div>
+                    <div class="value" id="kpiUser">alice</div>
+                  </div>
+                </div>
+
+                <div class="chart">
+                  <div class="sub" style="margin-bottom:10px">Latest burst results</div>
+                  <div class="bars" id="bars"></div>
+                  <div class="legend">
+                    <span><span class="sw"></span> 200</span>
+                    <span><span class="sw bad"></span> 401 / 403</span>
+                    <span><span class="sw info"></span> 429</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <h2>Live log <span class="pill"><span class="dot good"></span> same-origin</span></h2>
+                <div class="log" id="log"></div>
+                <div class="footer">
+                  Tip: the UI is public (explicit allow override) and the `/hello` API requires a valid API key (AuthPolicy).
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
+
+          <section class="module" id="roles" data-module="roles">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>Role separation</b> — infra owner vs platform vs developer</div>
+              <div class="d">One click prints checks that map outcomes to responsibilities. Great to explain “who owns what” in policy lifecycle.</div>
+            </div>
+            <div class="grid">
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>Role separation (high-level)</h2>
+                <div class="sub">
+                  This module illustrates how responsibilities split across <b>Infrastructure Owner</b>, <b>Platform Engineer</b>, and <b>Developer</b>.
+                  Click "Run checks" to validate the current state and see which layer is responsible.
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <button class="primary" onclick="runRoleChecks()">Run checks</button>
+                </div>
+                <div class="log" id="rolesLog" style="height:260px; margin-top:10px"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="module" id="traffic" data-module="traffic">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>Traffic shaping</b> — A/B testing and canary rollout</div>
+              <div class="d">The UI samples a route and visualizes observed split vs expected weights, with a progress bar and per-request log.</div>
+            </div>
+            <div class="grid">
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>
+                  Traffic shaping: A/B + canary
+                  <span class="pill" id="trafficPill"><span class="dot" id="trafficDot"></span><span id="trafficText">Idle</span></span>
+                </h2>
+                <div class="sub" id="trafficMeta">
+                  The UI sends <b>N</b> requests to a route and counts which backend responds.
+                  A/B uses <code>/ab</code> (expected <b>50/50</b>). Canary uses <code>/canary</code> (expected <b>90/10</b>).
+                </div>
+
+                <div class="row" style="margin-top:10px">
+                  <button class="primary" onclick="sampleAB(60)">Sample A/B (60)</button>
+                  <button class="primary" onclick="sampleCanary(80)">Sample canary (80)</button>
+                  <button onclick="clearTraffic()">Clear</button>
+                  <span class="pill"><span class="dot good"></span><span id="trafficExpected">expected: A/B 50/50 · canary 90/10</span></span>
+                </div>
+
+                <div class="row" style="margin-top:10px">
+                  <div class="progress"><div class="fill" id="trafficFill"></div></div>
+                </div>
+
+                <div class="kpi" style="margin-top:12px">
+                  <div class="box">
+                    <div class="label">Run</div>
+                    <div class="value" id="trafficRun">—</div>
+                  </div>
+                  <div class="box">
+                    <div class="label">Observed split</div>
+                    <div class="value" id="trafficSplit">—</div>
+                  </div>
+                  <div class="box">
+                    <div class="label">Avg latency (ms)</div>
+                    <div class="value" id="trafficAvg">—</div>
+                  </div>
+                </div>
+
+                <div class="chart" style="margin-top:12px">
+                  <div class="sub" style="margin-bottom:10px">Latest samples (fixed width)</div>
+                  <div class="bars" id="trafficBars"></div>
+                  <div class="legend">
+                    <span><span class="sw"></span> <span id="legendPrimary">primary</span></span>
+                    <span><span class="sw info"></span> <span id="legendSecondary">secondary</span></span>
+                  </div>
+                </div>
+
+                <div class="log" id="trafficLog" style="height:180px; margin-top:10px"></div>
+                <div class="footer">
+                  What you see: each bar is one request. Green = primary, blue = secondary. The log prints progress and a few sample lines.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="module" id="external" data-module="external">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>External API</b> — same-origin proxy to ESPN JSON</div>
+              <div class="d">Visually explain what happens: browser calls <code>/external/&lt;preset&gt;</code>, cluster proxies to ESPN, UI renders a scoreboard with official team logos.</div>
+            </div>
+            <div class="grid">
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>External API (ESPN) via in-cluster proxy</h2>
+                <div class="sub">
+                  The UI calls <code>/external/&lt;preset&gt;</code> on the same host. The in-cluster proxy fetches ESPN JSON and returns it same-origin.
+                  Endpoints are the public ESPN JSON URLs commonly referenced by <a href="https://espnapi.com/" target="_blank" rel="noopener noreferrer">espnapi.com</a>.
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <button class="primary" onclick="callExternal('nba')">NBA</button>
+                  <button class="primary" onclick="callExternal('nfl')">NFL</button>
+                  <button class="primary" onclick="callExternal('mls')">MLS</button>
+                  <button class="primary" onclick="callExternal('epl')">Premier League</button>
+                  <button class="primary" onclick="callExternal('laliga')">La Liga</button>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <span class="pill"><span class="dot good"></span> browser</span>
+                  <span class="pill"><span class="dot"></span> <code>/external/&lt;preset&gt;</code></span>
+                  <span class="pill"><span class="dot"></span> proxy (cluster)</span>
+                  <span class="pill"><span class="dot"></span> ESPN JSON (<code>site.api.espn.com</code>)</span>
+                </div>
+                <div class="kpi" style="margin-top:12px">
+                  <div class="box">
+                    <div class="label">Request</div>
+                    <div class="value" id="externalReq">—</div>
+                  </div>
+                  <div class="box">
+                    <div class="label">Upstream</div>
+                    <div class="value" id="externalUp">—</div>
+                  </div>
+                  <div class="box">
+                    <div class="label">Status / latency</div>
+                    <div class="value" id="externalStat">—</div>
+                  </div>
+                  <div class="box">
+                    <div class="label">Events</div>
+                    <div class="value" id="externalEvents">—</div>
+                  </div>
+                </div>
+                <div class="row" style="margin-top:12px; align-items:center">
+                  <img id="externalLeagueLogo" class="logo" alt="" style="width:34px;height:34px;border-radius:10px; display:none" />
+                  <span class="pill"><span class="dot good"></span> <span id="externalLeagueName">—</span></span>
+                  <span class="pill"><span class="dot"></span> team logos come from ESPN JSON</span>
+                </div>
+                <div class="chart" style="margin-top:12px">
+                  <div class="sub" style="margin-bottom:10px">Scoreboard (top events)</div>
+                  <div class="board" id="externalBoard"></div>
+                </div>
+                <div class="log" id="externalLog" style="height:220px; margin-top:10px"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="module" id="oidc" data-module="oidc">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>OIDC</b> — Keycloak + protected route</div>
+              <div class="d">Get an access token from Keycloak (<code>/auth</code>) and call a JWT-protected endpoint (<code>/secure</code>).</div>
+            </div>
+            <div class="grid">
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>OIDC: Keycloak + protected route</h2>
+                <div class="sub">
+                  Get an access token from Keycloak (<code>/auth</code>) and call a JWT-protected endpoint (<code>/secure</code>).
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <button class="primary" onclick="openKeycloak()">Open Keycloak</button>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <div class="input" style="flex:1 1 230px; min-width: 230px;">
+                    <label>User</label>
+                    <input id="oidcUser" value="demo" spellcheck="false" />
+                  </div>
+                  <div class="input" style="flex:1 1 230px; min-width: 230px;">
+                    <label>Password</label>
+                    <input id="oidcPass" value="demo" spellcheck="false" />
+                  </div>
+                </div>
+                <div class="row">
+                  <button class="good" onclick="getToken()">Get token</button>
+                  <button class="good" onclick="callSecure()">GET /secure</button>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <div class="input" style="flex:1 1 100%; min-width: 300px;">
+                    <label>Access token</label>
+                    <input id="oidcToken" value="" spellcheck="false" placeholder="(click Get token)" />
+                  </div>
+                </div>
+                <div class="log" id="oidcLog" style="height:200px; margin-top:10px"></div>
+              </div>
+            </div>
+          </section>
         </div>
-
-        <div class="card">
-          <h2>Live log <span class="pill"><span class="dot good"></span> same-origin</span></h2>
-          <div class="log" id="log"></div>
-          <div class="footer">
-            Tip: the UI is public (explicit allow override) and the `/hello` API requires a valid API key (AuthPolicy).
-          </div>
-        </div>
-      </div>
-
-      <div class="grid" style="margin-top:14px">
-        <div class="card">
-          <h2>Role separation (high-level)</h2>
-          <div class="sub">
-            This module illustrates how responsibilities split across <b>Infrastructure Owner</b>, <b>Platform Engineer</b>, and <b>Developer</b>.
-            Click "Run checks" to validate the current state and see which layer is responsible.
-          </div>
-          <div class="row" style="margin-top:10px">
-            <button class="primary" onclick="runRoleChecks()">Run checks</button>
-          </div>
-          <div class="log" id="rolesLog" style="height:220px; margin-top:10px"></div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-          <h2>
-            Traffic shaping: A/B + canary
-            <span class="pill" id="trafficPill"><span class="dot" id="trafficDot"></span><span id="trafficText">Idle</span></span>
-          </h2>
-          <div class="sub" id="trafficMeta">
-            The UI sends <b>N</b> requests to a route and counts which backend responds.
-            A/B uses <code>/ab</code> (expected <b>50/50</b>). Canary uses <code>/canary</code> (expected <b>90/10</b>).
-          </div>
-
-          <div class="row" style="margin-top:10px">
-            <button class="primary" onclick="sampleAB(60)">Sample A/B (60)</button>
-            <button class="primary" onclick="sampleCanary(80)">Sample canary (80)</button>
-            <button onclick="clearTraffic()">Clear</button>
-            <span class="pill"><span class="dot good"></span><span id="trafficExpected">expected: A/B 50/50 · canary 90/10</span></span>
-          </div>
-
-          <div class="row" style="margin-top:10px">
-            <div class="progress"><div class="fill" id="trafficFill"></div></div>
-          </div>
-
-          <div class="kpi" style="margin-top:12px">
-            <div class="box">
-              <div class="label">Run</div>
-              <div class="value" id="trafficRun">—</div>
-            </div>
-            <div class="box">
-              <div class="label">Observed split</div>
-              <div class="value" id="trafficSplit">—</div>
-            </div>
-            <div class="box">
-              <div class="label">Avg latency (ms)</div>
-              <div class="value" id="trafficAvg">—</div>
-            </div>
-          </div>
-
-          <div class="chart" style="margin-top:12px">
-            <div class="sub" style="margin-bottom:10px">Latest samples (fixed width)</div>
-            <div class="bars" id="trafficBars"></div>
-            <div class="legend">
-              <span><span class="sw"></span> <span id="legendPrimary">primary</span></span>
-              <span><span class="sw info"></span> <span id="legendSecondary">secondary</span></span>
-            </div>
-          </div>
-
-          <div class="log" id="trafficLog" style="height:180px; margin-top:10px"></div>
-          <div class="footer">
-            What you see: each bar is one request. Green = primary, blue = secondary. The log prints progress and a few sample lines.
-          </div>
-        </div>
-      </div>
-
-      <div class="grid" style="margin-top:14px">
-        <div class="card">
-          <h2>External API (ESPN) via in-cluster proxy</h2>
-          <div class="sub">
-            The UI calls <code>/external/&lt;preset&gt;</code> on the same host. The in-cluster proxy fetches ESPN JSON and returns it same-origin.
-            Endpoints are the public ESPN JSON URLs commonly referenced by <a href="https://espnapi.com/" target="_blank" rel="noopener noreferrer">espnapi.com</a>.
-          </div>
-          <div class="row" style="margin-top:10px">
-            <button class="primary" onclick="callExternal('nfl')">NFL scoreboard</button>
-            <button class="primary" onclick="callExternal('nba')">NBA scoreboard</button>
-            <button class="primary" onclick="callExternal('epl')">EPL scoreboard</button>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <span class="pill"><span class="dot good"></span> browser</span>
-            <span class="pill"><span class="dot"></span> <code>/external/&lt;preset&gt;</code></span>
-            <span class="pill"><span class="dot"></span> proxy (cluster)</span>
-            <span class="pill"><span class="dot"></span> ESPN JSON (<code>site.api.espn.com</code>)</span>
-          </div>
-          <div class="kpi" style="margin-top:12px">
-            <div class="box">
-              <div class="label">Request</div>
-              <div class="value" id="externalReq">—</div>
-            </div>
-            <div class="box">
-              <div class="label">Upstream</div>
-              <div class="value" id="externalUp">—</div>
-            </div>
-            <div class="box">
-              <div class="label">Status / latency</div>
-              <div class="value" id="externalStat">—</div>
-            </div>
-            <div class="box">
-              <div class="label">Events</div>
-              <div class="value" id="externalEvents">—</div>
-            </div>
-          </div>
-          <div class="chart" style="margin-top:12px">
-            <div class="sub" style="margin-bottom:10px">Scoreboard (top events)</div>
-            <div class="board" id="externalBoard"></div>
-          </div>
-          <div class="log" id="externalLog" style="height:220px; margin-top:10px"></div>
-        </div>
-        <div class="card">
-          <h2>OIDC: Keycloak + protected route</h2>
-          <div class="sub">
-            Get an access token from Keycloak (<code>/auth</code>) and call a JWT-protected endpoint (<code>/secure</code>).
-          </div>
-          <div class="row" style="margin-top:10px">
-            <button class="primary" onclick="openKeycloak()">Open Keycloak</button>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <div class="input" style="flex:1 1 230px; min-width: 230px;">
-              <label>User</label>
-              <input id="oidcUser" value="demo" spellcheck="false" />
-            </div>
-            <div class="input" style="flex:1 1 230px; min-width: 230px;">
-              <label>Password</label>
-              <input id="oidcPass" value="demo" spellcheck="false" />
-            </div>
-          </div>
-          <div class="row">
-            <button class="good" onclick="getToken()">Get token</button>
-            <button class="good" onclick="callSecure()">GET /secure</button>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <div class="input" style="flex:1 1 100%; min-width: 300px;">
-              <label>Access token</label>
-              <input id="oidcToken" value="" spellcheck="false" placeholder="(click Get token)" />
-            </div>
-          </div>
-          <div class="log" id="oidcLog" style="height:160px; margin-top:10px"></div>
-        </div>
-      </div>
+      </main>
     </div>
 
     <script>
@@ -525,6 +673,8 @@
       const externalStatEl = el("externalStat");
       const externalEventsEl = el("externalEvents");
       const externalBoardEl = el("externalBoard");
+      const externalLeagueLogoEl = el("externalLeagueLogo");
+      const externalLeagueNameEl = el("externalLeagueName");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -664,6 +814,38 @@
       async function selfTest(){
         append(`[${now()}] self-test: /health`, "muted");
         await call("/health", false);
+      }
+
+      function showModule(key){
+        const k = (key || "policies").toLowerCase();
+        const mods = Array.from(document.querySelectorAll(".module"));
+        for (const m of mods){
+          const mk = m.getAttribute("data-module");
+          m.classList.toggle("active", mk === k);
+        }
+        const btns = Array.from(document.querySelectorAll(".nav button[data-module]"));
+        for (const b of btns){
+          b.classList.toggle("active", (b.getAttribute("data-module") || "").toLowerCase() === k);
+          if ((b.getAttribute("data-module") || "").toLowerCase() !== k){
+            b.classList.remove("primary");
+          } else {
+            b.classList.add("primary");
+          }
+        }
+        if (location.hash !== "#" + k) history.replaceState(null, "", "#" + k);
+      }
+
+      function initNav(){
+        const btns = Array.from(document.querySelectorAll(".nav button[data-module]"));
+        for (const b of btns){
+          b.addEventListener("click", () => showModule(b.getAttribute("data-module")));
+        }
+        const fromHash = (location.hash || "").replace("#","").trim();
+        showModule(fromHash || "policies");
+        window.addEventListener("hashchange", () => {
+          const h = (location.hash || "").replace("#","").trim();
+          showModule(h || "policies");
+        });
       }
 
       function setTrafficStatus(kind, text){
@@ -836,6 +1018,8 @@
           nfl: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
           nba: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
           epl: "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard",
+          mls: "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard",
+          laliga: "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard",
         };
         const upstream = upstreamMap[p] || "https://site.api.espn.com/";
         if (externalReqEl) externalReqEl.textContent = path;
@@ -860,6 +1044,18 @@
         try { data = JSON.parse(txt); } catch (e) { /* ignore */ }
         const events = (data && data.events) ? data.events : [];
         if (externalEventsEl) externalEventsEl.textContent = String(events.length);
+        const league = (data && data.leagues && data.leagues[0]) ? data.leagues[0] : null;
+        const leagueName = (league && (league.name || league.abbreviation)) ? (league.name || league.abbreviation) : "—";
+        const leagueLogo = (league && league.logos && league.logos[0] && league.logos[0].href) ? league.logos[0].href : "";
+        if (externalLeagueNameEl) externalLeagueNameEl.textContent = leagueName;
+        if (externalLeagueLogoEl){
+          if (leagueLogo){
+            externalLeagueLogoEl.src = leagueLogo;
+            externalLeagueLogoEl.style.display = "inline-block";
+          } else {
+            externalLeagueLogoEl.style.display = "none";
+          }
+        }
         renderExternalScoreboard(events);
 
         // Show a compact JSON preview for the talk
@@ -941,6 +1137,7 @@
       clearLog();
       clearTraffic();
       renderTrafficBars();
+      initNav();
       installJsDiagnostics();
       setTimeout(() => { selfTest(); }, 250);
     </script>
