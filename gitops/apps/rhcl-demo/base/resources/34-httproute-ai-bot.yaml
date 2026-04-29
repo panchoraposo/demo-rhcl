@@ -1,0 +1,38 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ai-bot
+  namespace: demo
+  labels:
+    app: rhcl-ai-bot
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  hostnames:
+    - REPLACE_ME_DEMO_HOSTNAME
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-gw
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /mcp
+        - method: POST
+          path:
+            type: PathPrefix
+            value: /mcp
+        - method: POST
+          path:
+            type: PathPrefix
+            value: /ai
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: rhcl-ai-bot
+          port: 80
+          weight: 1
+

@@ -18,6 +18,8 @@ resources:
   - resources/31-httproute-ui.yaml
   - resources/32-httproute-ab-canary-external.yaml
   - resources/33-httproute-oidc.yaml
+  - resources/34-httproute-ai-bot.yaml
+  - resources/35-ai-bot.yaml
   - resources/40-gateway-authpolicy.yaml
   - resources/50-api-keys.yaml
   - resources/60-route-authpolicy.yaml
@@ -27,7 +29,9 @@ resources:
   - resources/65-secure-jwt-authpolicy.yaml
   - resources/66-secure-oidcpolicy.yaml
   - resources/67-oidc-portal-authpolicy.yaml
+  - resources/68-ai-bot-authpolicy.yaml
   - resources/70-route-ratelimitpolicy.yaml
+  - resources/73-ai-bot-tokenratelimitpolicy.yaml
   - resources/80-route-passthrough.yaml
   - resources/81-route-oidc-passthrough.yaml
 
