@@ -46,23 +46,29 @@ spec:
               done
               echo "[bootstrap] configuring kcadm"
               /opt/keycloak/bin/kcadm.sh config credentials \
+                --config /tmp/kcadm.config \
                 --server "${SERVER}" \
                 --realm master \
                 --user "${KC_BOOTSTRAP_ADMIN_USERNAME}" \
                 --password "${KC_BOOTSTRAP_ADMIN_PASSWORD}"
 
               echo "[bootstrap] locating client rhcl-ui"
-              CID=$(/opt/keycloak/bin/kcadm.sh get clients -r rhcl -q clientId=rhcl-ui | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]\\+\\)\".*/\\1/p' | head -n1 || true)
+              CID=$(/opt/keycloak/bin/kcadm.sh get clients --config /tmp/kcadm.config -r rhcl -q clientId=rhcl-ui | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]\\+\\)\".*/\\1/p' | head -n1 || true)
               if [ -z "${CID}" ]; then
                 echo "[bootstrap] ERROR: client rhcl-ui not found in realm rhcl"
                 exit 1
               fi
 
               echo "[bootstrap] enabling standard flow for rhcl-ui (${CID})"
-              /opt/keycloak/bin/kcadm.sh update "clients/${CID}" -r rhcl \
+              /opt/keycloak/bin/kcadm.sh update --config /tmp/kcadm.config "clients/${CID}" -r rhcl \
                 -s standardFlowEnabled=true \
                 -s directAccessGrantsEnabled=true \
                 -s publicClient=true
+
+              echo "[bootstrap] setting realm theme to 'rhcl'"
+              /opt/keycloak/bin/kcadm.sh update --config /tmp/kcadm.config realms/rhcl \
+                -s loginTheme=rhcl \
+                -s accountTheme=rhcl
 
               echo "[bootstrap] done"
 
