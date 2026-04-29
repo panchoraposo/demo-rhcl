@@ -285,7 +285,7 @@ spec:
       labels:
         app: external-proxy
       annotations:
-        rhcl-demo/external-proxy-config: "espn-v1"
+        rhcl-demo/external-proxy-config: "espn-v2"
     spec:
       containers:
         - name: nginx
@@ -346,6 +346,24 @@ data:
 
       location ^~ /external/epl {
         rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
+        proxy_ssl_server_name on;
+        proxy_set_header User-Agent "rhcl-demo";
+        proxy_set_header Host site.api.espn.com;
+        proxy_set_header Accept "application/json";
+        proxy_pass https://site.api.espn.com;
+      }
+
+      location ^~ /external/mls {
+        rewrite ^/external/mls/?$ /apis/site/v2/sports/soccer/usa.1/scoreboard break;
+        proxy_ssl_server_name on;
+        proxy_set_header User-Agent "rhcl-demo";
+        proxy_set_header Host site.api.espn.com;
+        proxy_set_header Accept "application/json";
+        proxy_pass https://site.api.espn.com;
+      }
+
+      location ^~ /external/laliga {
+        rewrite ^/external/laliga/?$ /apis/site/v2/sports/soccer/esp.1/scoreboard break;
         proxy_ssl_server_name on;
         proxy_set_header User-Agent "rhcl-demo";
         proxy_set_header Host site.api.espn.com;
