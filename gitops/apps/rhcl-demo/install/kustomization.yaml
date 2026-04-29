@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - resources/00-kuadrant-namespace.yaml
-  - resources/10-gatewayclass-openshift-default.yaml
   - resources/20-rhcl-operator.yaml
   - resources/30-kuadrant-cr.yaml
 
