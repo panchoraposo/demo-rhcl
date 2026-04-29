@@ -8,7 +8,6 @@ resources:
   - resources/16-ab-canary-external.yaml
   - resources/17-oidc-keycloak.yaml
   - resources/18-rhbk-operator.yaml
-  - resources/19-keycloak-client-bootstrap.yaml
   - resources/20-gateway.yaml
   - resources/24-gateway-certificate.yaml
   - resources/25-gateway-tlspolicy.yaml

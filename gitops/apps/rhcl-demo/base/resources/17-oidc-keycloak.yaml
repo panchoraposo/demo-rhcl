@@ -232,6 +232,8 @@ spec:
   realm:
     realm: rhcl
     enabled: true
+    loginTheme: rhcl
+    accountTheme: rhcl
     clients:
       - clientId: rhcl-ui
         enabled: true
