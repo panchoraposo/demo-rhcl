@@ -49,7 +49,7 @@ public class ChatResource {
             ArrayNode prompt = json.mapper().createArrayNode();
             prompt.add(obj("system",
                 "You are a helpful sports assistant for a workshop demo. Use the provided NBA scoreboard summary to answer the user question. " +
-                "Be concise. Do not include internal reasoning or <think> tags; only output the final answer."));
+                "Be concise. Do not include internal reasoning. Output MUST start with 'FINAL:' and nothing else before it."));
             prompt.add(obj("user", "User question: " + safe(userText) + "\n\nNBA scoreboard summary:\n" + summary));
             JsonNode llmRes = llm.chat(prompt);
             answer = llmRes.at("/choices/0/message/content").asText("");
@@ -190,7 +190,12 @@ public class ChatResource {
 
   private static String sanitizeAnswer(String text) {
     if (text == null) return "";
-    return text.replaceAll("(?s)<think>.*?</think>", "").trim();
+    String s = text.replaceAll("(?s)<think>.*?</think>", "").trim();
+    int idx = s.toUpperCase().indexOf("FINAL:");
+    if (idx >= 0) {
+      return s.substring(idx + "FINAL:".length()).trim();
+    }
+    return s;
   }
 }
 
