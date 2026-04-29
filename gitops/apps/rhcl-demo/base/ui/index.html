@@ -287,11 +287,25 @@
 
       /* External scoreboard */
       .board{
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+      }
+      .boardTitle{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        color:#dbe7ff;
+        font-size:13px;
+        letter-spacing:.2px;
+      }
+      .boardTitle .muted{color:var(--muted); font-size:12px; letter-spacing:0}
+      .boardGrid{
         display:grid;
-        grid-template-columns: repeat(3, minmax(220px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         gap:10px;
       }
-      @media (max-width: 980px){ .board{grid-template-columns:1fr} }
       .match{
         border-radius:16px;
         border:1px solid rgba(255,255,255,.10);
@@ -328,20 +342,29 @@
       .teams{display:flex; flex-direction:column; gap:8px;}
       .teamrow{
         display:grid;
-        grid-template-columns: 28px 1fr auto;
+        grid-template-columns: 34px 1fr auto;
         align-items:center;
         gap:10px;
       }
       .logo{
-        width:28px; height:28px;
+        width:34px; height:34px;
         border-radius:8px;
         background:rgba(255,255,255,.06);
         border:1px solid rgba(255,255,255,.10);
         object-fit:contain;
         padding:3px;
       }
-      .tname{font-size:13px; color:#e7f0ff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-      .score{font-size:16px; letter-spacing:.2px;}
+      .tname{
+        font-size:13px;
+        color:#e7f0ff;
+        white-space: normal;
+        line-height:1.2;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .score{font-size:18px; letter-spacing:.2px; min-width:2ch; text-align:right;}
       .score.win{color:#86efac}
       .score.lose{color:#fca5a5}
       .meta{
@@ -582,6 +605,16 @@
                     <div class="value" id="externalEvents">—</div>
                   </div>
                 </div>
+                <div class="row" style="margin-top:10px">
+                  <span class="pill"><span class="dot good"></span> Range</span>
+                  <select id="externalRange" style="border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); padding:8px 10px; border-radius:12px;">
+                    <option value="3">±3 days</option>
+                    <option value="7" selected>±7 days</option>
+                    <option value="14">±14 days</option>
+                  </select>
+                  <button class="primary" onclick="refreshExternal()">Refresh</button>
+                  <span class="pill"><span class="dot"></span> <span id="externalBreakdown">—</span></span>
+                </div>
                 <div class="row" style="margin-top:12px; align-items:center">
                   <img id="externalLeagueLogo" class="logo" alt="" style="width:34px;height:34px;border-radius:10px; display:none" />
                   <span class="pill"><span class="dot good"></span> <span id="externalLeagueName">—</span></span>
@@ -675,6 +708,8 @@
       const externalBoardEl = el("externalBoard");
       const externalLeagueLogoEl = el("externalLeagueLogo");
       const externalLeagueNameEl = el("externalLeagueName");
+      const externalRangeEl = el("externalRange");
+      const externalBreakdownEl = el("externalBreakdown");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -684,6 +719,7 @@
       let trafficSample = [];
       let trafficMode = "";
       let trafficLatency = [];
+      let externalLastPreset = "nba";
 
       function now() {
         const d = new Date();
@@ -941,71 +977,120 @@
         if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
+      function ymd(d){
+        const y=d.getFullYear();
+        const m=String(d.getMonth()+1).padStart(2,'0');
+        const day=String(d.getDate()).padStart(2,'0');
+        return `${y}${m}${day}`;
+      }
+
+      async function refreshExternal(){
+        return await callExternal(externalLastPreset || "nba");
+      }
+
+      function classifyExternalEvent(ev){
+        const comp = (ev.competitions && ev.competitions[0]) || null;
+        const stType = (comp && comp.status && comp.status.type) || (ev.status && ev.status.type) || {};
+        const state = (stType.state || "").toLowerCase();
+        const isLive = state === "in" || state === "inprogress";
+        const isFinal = state === "post" || state === "final";
+        const isSched = state === "pre" || state === "scheduled";
+        return { isLive, isFinal, isSched, stType, comp };
+      }
+
       function renderExternalScoreboard(events){
         if (!externalBoardEl) return;
         externalBoardEl.innerHTML = "";
 
-        const show = (events || []).slice(0, 6);
-        if (show.length === 0){
-          const m = document.createElement("div");
-          m.className = "match";
-          m.innerHTML = `<div class="top"><span class="badge sched">No events</span><span>Try another preset</span></div>`;
-          externalBoardEl.appendChild(m);
+        const all = (events || []).slice();
+        if (all.length === 0){
+          externalBoardEl.innerHTML = `<div class="match"><div class="top"><span class="badge sched">No events</span><span>Try another league or widen the range.</span></div></div>`;
           return;
         }
 
-        for (const ev of show){
-          const comp = (ev.competitions && ev.competitions[0]) || null;
-          const stType = (comp && comp.status && comp.status.type) || (ev.status && ev.status.type) || {};
-          const state = (stType.state || "").toLowerCase();
-          const detail = (stType.shortDetail || stType.detail || "").trim();
-          const isLive = state === "in" || state === "inprogress";
-          const isFinal = state === "post" || state === "final";
-          const isSched = state === "pre" || state === "scheduled";
+        const finals = [];
+        const live = [];
+        const upcoming = [];
+        for (const ev of all){
+          const c = classifyExternalEvent(ev);
+          if (c.isLive) live.push(ev);
+          else if (c.isFinal) finals.push(ev);
+          else upcoming.push(ev);
+        }
+        finals.sort((a,b)=> (new Date(b.date)) - (new Date(a.date)));
+        live.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
+        upcoming.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
 
-          const badgeCls = isLive ? "live" : (isFinal ? "final" : "sched");
-          const badgeText = isLive ? "LIVE" : (isFinal ? "FINAL" : "SCHEDULED");
+        const sections = [
+          { title:"FINAL (recent)", items: finals.slice(0, 9) },
+          { title:"LIVE", items: live.slice(0, 9) },
+          { title:"UPCOMING", items: upcoming.slice(0, 18) },
+        ];
 
-          let home = null, away = null;
-          if (comp && Array.isArray(comp.competitors)){
-            for (const c of comp.competitors){
-              const ha = (c.homeAway || "").toLowerCase();
-              const t = c.team || {};
-              const logo = (t.logos && t.logos[0] && t.logos[0].href) || "";
-              const name = (t.shortDisplayName || t.abbreviation || t.displayName || t.name || ha || "team");
-              const score = (c.score != null ? String(c.score) : "");
-              const winner = !!c.winner;
-              const obj = { logo, name, score, winner };
-              if (ha === "home") home = obj;
-              else if (ha === "away") away = obj;
+        for (const sec of sections){
+          if (sec.items.length === 0) continue;
+          const head = document.createElement("div");
+          head.className = "boardTitle";
+          head.innerHTML = `<span>${sec.title}</span><span class="muted">${sec.items.length} shown</span>`;
+          externalBoardEl.appendChild(head);
+
+          const grid = document.createElement("div");
+          grid.className = "boardGrid";
+
+          for (const ev of sec.items){
+            const { stType, comp } = classifyExternalEvent(ev);
+            const state = (stType.state || "").toLowerCase();
+            const detail = (stType.shortDetail || stType.detail || "").trim();
+            const isLive2 = state === "in" || state === "inprogress";
+            const isFinal2 = state === "post" || state === "final";
+
+            const badgeCls = isLive2 ? "live" : (isFinal2 ? "final" : "sched");
+            const badgeText = isLive2 ? "LIVE" : (isFinal2 ? "FINAL" : "SCHEDULED");
+
+            let home = null, away = null;
+            if (comp && Array.isArray(comp.competitors)){
+              for (const c2 of comp.competitors){
+                const ha = (c2.homeAway || "").toLowerCase();
+                const t = c2.team || {};
+                const logo = (t.logos && t.logos[0] && t.logos[0].href) || "";
+                const name = (t.displayName || t.shortDisplayName || t.abbreviation || t.name || ha || "team");
+                const score = (c2.score != null ? String(c2.score) : "");
+                const winner = !!c2.winner;
+                const obj = { logo, name, score, winner };
+                if (ha === "home") home = obj;
+                else if (ha === "away") away = obj;
+              }
             }
+
+            const eventName = (ev.shortName || ev.name || "").trim();
+            const when = (ev.date ? new Date(ev.date).toLocaleString() : "");
+            const venue = (comp && comp.venue && (comp.venue.fullName || (comp.venue.address && comp.venue.address.city))) ? (comp.venue.fullName || comp.venue.address.city) : "";
+
+            const match = document.createElement("div");
+            match.className = "match";
+            match.innerHTML = `
+              <div class="top">
+                <span class="badge ${badgeCls}">${badgeText}</span>
+                <span>${detail || when}</span>
+              </div>
+              <div class="teams">
+                <div class="teamrow">
+                  <img class="logo" alt="" src="${(away && away.logo) ? away.logo : ""}" onerror="this.style.display='none'"/>
+                  <div class="tname">${away ? away.name : eventName}</div>
+                  <div class="score ${away && away.winner ? "win" : ""}">${away ? (away.score || "—") : ""}</div>
+                </div>
+                <div class="teamrow">
+                  <img class="logo" alt="" src="${(home && home.logo) ? home.logo : ""}" onerror="this.style.display='none'"/>
+                  <div class="tname">${home ? home.name : ""}</div>
+                  <div class="score ${home && home.winner ? "win" : ""}">${home ? (home.score || "—") : ""}</div>
+                </div>
+              </div>
+              <div class="meta">${eventName}${venue ? " · " + venue : ""}</div>
+            `;
+            grid.appendChild(match);
           }
 
-          const name = (ev.shortName || ev.name || "").trim();
-          const when = (ev.date ? new Date(ev.date).toLocaleString() : "");
-
-          const match = document.createElement("div");
-          match.className = "match";
-          match.innerHTML = `
-            <div class="top">
-              <span class="badge ${badgeCls}">${badgeText}</span>
-              <span>${detail || when}</span>
-            </div>
-            <div class="teams">
-              <div class="teamrow">
-                <img class="logo" alt="" src="${(away && away.logo) ? away.logo : ""}" onerror="this.style.display='none'"/>
-                <div class="tname">${away ? away.name : name}</div>
-                <div class="score ${away && away.winner ? "win" : ""}">${away ? (away.score || "—") : ""}</div>
-              </div>
-              <div class="teamrow">
-                <img class="logo" alt="" src="${(home && home.logo) ? home.logo : ""}" onerror="this.style.display='none'"/>
-                <div class="tname">${home ? home.name : ""}</div>
-                <div class="score ${home && home.winner ? "win" : ""}">${home ? (home.score || "—") : ""}</div>
-              </div>
-            </div>
-            <div class="meta">${name}</div>
-          `;
-          externalBoardEl.appendChild(match);
+          externalBoardEl.appendChild(grid);
         }
       }
 
@@ -1013,7 +1098,13 @@
         externalLogEl.textContent = "";
         if (externalBoardEl) externalBoardEl.innerHTML = "";
         const p = (preset || "nfl").toLowerCase();
-        const path = `/external/${p}`;
+        externalLastPreset = p;
+        const rDays = externalRangeEl ? parseInt(externalRangeEl.value || "7", 10) : 7;
+        const today = new Date();
+        const start = new Date(today); start.setDate(today.getDate() - rDays);
+        const end = new Date(today); end.setDate(today.getDate() + rDays);
+        const dates = `${ymd(start)}-${ymd(end)}`;
+        const path = `/external/${p}?dates=${dates}&_=${Date.now()}`;
         const upstreamMap = {
           nfl: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
           nba: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
@@ -1022,10 +1113,11 @@
           laliga: "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard",
         };
         const upstream = upstreamMap[p] || "https://site.api.espn.com/";
-        if (externalReqEl) externalReqEl.textContent = path;
+        if (externalReqEl) externalReqEl.textContent = path.replace(/&_=[0-9]+$/, "");
         if (externalUpEl) externalUpEl.textContent = upstream.replace("https://", "");
         if (externalStatEl) externalStatEl.textContent = "—";
         if (externalEventsEl) externalEventsEl.textContent = "—";
+        if (externalBreakdownEl) externalBreakdownEl.textContent = `range=${dates}`;
         appendTo(externalLogEl, `[${now()}] GET ${path}`, "muted");
 
         const t0 = performance.now();
@@ -1055,6 +1147,12 @@
           } else {
             externalLeagueLogoEl.style.display = "none";
           }
+        }
+        if (externalBreakdownEl){
+          const finals = events.filter(e => classifyExternalEvent(e).isFinal).length;
+          const live = events.filter(e => classifyExternalEvent(e).isLive).length;
+          const up = events.length - finals - live;
+          externalBreakdownEl.textContent = `final=${finals} · live=${live} · upcoming=${up} · range=${dates}`;
         }
         renderExternalScoreboard(events);
 
