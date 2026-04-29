@@ -47,13 +47,15 @@ if [[ -n "${AWS_ACCESS_KEY_ID:-}" || -n "${AWS_SECRET_ACCESS_KEY:-}" || -n "${AW
     exit 1
   fi
 
-  oc -n openshift-ingress create secret generic route53-credentials \
+  for ns in demo openshift-ingress; do
+    oc -n "$ns" create secret generic route53-credentials \
     --type=kuadrant.io/aws \
     --from-literal=AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
     --from-literal=AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
     --from-literal=AWS_REGION="${AWS_REGION}" \
     --dry-run=client -o yaml | oc apply -f -
-  echo "Created/updated Secret/route53-credentials in openshift-ingress."
+    echo "Created/updated Secret/route53-credentials in ${ns}."
+  done
 else
   echo "Route53 secret not configured (AWS_* env vars not set). DNSPolicy will remain inactive until you create it."
 fi
