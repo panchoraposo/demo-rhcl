@@ -131,7 +131,7 @@ spec:
         enabled: true
         publicClient: true
         directAccessGrantsEnabled: true
-        standardFlowEnabled: false
+        standardFlowEnabled: true
         redirectUris:
           - "*"
         webOrigins:

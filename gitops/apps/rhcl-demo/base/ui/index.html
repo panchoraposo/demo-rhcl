@@ -956,6 +956,7 @@
                   <button class="primary" onclick="loginViaGateway()">Login via Gateway</button>
                   <button class="warn" onclick="callSecureNoToken()">Try without login</button>
                   <button class="warn" onclick="clearOidcToken()">Clear token</button>
+                  <button class="warn" onclick="logoutGateway()">Logout</button>
                 </div>
                 <div class="row" style="margin-top:10px">
                   <div class="input" style="flex:1 1 100%; min-width: 300px;">
@@ -2648,6 +2649,20 @@ spec:
         }, 600);
       }
 
+      async function logoutGateway(){
+        oidcLogEl.textContent = "";
+        appendTo(oidcLogEl, `[${now()}] GET /logout (clearing session cookie)`, "muted");
+        try{
+          const r = await fetch("/logout", { cache: "no-store" });
+          const txt = await r.text();
+          appendTo(oidcLogEl, `status=${r.status}`, (r.status >= 200 && r.status < 400) ? "ok" : "warn");
+          if (txt) appendTo(oidcLogEl, txt.slice(0, 500), "muted");
+        } catch (e){
+          appendTo(oidcLogEl, `logout failed: ${String(e)}`, "bad");
+        }
+        clearOidcToken();
+      }
+
       function clearOidcToken(){
         oidcTokenEl.value = "";
         try{ localStorage.removeItem(OIDC_TOKEN_KEY); } catch {}
@@ -2777,6 +2792,21 @@ spec:
         if (!ev.data || ev.data.type !== "rhcl_oidc_popup_done") return;
         appendTo(oidcLogEl, `[${now()}] login completed in popup (cookie session is now set)`, "ok");
       });
+
+      // Friendly UX for OAuth errors that may land back on the main UI (e.g., misconfigured client).
+      try{
+        const qs = new URLSearchParams(location.search || "");
+        const err = qs.get("error");
+        const desc = qs.get("error_description");
+        const iss = qs.get("iss");
+        if (err){
+          appendTo(oidcLogEl, `[${now()}] login error: ${err}`, "bad");
+          if (desc) appendTo(oidcLogEl, desc, "bad");
+          if (iss) appendTo(oidcLogEl, `issuer: ${iss}`, "muted");
+          const clean = location.origin + location.pathname + location.hash;
+          history.replaceState(null, "", clean);
+        }
+      } catch {}
 
       setTimeout(() => { selfTest(); }, 250);
     </script>
