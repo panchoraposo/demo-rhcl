@@ -1,0 +1,337 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ab-a
+  namespace: demo
+  labels:
+    app: ab-a
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ab-a
+  template:
+    metadata:
+      labels:
+        app: ab-a
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: ab-a-nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ab-a-nginx
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      location / {
+        add_header content-type text/plain;
+        return 200 "A\n";
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ab-a
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: ab-a
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ab-b
+  namespace: demo
+  labels:
+    app: ab-b
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ab-b
+  template:
+    metadata:
+      labels:
+        app: ab-b
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: ab-b-nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ab-b-nginx
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      location / {
+        add_header content-type text/plain;
+        return 200 "B\n";
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ab-b
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: ab-b
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-v1
+  namespace: demo
+  labels:
+    app: canary-v1
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary-v1
+  template:
+    metadata:
+      labels:
+        app: canary-v1
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: canary-v1-nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: canary-v1-nginx
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      location / {
+        add_header content-type text/plain;
+        return 200 "v1\n";
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-v1
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: canary-v1
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-v2
+  namespace: demo
+  labels:
+    app: canary-v2
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary-v2
+  template:
+    metadata:
+      labels:
+        app: canary-v2
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: canary-v2-nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: canary-v2-nginx
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      location / {
+        add_header content-type text/plain;
+        return 200 "v2\n";
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary-v2
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: canary-v2
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-proxy
+  namespace: demo
+  labels:
+    app: external-proxy
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-proxy
+  template:
+    metadata:
+      labels:
+        app: external-proxy
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: external-proxy-nginx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-proxy-nginx
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  default.conf: |
+    resolver 172.30.0.10 valid=30s ipv6=off;
+    server {
+      listen 8080;
+      location / {
+        proxy_ssl_server_name on;
+        proxy_set_header User-Agent "rhcl-demo";
+        proxy_pass https://httpbin.org/get;
+      }
+    }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-proxy
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: external-proxy
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+

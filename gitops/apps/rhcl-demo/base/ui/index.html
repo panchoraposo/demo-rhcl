@@ -266,6 +266,70 @@
           </div>
         </div>
       </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div class="card">
+          <h2>Role separation (high-level)</h2>
+          <div class="sub">
+            This module illustrates how responsibilities split across <b>Infrastructure Owner</b>, <b>Platform Engineer</b>, and <b>Developer</b>.
+            Click "Run checks" to validate the current state and see which layer is responsible.
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button class="primary" onclick="runRoleChecks()">Run checks</button>
+          </div>
+          <div class="log" id="rolesLog" style="height:220px; margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <h2>Traffic shaping: A/B + canary</h2>
+          <div class="sub">Make a sample of requests and watch the distribution.</div>
+          <div class="row" style="margin-top:10px">
+            <button class="primary" onclick="sampleAB(60)">Sample A/B (60)</button>
+            <button class="primary" onclick="sampleCanary(80)">Sample canary (80)</button>
+            <button onclick="clearTraffic()">Clear</button>
+          </div>
+          <div class="kpi" style="margin-top:12px">
+            <div class="box">
+              <div class="label">A/B result</div>
+              <div class="value" id="abKpi">—</div>
+            </div>
+            <div class="box">
+              <div class="label">Canary result</div>
+              <div class="value" id="canaryKpi">—</div>
+            </div>
+          </div>
+          <div class="chart">
+            <div class="sub" style="margin-bottom:10px">Latest samples</div>
+            <div class="bars" id="trafficBars"></div>
+            <div class="legend">
+              <span><span class="sw"></span> primary</span>
+              <span><span class="sw info"></span> secondary</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div class="card">
+          <h2>External API (public) via in-cluster proxy</h2>
+          <div class="sub">
+            The UI calls <code>/external</code> on the same host; the service proxies a public endpoint and returns JSON.
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button class="primary" onclick="callExternal()">GET /external</button>
+          </div>
+          <div class="log" id="externalLog" style="height:220px; margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <h2>Notes</h2>
+          <div class="sub">
+            Upcoming module: OIDC with Keycloak + OIDCPolicy (JWT-based access to a protected route).
+          </div>
+          <div class="footer" style="margin-top:12px">
+            Keep this demo simple: every call is same-origin, so browser CORS does not get in the way.
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -279,8 +343,14 @@
       const kpiLatency = el("kpiLatency");
       const kpiUser = el("kpiUser");
       const bars = el("bars");
+      const rolesLogEl = el("rolesLog");
+      const abKpiEl = el("abKpi");
+      const canaryKpiEl = el("canaryKpi");
+      const trafficBarsEl = el("trafficBars");
+      const externalLogEl = el("externalLog");
 
       let lastBurst = [];
+      let trafficSample = [];
 
       function now() {
         const d = new Date();
@@ -299,6 +369,13 @@
         logEl.prepend(span);
       }
 
+      function appendTo(elm, line, cls){
+        const span = document.createElement("span");
+        if (cls) span.className = cls;
+        span.textContent = line + "\n";
+        elm.prepend(span);
+      }
+
       function clearLog(){
         logEl.textContent = "";
         lastBurst = [];
@@ -306,6 +383,15 @@
         setPill("", "Ready");
         kpiStatus.textContent = "—";
         kpiLatency.textContent = "—";
+      }
+
+      function clearTraffic(){
+        trafficSample = [];
+        trafficBarsEl.innerHTML = "";
+        abKpiEl.textContent = "—";
+        canaryKpiEl.textContent = "—";
+        rolesLogEl.textContent = "";
+        externalLogEl.textContent = "";
       }
 
       function setKey(v){
@@ -371,8 +457,92 @@
         append(`[${now()}] burst: done`, "muted");
       }
 
+      function renderTrafficBars(){
+        trafficBarsEl.innerHTML = "";
+        const data = trafficSample.slice(-60);
+        for (const s of data){
+          const b = document.createElement("div");
+          const isSecondary = s === "B" || s === "v2";
+          b.className = "bar " + (isSecondary ? "" : "ok");
+          b.style.height = isSecondary ? "44px" : "58px";
+          b.title = s;
+          trafficBarsEl.appendChild(b);
+        }
+        if (data.length === 0){
+          const hint = document.createElement("div");
+          hint.className = "muted";
+          hint.style.color = "#91a4d6";
+          hint.textContent = "Run a sample to populate the chart.";
+          trafficBarsEl.appendChild(hint);
+        }
+      }
+
+      async function sample(path, n){
+        const counts = {};
+        for (let i = 0; i < n; i++){
+          const r = await fetch(path);
+          const t = (await r.text()).trim();
+          counts[t] = (counts[t] || 0) + 1;
+        }
+        return counts;
+      }
+
+      async function sampleAB(n){
+        append(`[${now()}] sampling A/B: ${n} requests`, "muted");
+        const c = await sample("/ab", n);
+        const a = c["A"] || 0;
+        const b = c["B"] || 0;
+        abKpiEl.textContent = `A=${a} B=${b}`;
+        for (let i = 0; i < a; i++) trafficSample.push("A");
+        for (let i = 0; i < b; i++) trafficSample.push("B");
+        renderTrafficBars();
+      }
+
+      async function sampleCanary(n){
+        append(`[${now()}] sampling canary: ${n} requests`, "muted");
+        const c = await sample("/canary", n);
+        const v1 = c["v1"] || 0;
+        const v2 = c["v2"] || 0;
+        canaryKpiEl.textContent = `v1=${v1} v2=${v2}`;
+        for (let i = 0; i < v1; i++) trafficSample.push("v1");
+        for (let i = 0; i < v2; i++) trafficSample.push("v2");
+        renderTrafficBars();
+      }
+
+      async function callExternal(){
+        externalLogEl.textContent = "";
+        appendTo(externalLogEl, `[${now()}] GET /external`, "muted");
+        const r = await fetch("/external");
+        const txt = await r.text();
+        appendTo(externalLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
+        appendTo(externalLogEl, txt.slice(0, 1000));
+      }
+
+      async function runRoleChecks(){
+        rolesLogEl.textContent = "";
+        appendTo(rolesLogEl, `[${now()}] Running role checks…`, "muted");
+
+        // Infrastructure owner: HTTPS entrypoint exists (Route + cert => Gateway programmed)
+        const h = await fetch("/health");
+        appendTo(rolesLogEl, `Infrastructure owner: HTTPS entrypoint reachable -> /health = ${h.status}`, h.status === 200 ? "ok" : "bad");
+
+        // Platform engineer: default deny-all on Gateway (developer must override per route)
+        const noKey = await fetch("/hello");
+        appendTo(rolesLogEl, `Platform engineer: default policy blocks /hello without credentials -> ${noKey.status}`, (noKey.status >= 400) ? "ok" : "warn");
+
+        // Developer: per-route AuthPolicy enables API key auth
+        const withKey = await fetch("/hello", { headers: { Authorization: (apikeyEl.value || "").trim() } });
+        appendTo(rolesLogEl, `Developer: route-level AuthPolicy allows valid API key -> ${withKey.status}`, withKey.status === 200 ? "ok" : "bad");
+
+        // Platform + developer: traffic shaping exists as a platform feature, developers onboard routes
+        const ab = await fetch("/ab");
+        appendTo(rolesLogEl, `Platform feature: traffic shaping route available -> /ab = ${ab.status}`, ab.status === 200 ? "ok" : "bad");
+      }
+
       // Bootstrap
       clearLog();
+      clearTraffic();
+      renderTrafficBars();
     </script>
   </body>
 </html>

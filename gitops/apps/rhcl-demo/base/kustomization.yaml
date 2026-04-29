@@ -5,11 +5,13 @@ resources:
   - resources/00-namespace.yaml
   - resources/10-demo-api.yaml
   - resources/15-ui.yaml
+  - resources/16-ab-canary-external.yaml
   - resources/20-gateway.yaml
   - resources/24-gateway-certificate.yaml
   - resources/25-gateway-tlspolicy.yaml
   - resources/30-httproute-api.yaml
   - resources/31-httproute-ui.yaml
+  - resources/32-httproute-ab-canary-external.yaml
   - resources/40-gateway-authpolicy.yaml
   - resources/50-api-keys.yaml
   - resources/60-route-authpolicy.yaml
