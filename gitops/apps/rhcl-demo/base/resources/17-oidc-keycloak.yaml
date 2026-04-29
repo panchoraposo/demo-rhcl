@@ -1,132 +1,146 @@
 apiVersion: v1
-kind: ConfigMap
+kind: Secret
 metadata:
-  name: keycloak-realm
+  name: keycloak-db-secret
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "11"
-data:
-  rhcl-realm.json: |
-    {
-      "realm": "rhcl",
-      "enabled": true,
-      "clients": [
-        {
-          "clientId": "rhcl-ui",
-          "enabled": true,
-          "publicClient": true,
-          "directAccessGrantsEnabled": true,
-          "standardFlowEnabled": false,
-          "redirectUris": [
-            "*"
-          ],
-          "webOrigins": [
-            "*"
-          ]
-        }
-      ],
-      "users": [
-        {
-          "username": "demo",
-          "enabled": true,
-          "firstName": "Demo",
-          "lastName": "User",
-          "email": "demo@example.com",
-          "emailVerified": true,
-          "credentials": [
-            {
-              "type": "password",
-              "value": "demo",
-              "temporary": false
-            }
-          ]
-        }
-      ]
-    }
+type: Opaque
+stringData:
+  username: keycloak
+  password: keycloak
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: keycloak
+  name: keycloak-db
   namespace: demo
   labels:
-    app: keycloak
+    app: keycloak-db
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: keycloak
+      app: keycloak-db
   template:
     metadata:
       labels:
-        app: keycloak
+        app: keycloak-db
     spec:
       containers:
-        - name: keycloak
-          image: registry.redhat.io/rhbk/keycloak-rhel9:26
-          args:
-            - start-dev
-            - --import-realm
-          env:
-            - name: KEYCLOAK_ADMIN
-              value: admin
-            - name: KEYCLOAK_ADMIN_PASSWORD
-              value: admin
-            - name: KC_HTTP_RELATIVE_PATH
-              value: /auth
-            - name: KC_PROXY_HEADERS
-              value: xforwarded
-            - name: KC_HOSTNAME_STRICT
-              value: "false"
+        - name: postgres
+          image: postgres:15-alpine
           ports:
-            - name: http
-              containerPort: 8080
+            - name: pg
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: keycloak
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-secret
+                  key: password
           readinessProbe:
-            httpGet:
-              path: /auth/realms/rhcl/.well-known/openid-configuration
-              port: 8080
+            tcpSocket:
+              port: 5432
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 5432
             initialDelaySeconds: 20
             periodSeconds: 10
-            timeoutSeconds: 3
-          livenessProbe:
-            httpGet:
-              path: /auth/
-              port: 8080
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            timeoutSeconds: 3
-          resources:
-            requests:
-              cpu: 100m
-              memory: 512Mi
-            limits:
-              memory: 1Gi
-          volumeMounts:
-            - name: realm
-              mountPath: /opt/keycloak/data/import
-              readOnly: true
-      volumes:
-        - name: realm
-          configMap:
-            name: keycloak-realm
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: keycloak
+  name: keycloak-db
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   selector:
-    app: keycloak
+    app: keycloak-db
   ports:
-    - name: http
-      port: 80
+    - name: pg
+      port: 5432
       protocol: TCP
-      targetPort: 8080
+      targetPort: 5432
+---
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "13"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instances: 1
+  ingress:
+    enabled: false
+  db:
+    vendor: postgres
+    host: keycloak-db
+    database: keycloak
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
+  http:
+    httpEnabled: true
+  hostname:
+    strict: false
+  proxy:
+    headers: xforwarded
+  additionalOptions:
+    - name: http-relative-path
+      value: /auth
+---
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: rhcl-realm
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "14"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  keycloakCRName: keycloak
+  realm:
+    realm: rhcl
+    enabled: true
+    clients:
+      - clientId: rhcl-ui
+        enabled: true
+        publicClient: true
+        directAccessGrantsEnabled: true
+        standardFlowEnabled: false
+        redirectUris:
+          - "*"
+        webOrigins:
+          - "*"
+    users:
+      - username: demo
+        enabled: true
+        firstName: Demo
+        lastName: User
+        email: demo@example.com
+        emailVerified: true
+        credentials:
+          - type: password
+            value: demo
+            temporary: false
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -164,7 +178,7 @@ spec:
     spec:
       containers:
         - name: httpbin
-          image: ghcr.io/mccutchen/go-httpbin:v2.21.0
+          image: ghcr.io/mccutchen/go-httpbin:2.22.1
           ports:
             - containerPort: 8080
               name: http
