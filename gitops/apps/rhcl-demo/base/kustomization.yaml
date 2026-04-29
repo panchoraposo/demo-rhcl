@@ -32,7 +32,6 @@ configMapGenerator:
       - index.html=ui/index.html
 
 generatorOptions:
-  disableNameSuffixHash: true
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 
