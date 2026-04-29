@@ -303,7 +303,7 @@
       .boardTitle .muted{color:var(--muted); font-size:12px; letter-spacing:0}
       .boardGrid{
         display:grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
         gap:10px;
       }
       .match{
@@ -342,27 +342,24 @@
       .teams{display:flex; flex-direction:column; gap:8px;}
       .teamrow{
         display:grid;
-        grid-template-columns: 34px 1fr auto;
+        grid-template-columns: 38px 1fr auto;
         align-items:center;
         gap:10px;
       }
       .logo{
-        width:34px; height:34px;
+        width:38px; height:38px;
         border-radius:8px;
         background:rgba(255,255,255,.06);
         border:1px solid rgba(255,255,255,.10);
         object-fit:contain;
-        padding:3px;
+        padding:0px;
       }
       .tname{
         font-size:13px;
         color:#e7f0ff;
         white-space: normal;
-        line-height:1.2;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+        line-height:1.25;
+        overflow: visible;
       }
       .score{font-size:18px; letter-spacing:.2px; min-width:2ch; text-align:right;}
       .score.win{color:#86efac}
@@ -373,6 +370,75 @@
         line-height:1.35;
       }
 
+      /* JSON tree viewer */
+      .treeWrap{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.10);
+        border-radius:14px;
+        padding:12px;
+      }
+      .treeBar{
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+        align-items:center;
+        justify-content:space-between;
+        margin-bottom:10px;
+      }
+      .treeSearch{
+        flex:1 1 320px;
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:10px 12px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.15);
+        min-width: 260px;
+      }
+      .treeSearch input{
+        width:100%;
+      }
+      .tree{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size:12px;
+        line-height:1.45;
+        color:#d6e7ff;
+        overflow:auto;
+        max-height: 420px;
+        padding:10px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+      }
+      .node{margin-left: 14px}
+      .node summary{
+        cursor:pointer;
+        user-select:none;
+        list-style:none;
+      }
+      .node summary::-webkit-details-marker{display:none}
+      .kv{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        align-items:baseline;
+        padding:2px 0;
+      }
+      .k{color:#c7d2fe}
+      .t{color:#91a4d6}
+      .v{color:#e7f0ff}
+      .hl{outline:2px solid rgba(124,92,255,.35); border-radius:10px; padding:2px 6px}
+      .results{
+        margin-top:10px;
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        color:var(--muted);
+        font-size:12px;
+      }
+      .results button{padding:7px 10px; border-radius:12px; text-align:left}
+
       .footer{margin-top:14px; color:var(--muted); font-size:12px}
     </style>
   </head>
@@ -381,7 +447,6 @@
       <aside class="side">
         <div class="brand">
           <div class="h">RHCL Workshop</div>
-          <div class="p">Switch use-cases live. Each menu item is a “module” for the talk.</div>
         </div>
         <div class="nav">
           <button class="primary active" data-module="policies">Policies playground</button>
@@ -389,7 +454,6 @@
           <button data-module="traffic">A/B + canary</button>
           <button data-module="external">External API (ESPN)</button>
           <button data-module="oidc">OIDC / Keycloak</button>
-          <div class="hint">Tip: you can deep-link with <code>#external</code>, <code>#traffic</code>, etc.</div>
         </div>
         <div class="row" style="margin-top:auto">
           <span class="tag" id="jsTag"><b>JS</b> booting…</span>
@@ -618,7 +682,6 @@
                 <div class="row" style="margin-top:12px; align-items:center">
                   <img id="externalLeagueLogo" class="logo" alt="" style="width:34px;height:34px;border-radius:10px; display:none" />
                   <span class="pill"><span class="dot good"></span> <span id="externalLeagueName">—</span></span>
-                  <span class="pill"><span class="dot"></span> team logos come from ESPN JSON</span>
                 </div>
                 <div class="chart" style="margin-top:12px">
                   <div class="sub" style="margin-bottom:10px">Scoreboard (results + live + upcoming)</div>
@@ -633,10 +696,20 @@
                       <button onclick="downloadExternalJson()">Download</button>
                     </div>
                   </div>
-                  <details style="margin-top:10px" open>
-                    <summary class="pill" style="cursor:pointer; user-select:none">Raw JSON (expand/collapse)</summary>
-                    <pre id="externalRaw" class="log" style="height:340px; margin-top:10px; white-space: pre; overflow:auto"></pre>
-                  </details>
+                  <div class="treeWrap" style="margin-top:10px">
+                    <div class="treeBar">
+                      <div class="treeSearch">
+                        <label style="color:var(--muted); font-size:12px; white-space:nowrap">Search keys</label>
+                        <input id="externalSearch" spellcheck="false" placeholder="competitions, odds, broadcasts…" />
+                      </div>
+                      <div class="row" style="gap:8px">
+                        <button onclick="externalExpandAll(false)">Collapse</button>
+                        <button onclick="externalExpandAll(true)">Expand</button>
+                      </div>
+                    </div>
+                    <div class="tree" id="externalTree"></div>
+                    <div class="results" id="externalResults"></div>
+                  </div>
                 </div>
                 <div class="log" id="externalLog" style="height:180px; margin-top:10px"></div>
               </div>
@@ -724,8 +797,10 @@
       const externalLeagueNameEl = el("externalLeagueName");
       const externalRangeEl = el("externalRange");
       const externalBreakdownEl = el("externalBreakdown");
-      const externalRawEl = el("externalRaw");
       const externalBytesEl = el("externalBytes");
+      const externalTreeEl = el("externalTree");
+      const externalSearchEl = el("externalSearch");
+      const externalResultsEl = el("externalResults");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -737,6 +812,8 @@
       let trafficLatency = [];
       let externalLastPreset = "nba";
       let externalLastJsonText = "";
+      let externalLastJsonObj = null;
+      const externalNodeIndex = new Map(); // path -> details element
 
       function now() {
         const d = new Date();
@@ -1095,10 +1172,11 @@
                 const ha = (c2.homeAway || "").toLowerCase();
                 const t = c2.team || {};
                 const logo = (t.logos && t.logos[0] && t.logos[0].href) || "";
-                const name = (t.displayName || t.shortDisplayName || t.abbreviation || t.name || ha || "team");
+                const full = (t.displayName || t.name || t.shortDisplayName || t.abbreviation || ha || "team");
+                const name = (t.shortDisplayName || t.abbreviation || full);
                 const score = (c2.score != null ? String(c2.score) : "");
                 const winner = !!c2.winner;
-                const obj = { logo, name, score, winner };
+                const obj = { logo, name, full, score, winner };
                 if (ha === "home") home = obj;
                 else if (ha === "away") away = obj;
               }
@@ -1113,21 +1191,21 @@
             match.innerHTML = `
               <div class="top">
                 <span class="badge ${badgeCls}">${badgeText}</span>
-                <span>${detail || when}</span>
+                <span>${esc(detail || when)}</span>
               </div>
               <div class="teams">
                 <div class="teamrow">
-                  <img class="logo" alt="" src="${(away && away.logo) ? away.logo : ""}" onerror="this.style.display='none'"/>
-                  <div class="tname">${away ? away.name : eventName}</div>
+                  <img class="logo" alt="" loading="lazy" src="${(away && away.logo) ? away.logo : ""}" onerror="this.style.display='none'"/>
+                  <div class="tname" title="${escAttr(away ? away.full : eventName)}">${esc(away ? away.name : eventName)}</div>
                   <div class="score ${away && away.winner ? "win" : ""}">${away ? (away.score || "—") : ""}</div>
                 </div>
                 <div class="teamrow">
-                  <img class="logo" alt="" src="${(home && home.logo) ? home.logo : ""}" onerror="this.style.display='none'"/>
-                  <div class="tname">${home ? home.name : ""}</div>
+                  <img class="logo" alt="" loading="lazy" src="${(home && home.logo) ? home.logo : ""}" onerror="this.style.display='none'"/>
+                  <div class="tname" title="${escAttr(home ? home.full : "")}">${esc(home ? home.name : "")}</div>
                   <div class="score ${home && home.winner ? "win" : ""}">${home ? (home.score || "—") : ""}</div>
                 </div>
               </div>
-              <div class="meta">${eventName}${venue ? " · " + venue : ""}</div>
+              <div class="meta">${esc(eventName)}${venue ? " · " + esc(venue) : ""}</div>
             `;
             grid.appendChild(match);
           }
@@ -1162,7 +1240,9 @@
         if (externalBreakdownEl) externalBreakdownEl.textContent = `range=${dates}`;
         if (externalBytesEl) externalBytesEl.textContent = "—";
         externalLastJsonText = "";
-        if (externalRawEl) externalRawEl.textContent = "";
+        externalLastJsonObj = null;
+        if (externalTreeEl) externalTreeEl.textContent = "";
+        if (externalResultsEl) externalResultsEl.textContent = "";
         appendTo(externalLogEl, `[${now()}] GET ${path}`, "muted");
 
         const t0 = performance.now();
@@ -1176,19 +1256,13 @@
         appendTo(externalLogEl, `status=${r.status} latency=${ms}ms`, r.status === 200 ? "ok" : "bad");
         if (r.status !== 200){
           appendTo(externalLogEl, txt.slice(0, 1000), "bad");
-          if (externalRawEl) externalRawEl.textContent = txt.slice(0, 20000);
           return;
         }
 
         let data = null;
         try { data = JSON.parse(txt); } catch (e) { /* ignore */ }
-        if (externalRawEl){
-          try{
-            externalRawEl.textContent = JSON.stringify(data, null, 2);
-          } catch (e){
-            externalRawEl.textContent = txt;
-          }
-        }
+        externalLastJsonObj = data;
+        renderExternalTree(data);
         const events = (data && data.events) ? data.events : [];
         if (externalEventsEl) externalEventsEl.textContent = String(events.length);
         const league = (data && data.leagues && data.leagues[0]) ? data.leagues[0] : null;
@@ -1211,14 +1285,214 @@
         }
         renderExternalScoreboard(events);
 
-        // Show a compact JSON preview for the talk
-        const preview = {
-          leagues: (data && data.leagues && data.leagues[0] && data.leagues[0].name) || undefined,
-          season: (data && data.season && data.season.year) || undefined,
-          week: (data && data.week && data.week.number) || undefined,
-          events: events.slice(0, 3).map(e => ({ id: e.id, name: e.shortName || e.name })),
+        // keep externalLog focused on request/response, not raw JSON
+      }
+
+      function externalType(v){
+        if (v === null) return "null";
+        if (Array.isArray(v)) return `array(${v.length})`;
+        return typeof v;
+      }
+
+      function externalPreview(v){
+        const t = externalType(v);
+        if (t.startsWith("array")) return t;
+        if (t === "object") return "object";
+        if (t === "string") return JSON.stringify(v.length > 60 ? (v.slice(0, 60) + "…") : v);
+        return String(v);
+      }
+
+      function externalPath(parts){
+        return "/" + parts.map(p => String(p).replaceAll("~","~0").replaceAll("/","~1")).join("/");
+      }
+
+      function renderExternalTree(root){
+        if (!externalTreeEl) return;
+        externalTreeEl.textContent = "";
+        if (externalResultsEl) externalResultsEl.textContent = "";
+        externalNodeIndex.clear();
+
+        const top = document.createElement("details");
+        top.className = "node";
+        top.open = true;
+        top.dataset.path = "/";
+        top.innerHTML = `<summary><span class="kv"><span class="k">$</span><span class="t">${externalType(root)}</span></span></summary>`;
+        const container = document.createElement("div");
+        container.className = "node";
+        top.appendChild(container);
+        externalTreeEl.appendChild(top);
+        externalNodeIndex.set("/", top);
+
+        renderExternalChildren(container, root, []);
+      }
+
+      function renderExternalChildren(parentEl, value, pathParts){
+        parentEl.textContent = "";
+        if (value === null || value === undefined) return;
+
+        if (Array.isArray(value)){
+          const max = Math.min(value.length, 200);
+          for (let i = 0; i < max; i++){
+            parentEl.appendChild(renderExternalNode(String(i), value[i], pathParts.concat([i])));
+          }
+          if (value.length > max){
+            const more = document.createElement("div");
+            more.className = "kv";
+            more.innerHTML = `<span class="t">… ${value.length - max} more items</span>`;
+            parentEl.appendChild(more);
+          }
+          return;
+        }
+
+        if (typeof value === "object"){
+          const keys = Object.keys(value);
+          for (const k of keys){
+            parentEl.appendChild(renderExternalNode(k, value[k], pathParts.concat([k])));
+          }
+        }
+      }
+
+      function renderExternalNode(key, val, pathParts){
+        const t = externalType(val);
+        const row = document.createElement("div");
+
+        if (t === "object" || t.startsWith("array")){
+          const det = document.createElement("details");
+          det.className = "node";
+          const p = externalPath(pathParts);
+          det.dataset.path = p;
+          externalNodeIndex.set(p, det);
+
+          det.innerHTML = `<summary><span class="kv"><span class="k">${key}</span><span class="t">${t}</span><span class="v">${externalPreview(val)}</span></span></summary>`;
+          const kids = document.createElement("div");
+          kids.className = "node";
+          det.appendChild(kids);
+
+          let rendered = false;
+          det.__ensureRendered = () => {
+            if (!rendered){
+              renderExternalChildren(kids, val, pathParts);
+              rendered = true;
+            }
+          };
+          det.addEventListener("toggle", () => {
+            if (det.open) det.__ensureRendered();
+          });
+          row.appendChild(det);
+          return row;
+        }
+
+        row.className = "kv";
+        row.innerHTML = `<span class="k">${key}</span><span class="t">${t}</span><span class="v">${externalPreview(val)}</span>`;
+        return row;
+      }
+
+      function externalExpandAll(open){
+        if (!externalTreeEl) return;
+        const nodes = externalTreeEl.querySelectorAll("details.node");
+        let count = 0;
+        for (const d of nodes){
+          if (count > 1500) break; // safety for very large JSON
+          d.open = !!open;
+          count++;
+        }
+      }
+
+      function externalSearch(){
+        if (!externalSearchEl || !externalResultsEl) return;
+        const q = (externalSearchEl.value || "").trim().toLowerCase();
+        externalResultsEl.textContent = "";
+        if (!q || !externalLastJsonObj) return;
+
+        const matches = [];
+        const limit = 80;
+
+        const walk = (v, parts) => {
+          if (matches.length >= limit) return;
+          if (v && typeof v === "object"){
+            if (Array.isArray(v)){
+              for (let i = 0; i < v.length && i < 200; i++){
+                walk(v[i], parts.concat([i]));
+                if (matches.length >= limit) return;
+              }
+              return;
+            }
+            for (const k of Object.keys(v)){
+              if (String(k).toLowerCase().includes(q)){
+                matches.push({ key: k, path: externalPath(parts.concat([k])) });
+                if (matches.length >= limit) return;
+              }
+              walk(v[k], parts.concat([k]));
+              if (matches.length >= limit) return;
+            }
+          }
         };
-        appendTo(externalLogEl, JSON.stringify(preview, null, 2).slice(0, 1200));
+
+        walk(externalLastJsonObj, []);
+
+        const head = document.createElement("div");
+        head.textContent = `Matches: ${matches.length}${matches.length >= limit ? "+" : ""} (click to expand)`;
+        externalResultsEl.appendChild(head);
+
+        for (const m of matches.slice(0, limit)){
+          const b = document.createElement("button");
+          b.textContent = `${m.key}  →  ${m.path}`;
+          b.addEventListener("click", () => externalRevealPath(m.path));
+          externalResultsEl.appendChild(b);
+        }
+      }
+
+      function externalRevealPath(path){
+        if (!externalTreeEl) return;
+        // remove old highlights
+        for (const el of externalTreeEl.querySelectorAll(".hl")) el.classList.remove("hl");
+
+        const parts = path.split("/").filter(Boolean);
+        let cur = "/";
+        // root is open by default
+        for (let i = 0; i < parts.length; i++){
+          const seg = parts[i].replaceAll("~1","/").replaceAll("~0","~");
+          cur = cur === "/" ? `/${seg}` : `${cur}/${seg}`;
+          const node = externalNodeIndex.get(cur);
+          if (node){
+            node.open = true;
+            if (typeof node.__ensureRendered === "function") node.__ensureRendered();
+            // toggle will lazily render
+            const sum = node.querySelector("summary");
+            if (sum) sum.classList.add("hl");
+          }
+        }
+      }
+
+      function esc(s){
+        return String(s || "")
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll("\"","&quot;")
+          .replaceAll("'","&#39;");
+      }
+      function escAttr(s){ return esc(s); }
+
+      function debounce(fn, ms){
+        let t = null;
+        return (...args) => {
+          if (t) clearTimeout(t);
+          t = setTimeout(() => fn(...args), ms);
+        };
+      }
+
+      function initExternalTreeUi(){
+        if (!externalSearchEl) return;
+        const run = debounce(externalSearch, 180);
+        externalSearchEl.addEventListener("input", run);
+        externalSearchEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") externalSearch();
+          if (e.key === "Escape"){
+            externalSearchEl.value = "";
+            if (externalResultsEl) externalResultsEl.textContent = "";
+          }
+        });
       }
 
       function openKeycloak(){
@@ -1291,6 +1565,7 @@
       clearTraffic();
       renderTrafficBars();
       initNav();
+      initExternalTreeUi();
       installJsDiagnostics();
       setTimeout(() => { selfTest(); }, 250);
     </script>
