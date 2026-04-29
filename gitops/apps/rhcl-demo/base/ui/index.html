@@ -356,6 +356,7 @@
           <h2>External API (ESPN) via in-cluster proxy</h2>
           <div class="sub">
             The UI calls <code>/external/&lt;preset&gt;</code> on the same host. The in-cluster proxy fetches ESPN JSON and returns it same-origin.
+            Endpoints are the public ESPN JSON URLs commonly referenced by <a href="https://espnapi.com/" target="_blank" rel="noopener noreferrer">espnapi.com</a>.
           </div>
           <div class="row" style="margin-top:10px">
             <button class="primary" onclick="callExternal('nfl')">NFL scoreboard</button>
@@ -372,6 +373,10 @@
             <div class="box">
               <div class="label">Request</div>
               <div class="value" id="externalReq">—</div>
+            </div>
+            <div class="box">
+              <div class="label">Upstream</div>
+              <div class="value" id="externalUp">—</div>
             </div>
             <div class="box">
               <div class="label">Status / latency</div>
@@ -451,6 +456,7 @@
       const legendSecondaryEl = el("legendSecondary");
       const externalLogEl = el("externalLog");
       const externalReqEl = el("externalReq");
+      const externalUpEl = el("externalUp");
       const externalStatEl = el("externalStat");
       const externalEventsEl = el("externalEvents");
       const externalCardsEl = el("externalCards");
@@ -728,8 +734,16 @@
       async function callExternal(preset){
         externalLogEl.textContent = "";
         if (externalCardsEl) externalCardsEl.innerHTML = "";
-        const path = `/external/${preset || "nfl"}`;
+        const p = (preset || "nfl").toLowerCase();
+        const path = `/external/${p}`;
+        const upstreamMap = {
+          nfl: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+          nba: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
+          epl: "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard",
+        };
+        const upstream = upstreamMap[p] || "https://site.api.espn.com/";
         if (externalReqEl) externalReqEl.textContent = path;
+        if (externalUpEl) externalUpEl.textContent = upstream.replace("https://", "");
         if (externalStatEl) externalStatEl.textContent = "—";
         if (externalEventsEl) externalEventsEl.textContent = "—";
         appendTo(externalLogEl, `[${now()}] GET ${path}`, "muted");
