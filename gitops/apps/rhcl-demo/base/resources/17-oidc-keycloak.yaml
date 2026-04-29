@@ -65,7 +65,7 @@ spec:
     spec:
       containers:
         - name: keycloak
-          image: quay.io/keycloak/keycloak:latest
+          image: registry.redhat.io/rhbk/keycloak-rhel9:26
           args:
             - start-dev
             - --import-realm
@@ -131,64 +131,57 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: secure-echo-nginx
+  name: secure-api
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
-  default.conf: |
-    server {
-      listen 8080;
-      location / {
-        add_header content-type application/json;
-        return 200 "{\"secure\":true,\"message\":\"hello from secure backend\"}\n";
-      }
-    }
+  note: |
+    Secure backend for OIDC demo.
+    This is an httpbin-style service so we can demo:
+    - request headers
+    - JSON responses
+    - realistic protected API calls
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: secure-echo
+  name: secure-api
   namespace: demo
   labels:
-    app: secure-echo
+    app: secure-api
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: secure-echo
+      app: secure-api
   template:
     metadata:
       labels:
-        app: secure-echo
+        app: secure-api
     spec:
       containers:
-        - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+        - name: httpbin
+          image: ghcr.io/mccutchen/go-httpbin:v2.21.0
           ports:
             - containerPort: 8080
               name: http
-          volumeMounts:
-            - name: cfg
-              mountPath: /etc/nginx/conf.d
-              readOnly: true
-      volumes:
-        - name: cfg
-          configMap:
-            name: secure-echo-nginx
+          env:
+            - name: PORT
+              value: "8080"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: secure-echo
+  name: secure-api
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   selector:
-    app: secure-echo
+    app: secure-api
   ports:
     - name: http
       port: 80

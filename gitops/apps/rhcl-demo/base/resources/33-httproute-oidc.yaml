@@ -46,10 +46,16 @@ spec:
           path:
             type: PathPrefix
             value: /secure
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
       backendRefs:
         - group: ""
           kind: Service
-          name: secure-echo
+          name: secure-api
           port: 80
           weight: 1
 

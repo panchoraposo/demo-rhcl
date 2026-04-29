@@ -318,19 +318,11 @@ data:
       # - UI calls same-origin (/external/*)
       # - This service proxies to upstream JSON (no browser CORS problems)
       location ^~ /external {
-        rewrite ^/external/?$ /apis/site/v2/sports/football/nfl/scoreboard break;
+        # Default to NBA for the workshop
+        rewrite ^/external/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
         proxy_ssl_server_name on;
         proxy_set_header Host site.api.espn.com;
         proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
-
-      location ^~ /external/nfl {
-        rewrite ^/external/nfl/?$ /apis/site/v2/sports/football/nfl/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
         proxy_set_header Accept "application/json";
         proxy_pass https://site.api.espn.com;
       }
@@ -346,15 +338,6 @@ data:
 
       location ^~ /external/epl {
         rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
-
-      location ^~ /external/mls {
-        rewrite ^/external/mls/?$ /apis/site/v2/sports/soccer/usa.1/scoreboard break;
         proxy_ssl_server_name on;
         proxy_set_header User-Agent "rhcl-demo";
         proxy_set_header Host site.api.espn.com;
