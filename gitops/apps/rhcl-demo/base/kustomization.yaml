@@ -26,6 +26,7 @@ resources:
   - resources/64-keycloak-authpolicy.yaml
   - resources/65-secure-jwt-authpolicy.yaml
   - resources/66-secure-oidcpolicy.yaml
+  - resources/67-oidc-portal-authpolicy.yaml
   - resources/70-route-ratelimitpolicy.yaml
   - resources/80-route-passthrough.yaml
   - resources/81-route-oidc-passthrough.yaml

@@ -1338,6 +1338,23 @@ spec:
           opa:
             rego: "allow = true"
 ` },
+          { name: "AuthPolicy (allow portal UI)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: oidc-portal-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: oidc-portal
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
           { name: "OIDCPolicy (browser login)", yaml: `apiVersion: extensions.kuadrant.io/v1alpha1
 kind: OIDCPolicy
 metadata:
