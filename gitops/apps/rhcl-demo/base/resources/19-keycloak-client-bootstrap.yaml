@@ -40,19 +40,26 @@ spec:
               set -euo pipefail
               SERVER="http://keycloak-service:8080/auth"
               echo "[bootstrap] waiting for Keycloak..."
-              for i in {1..60}; do
-                if curl -fsS "${SERVER}/realms/master" >/dev/null 2>&1; then
+              for i in {1..120}; do
+                set +e
+                /opt/keycloak/bin/kcadm.sh config credentials \
+                  --config /tmp/kcadm.config \
+                  --server "${SERVER}" \
+                  --realm master \
+                  --user "${KC_BOOTSTRAP_ADMIN_USERNAME}" \
+                  --password "${KC_BOOTSTRAP_ADMIN_PASSWORD}" >/dev/null 2>&1
+                rc=$?
+                set -e
+                if [ "$rc" = "0" ]; then
+                  echo "[bootstrap] kcadm authenticated"
                   break
                 fi
                 sleep 2
               done
-              echo "[bootstrap] configuring kcadm"
-              /opt/keycloak/bin/kcadm.sh config credentials \
-                --config /tmp/kcadm.config \
-                --server "${SERVER}" \
-                --realm master \
-                --user "${KC_BOOTSTRAP_ADMIN_USERNAME}" \
-                --password "${KC_BOOTSTRAP_ADMIN_PASSWORD}"
+              if [ ! -f /tmp/kcadm.config ]; then
+                echo "[bootstrap] ERROR: could not authenticate to Keycloak"
+                exit 1
+              fi
 
               echo "[bootstrap] locating client rhcl-ui"
               CID=$(/opt/keycloak/bin/kcadm.sh get clients --config /tmp/kcadm.config -r rhcl -q clientId=rhcl-ui | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]\\+\\)\".*/\\1/p' | head -n1 || true)
