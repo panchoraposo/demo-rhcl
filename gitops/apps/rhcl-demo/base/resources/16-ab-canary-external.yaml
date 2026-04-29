@@ -313,9 +313,10 @@ data:
     server {
       listen 8080;
       location /external {
+        rewrite ^/external/?$ /get break;
         proxy_ssl_server_name on;
         proxy_set_header User-Agent "rhcl-demo";
-        proxy_pass https://httpbin.org/get;
+        proxy_pass https://httpbin.org;
       }
     }
 ---
