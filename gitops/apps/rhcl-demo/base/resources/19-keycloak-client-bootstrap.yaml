@@ -7,8 +7,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "15"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     argocd.argoproj.io/hook: Sync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
 spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
   ttlSecondsAfterFinished: 300
   template:
     metadata:
