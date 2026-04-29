@@ -206,6 +206,71 @@
         background:rgba(255,255,255,.08);
       }
 
+      /* External scoreboard */
+      .board{
+        display:grid;
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+        gap:10px;
+      }
+      @media (max-width: 980px){ .board{grid-template-columns:1fr} }
+      .match{
+        border-radius:16px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.10);
+        padding:12px;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+        min-height: 128px;
+      }
+      .match .top{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        color:var(--muted);
+        font-size:12px;
+      }
+      .badge{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding:5px 9px;
+        border-radius:999px;
+        border:1px solid rgba(255,255,255,.12);
+        background:rgba(255,255,255,.06);
+        color:#dbe7ff;
+        font-size:12px;
+        white-space:nowrap;
+      }
+      .badge.live{border-color: rgba(56,189,248,.45); background: rgba(56,189,248,.10);}
+      .badge.final{border-color: rgba(245,158,11,.45); background: rgba(245,158,11,.10);}
+      .badge.sched{border-color: rgba(124,92,255,.45); background: rgba(124,92,255,.10);}
+      .teams{display:flex; flex-direction:column; gap:8px;}
+      .teamrow{
+        display:grid;
+        grid-template-columns: 28px 1fr auto;
+        align-items:center;
+        gap:10px;
+      }
+      .logo{
+        width:28px; height:28px;
+        border-radius:8px;
+        background:rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.10);
+        object-fit:contain;
+        padding:3px;
+      }
+      .tname{font-size:13px; color:#e7f0ff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+      .score{font-size:16px; letter-spacing:.2px;}
+      .score.win{color:#86efac}
+      .score.lose{color:#fca5a5}
+      .meta{
+        color:var(--muted);
+        font-size:12px;
+        line-height:1.35;
+      }
+
       .footer{margin-top:14px; color:var(--muted); font-size:12px}
     </style>
   </head>
@@ -388,8 +453,8 @@
             </div>
           </div>
           <div class="chart" style="margin-top:12px">
-            <div class="sub" style="margin-bottom:10px">Preview (first events)</div>
-            <div class="kpi" id="externalCards"></div>
+            <div class="sub" style="margin-bottom:10px">Scoreboard (top events)</div>
+            <div class="board" id="externalBoard"></div>
           </div>
           <div class="log" id="externalLog" style="height:220px; margin-top:10px"></div>
         </div>
@@ -459,7 +524,7 @@
       const externalUpEl = el("externalUp");
       const externalStatEl = el("externalStat");
       const externalEventsEl = el("externalEvents");
-      const externalCardsEl = el("externalCards");
+      const externalBoardEl = el("externalBoard");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -694,46 +759,77 @@
         if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
-      function renderExternalCards(events){
-        if (!externalCardsEl) return;
-        externalCardsEl.innerHTML = "";
-        const show = (events || []).slice(0, 3);
+      function renderExternalScoreboard(events){
+        if (!externalBoardEl) return;
+        externalBoardEl.innerHTML = "";
+
+        const show = (events || []).slice(0, 6);
         if (show.length === 0){
-          const box = document.createElement("div");
-          box.className = "box";
-          box.innerHTML = `<div class="label">No events right now</div><div class="value">Try another preset</div>`;
-          externalCardsEl.appendChild(box);
+          const m = document.createElement("div");
+          m.className = "match";
+          m.innerHTML = `<div class="top"><span class="badge sched">No events</span><span>Try another preset</span></div>`;
+          externalBoardEl.appendChild(m);
           return;
         }
+
         for (const ev of show){
           const comp = (ev.competitions && ev.competitions[0]) || null;
-          const st = ((comp && comp.status && comp.status.type && comp.status.type.shortDetail) || (ev.status && ev.status.type && ev.status.type.shortDetail) || "").trim();
-          const name = (ev.shortName || ev.name || "").trim();
-          let line = name;
+          const stType = (comp && comp.status && comp.status.type) || (ev.status && ev.status.type) || {};
+          const state = (stType.state || "").toLowerCase();
+          const detail = (stType.shortDetail || stType.detail || "").trim();
+          const isLive = state === "in" || state === "inprogress";
+          const isFinal = state === "post" || state === "final";
+          const isSched = state === "pre" || state === "scheduled";
+
+          const badgeCls = isLive ? "live" : (isFinal ? "final" : "sched");
+          const badgeText = isLive ? "LIVE" : (isFinal ? "FINAL" : "SCHEDULED");
+
+          let home = null, away = null;
           if (comp && Array.isArray(comp.competitors)){
-            const byHomeAway = {};
             for (const c of comp.competitors){
               const ha = (c.homeAway || "").toLowerCase();
-              const team = (c.team && (c.team.displayName || c.team.shortDisplayName || c.team.name)) || ha || "team";
+              const t = c.team || {};
+              const logo = (t.logos && t.logos[0] && t.logos[0].href) || "";
+              const name = (t.shortDisplayName || t.abbreviation || t.displayName || t.name || ha || "team");
               const score = (c.score != null ? String(c.score) : "");
-              byHomeAway[ha] = { team, score };
-            }
-            const home = byHomeAway.home || null;
-            const away = byHomeAway.away || null;
-            if (home && away){
-              line = `${away.team} ${away.score}  —  ${home.team} ${home.score}`;
+              const winner = !!c.winner;
+              const obj = { logo, name, score, winner };
+              if (ha === "home") home = obj;
+              else if (ha === "away") away = obj;
             }
           }
-          const box = document.createElement("div");
-          box.className = "box";
-          box.innerHTML = `<div class="label">${st || "event"}</div><div class="value" style="font-size:14px">${line}</div>`;
-          externalCardsEl.appendChild(box);
+
+          const name = (ev.shortName || ev.name || "").trim();
+          const when = (ev.date ? new Date(ev.date).toLocaleString() : "");
+
+          const match = document.createElement("div");
+          match.className = "match";
+          match.innerHTML = `
+            <div class="top">
+              <span class="badge ${badgeCls}">${badgeText}</span>
+              <span>${detail || when}</span>
+            </div>
+            <div class="teams">
+              <div class="teamrow">
+                <img class="logo" alt="" src="${(away && away.logo) ? away.logo : ""}" onerror="this.style.display='none'"/>
+                <div class="tname">${away ? away.name : name}</div>
+                <div class="score ${away && away.winner ? "win" : ""}">${away ? (away.score || "—") : ""}</div>
+              </div>
+              <div class="teamrow">
+                <img class="logo" alt="" src="${(home && home.logo) ? home.logo : ""}" onerror="this.style.display='none'"/>
+                <div class="tname">${home ? home.name : ""}</div>
+                <div class="score ${home && home.winner ? "win" : ""}">${home ? (home.score || "—") : ""}</div>
+              </div>
+            </div>
+            <div class="meta">${name}</div>
+          `;
+          externalBoardEl.appendChild(match);
         }
       }
 
       async function callExternal(preset){
         externalLogEl.textContent = "";
-        if (externalCardsEl) externalCardsEl.innerHTML = "";
+        if (externalBoardEl) externalBoardEl.innerHTML = "";
         const p = (preset || "nfl").toLowerCase();
         const path = `/external/${p}`;
         const upstreamMap = {
@@ -764,7 +860,7 @@
         try { data = JSON.parse(txt); } catch (e) { /* ignore */ }
         const events = (data && data.events) ? data.events : [];
         if (externalEventsEl) externalEventsEl.textContent = String(events.length);
-        renderExternalCards(events);
+        renderExternalScoreboard(events);
 
         // Show a compact JSON preview for the talk
         const preview = {
