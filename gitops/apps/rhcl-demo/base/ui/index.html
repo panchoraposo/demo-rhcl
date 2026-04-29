@@ -1414,7 +1414,7 @@
         externalLastRequestUrl = location.origin + cleanPath;
         externalLastUpstream = upstream;
         if (externalReqEl) externalReqEl.textContent = `GET ${cleanPath}`;
-        if (externalUpEl) externalUpEl.textContent = upstream.replace(/^https?:\\/\\//, "");
+        if (externalUpEl) externalUpEl.textContent = upstream.replace(/^https?:\/\//, "");
         if (externalStatEl) externalStatEl.textContent = "—";
         if (externalEventsEl) externalEventsEl.textContent = "—";
         if (externalBreakdownEl) externalBreakdownEl.textContent = `range=${dates}`;
