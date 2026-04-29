@@ -64,7 +64,7 @@ spec:
             - name: RHCL_AI_OPENAI_BASE_URL
               value: https://litellm-prod.apps.maas.redhatworkshops.io/v1
             - name: RHCL_AI_OPENAI_MODEL
-              value: gpt-4o-mini
+              value: deepseek-r1-distill-qwen-14b
             - name: RHCL_AI_OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
