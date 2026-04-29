@@ -2471,25 +2471,12 @@ spec:
         aiSetStatus("Pinging…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          const body = { jsonrpc:"2.0", id: 1, method: "tools/list", params: {} };
-          const r = await fetch("/mcp", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(body),
-            cache: "no-store",
-          });
+          const r = await fetch("/mcp", { method: "GET", cache: "no-store" });
+          const ct = r.headers.get("content-type") || "—";
           aiSetStatus(`HTTP ${r.status}`);
-          const txt = await r.text();
-          appendTo(aiLogEl, `[${now()}] POST /mcp tools/list -> ${r.status}`, r.ok ? "good" : "bad");
-          if (txt){
-            let obj = null;
-            try{ obj = JSON.parse(txt); } catch {}
-            if (obj && obj.result && Array.isArray(obj.result.tools)){
-              const names = obj.result.tools.map(t => t.name).slice(0, 20).join(", ");
-              appendTo(aiLogEl, `tools: ${names || "(none)"}`, "muted");
-            } else {
-              appendTo(aiLogEl, txt.slice(0, 2000), r.ok ? "" : "bad");
-            }
+          appendTo(aiLogEl, `[${now()}] GET /mcp -> ${r.status} · content-type=${ct}`, r.ok ? "good" : "bad");
+          if (r.ok){
+            appendTo(aiLogEl, `Tip: use MCP Inspector against /mcp (streamable) or /mcp/sse (legacy SSE transport) to call tools/list and tools/call.`, "muted");
           }
         } catch (e){
           aiSetStatus("Error");

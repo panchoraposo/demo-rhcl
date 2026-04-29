@@ -8,8 +8,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:
-  hostnames:
-    - REPLACE_ME_DEMO_HOSTNAME
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
