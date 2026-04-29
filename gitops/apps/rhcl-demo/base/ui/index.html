@@ -484,6 +484,20 @@
         append(`[${now()}] burst: done`, "muted");
       }
 
+      function installJsDiagnostics(){
+        window.addEventListener("error", (e) => {
+          append(`[${now()}] js error: ${e.message}`, "bad");
+        });
+        window.addEventListener("unhandledrejection", (e) => {
+          append(`[${now()}] promise rejection: ${String(e.reason || e)}`, "bad");
+        });
+      }
+
+      async function selfTest(){
+        append(`[${now()}] self-test: /health`, "muted");
+        await call("/health", false);
+      }
+
       function renderTrafficBars(){
         trafficBarsEl.innerHTML = "";
         const data = trafficSample.slice(-60);
@@ -614,6 +628,8 @@
       clearLog();
       clearTraffic();
       renderTrafficBars();
+      installJsDiagnostics();
+      setTimeout(() => { selfTest(); }, 250);
     </script>
   </body>
 </html>
