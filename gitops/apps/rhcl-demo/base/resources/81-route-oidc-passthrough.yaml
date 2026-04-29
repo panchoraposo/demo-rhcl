@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rhcl-gw-oidc
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "24"
+spec:
+  host: REPLACE_ME_OIDC_HOSTNAME
+  to:
+    kind: Service
+    name: rhcl-gw-openshift-default
+  port:
+    targetPort: 443
+  tls:
+    termination: passthrough
+

@@ -9,6 +9,7 @@ spec:
   secretName: rhcl-gw-tls
   dnsNames:
     - REPLACE_ME_DEMO_HOSTNAME
+    - REPLACE_ME_OIDC_HOSTNAME
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer

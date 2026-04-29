@@ -231,6 +231,12 @@
         word-break:break-word;
         line-height:1.35;
       }
+      .kpi .subv{
+        margin-top:6px;
+        font-size:12px;
+        color: rgba(234,241,255,.78);
+        line-height:1.35;
+      }
       .kpi .tools{
         margin-top:10px;
         display:flex;
@@ -587,7 +593,7 @@
           <button class="primary active" data-module="policies">AuthPolicy + RateLimitPolicy</button>
           <button data-module="traffic">A/B + canary</button>
           <button data-module="external">External API (ESPN)</button>
-          <button data-module="oidc">OIDC / Keycloak</button>
+          <button data-module="oidc">OIDC portal</button>
         </div>
       </aside>
 
@@ -768,8 +774,8 @@
                 </div>
 
                 <div class="row" style="margin-top:10px">
-                  <button class="primary" onclick="sampleAB(60)">Sample A/B (60)</button>
-                  <button class="primary" onclick="sampleCanary(80)">Sample canary (80)</button>
+                  <button class="primary" onclick="sampleAB(60)">Sample A/B 80/20 (60)</button>
+                  <button class="primary" onclick="sampleCanary(80)">Sample canary 90/10 (80)</button>
                   <button onclick="clearTraffic()">Clear</button>
                   <span class="pill"><span class="dot good"></span><span id="trafficExpected">expected: A/B 80/20 · canary 90/10</span></span>
                 </div>
@@ -781,11 +787,13 @@
                 <div class="kpi" style="margin-top:12px">
                   <div class="box">
                     <div class="label">Run</div>
-                    <div class="value" id="trafficRun">—</div>
+                    <div class="value" id="trafficRunMain">—</div>
+                    <div class="subv" id="trafficRunSub">—</div>
                   </div>
                   <div class="box">
                     <div class="label">Observed split</div>
-                    <div class="value" id="trafficSplit">—</div>
+                    <div class="value" id="trafficSplitMain">—</div>
+                    <div class="subv" id="trafficSplitSub">—</div>
                   </div>
                   <div class="box">
                     <div class="label">Avg latency (ms)</div>
@@ -922,61 +930,32 @@
           <section class="module" id="oidc" data-module="oidc">
             <div class="moduleHero">
               <div class="k">Module</div>
-              <div class="t"><b>OIDC</b> — Keycloak + protected route</div>
-              <div class="d">Discover OIDC config (<code>/auth</code>), get a token, inspect claims, then call a protected API (<code>/secure</code>). Enforcement happens at the Gateway by <b>Kuadrant/Authorino</b> via <code>AuthPolicy</code> (JWT validation using Keycloak as issuer).</div>
-              <div class="row" style="margin-top:10px">
+              <div class="t"><b>OIDC portal</b> — browser login on a separate hostname</div>
+              <div class="d">
+                The main demo focuses on <b>API keys</b>, <b>rate limits</b>, and <b>traffic shaping</b> on a single host.
+                For OIDC, we intentionally use a <b>separate frontend</b> on a <b>different hostname</b> to make the browser login flow obvious and visually distinct.
+              </div>
+              <div class="row" style="margin-top:10px; align-items:center">
+                <button class="primary" onclick="openOidcPortal()">Open OIDC portal</button>
+                <button onclick="copyOidcPortal()">Copy URL</button>
                 <button onclick="openYamlSet('oidc')">View policy YAML</button>
+                <button onclick="openKeycloak()">Open Keycloak</button>
+                <span class="pill"><span class="dot"></span> <code id="oidcPortalPill">—</code></span>
               </div>
             </div>
             <div class="grid">
               <div class="card" style="grid-column: 1 / -1;">
-                <h2>OIDC: Keycloak + protected route</h2>
+                <h2>What you’ll show in the OIDC portal</h2>
                 <div class="sub">
-                  Steps: fetch OIDC discovery, get a token (password grant), decode JWT claims, then call a protected external API via the Gateway (<code>/secure/nba</code>).
-                  The request is <b>accepted/rejected before it reaches the backend</b> by Kuadrant (Gateway policies) using Authorino.
+                  - Navigate to the OIDC portal URL (different hostname)\n
+                  - Without login, the Gateway returns a <b>302 redirect</b> to Keycloak\n
+                  - After login, the Gateway sets a cookie and the portal can fetch the protected ESPN scoreboard (<code>/secure/nba</code>)
                 </div>
                 <div class="row" style="margin-top:10px">
-                  <button class="primary" onclick="openKeycloak()">Open Keycloak</button>
-                  <button onclick="oidcDiscovery()">OIDC discovery</button>
+                  <span class="pill"><span class="dot"></span> OIDCPolicy (browser login)</span>
+                  <span class="pill"><span class="dot"></span> AuthPolicy (JWT validation)</span>
+                  <span class="pill"><span class="dot"></span> DNSPolicy (Route53 record)</span>
                 </div>
-                <div class="row" style="margin-top:10px">
-                  <div class="input" style="flex:1 1 230px; min-width: 230px;">
-                    <label>User</label>
-                    <input id="oidcUser" value="demo" spellcheck="false" />
-                  </div>
-                  <div class="input" style="flex:1 1 230px; min-width: 230px;">
-                    <label>Password</label>
-                    <input id="oidcPass" value="demo" spellcheck="false" />
-                  </div>
-                </div>
-                <div class="row">
-                  <button class="good" onclick="getToken()">Get token</button>
-                  <button onclick="showTokenClaims()">Show token claims</button>
-                  <button class="good" onclick="callSecure()">GET protected NBA scoreboard</button>
-                  <button class="primary" onclick="loginViaGateway()">Login via Gateway</button>
-                  <button class="warn" onclick="callSecureNoToken()">Try without login</button>
-                  <button class="warn" onclick="clearOidcToken()">Clear token</button>
-                  <button class="warn" onclick="logoutGateway()">Logout</button>
-                </div>
-                <div class="row" style="margin-top:10px">
-                  <div class="input" style="flex:1 1 100%; min-width: 300px;">
-                    <label>Access token</label>
-                    <input id="oidcToken" value="" spellcheck="false" placeholder="(click Get token)" />
-                  </div>
-                </div>
-                <div class="row" style="margin-top:10px">
-                  <span class="pill"><span class="dot"></span><b>Protected</b>: <code id="oidcReq">GET /secure/nba</code></span>
-                  <span class="pill"><span class="dot"></span><span id="oidcMeta">—</span></span>
-                  <span class="pill">
-                    <span class="dot"></span>
-                    <span>View:</span>
-                    <button id="oidcTabLive" class="primary" onclick="setOidcTab('live')" style="padding:6px 10px; border-radius:999px">Live</button>
-                    <button id="oidcTabFinal" onclick="setOidcTab('final')" style="padding:6px 10px; border-radius:999px">Final</button>
-                    <button id="oidcTabUpcoming" onclick="setOidcTab('upcoming')" style="padding:6px 10px; border-radius:999px">Upcoming</button>
-                  </span>
-                </div>
-                <div id="oidcBoard" style="margin-top:10px"></div>
-                <div class="log" id="oidcLog" style="height:200px; margin-top:10px"></div>
               </div>
             </div>
           </section>
@@ -1040,8 +1019,10 @@
       const trafficFill = el("trafficFill");
       const trafficMeta = el("trafficMeta");
       const trafficExpected = el("trafficExpected");
-      const trafficRunEl = el("trafficRun");
-      const trafficSplitEl = el("trafficSplit");
+      const trafficRunMainEl = el("trafficRunMain");
+      const trafficRunSubEl = el("trafficRunSub");
+      const trafficSplitMainEl = el("trafficSplitMain");
+      const trafficSplitSubEl = el("trafficSplitSub");
       const trafficAvgEl = el("trafficAvg");
       const trafficLogEl = el("trafficLog");
       const legendPrimaryEl = el("legendPrimary");
@@ -1071,16 +1052,7 @@
       const yamlTitleEl = el("yamlTitle");
       const yamlTabsEl = el("yamlTabs");
       const yamlPreEl = el("yamlPre");
-      const oidcLogEl = el("oidcLog");
-      const oidcUserEl = el("oidcUser");
-      const oidcPassEl = el("oidcPass");
-      const oidcTokenEl = el("oidcToken");
-      const oidcReqEl = el("oidcReq");
-      const oidcMetaEl = el("oidcMeta");
-      const oidcBoardEl = el("oidcBoard");
-      const oidcTabLiveEl = el("oidcTabLive");
-      const oidcTabFinalEl = el("oidcTabFinal");
-      const oidcTabUpcomingEl = el("oidcTabUpcoming");
+      const oidcPortalPillEl = el("oidcPortalPill");
 
       let lastBurst = [];
       let trafficSample = [];
@@ -1293,7 +1265,7 @@ data:
 ` },
         ],
         "oidc": [
-          { name: "HTTPRoute (/auth + /secure)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+          { name: "HTTPRoutes (/auth + /secure + portal)", yaml: `apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: keycloak
@@ -1313,17 +1285,9 @@ metadata:
   name: secure-demo
   namespace: demo
 spec:
+  hostnames:
+    - REPLACE_ME_OIDC_HOSTNAME
   rules:
-    - matches:
-        - path: { type: PathPrefix, value: /secure-ui }
-      filters:
-        - type: URLRewrite
-          urlRewrite:
-            path: { type: ReplacePrefixMatch, replacePrefixMatch: / }
-      backendRefs:
-        - kind: Service
-          name: rhcl-ui
-          port: 80
     - matches:
         - method: GET
           path: { type: PathPrefix, value: /secure }
@@ -1336,6 +1300,25 @@ spec:
       backendRefs:
         - kind: Service
           name: external-proxy
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: oidc-portal
+  namespace: demo
+spec:
+  hostnames:
+    - REPLACE_ME_OIDC_HOSTNAME
+  rules:
+    - matches:
+        - method: GET
+          path: { type: PathPrefix, value: / }
+        - method: HEAD
+          path: { type: PathPrefix, value: / }
+      backendRefs:
+        - kind: Service
+          name: rhcl-oidc-ui
           port: 80
 ` },
           { name: "AuthPolicy (allow Keycloak)", yaml: `apiVersion: kuadrant.io/v1
@@ -1367,14 +1350,28 @@ spec:
     name: secure-demo
   provider:
     clientID: rhcl-ui
-    issuerURL: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl
-    authorizationEndpoint: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/auth
-    tokenEndpoint: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/token
-    redirectURI: https://REPLACE_ME_DEMO_HOSTNAME/
+    issuerURL: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl
+    authorizationEndpoint: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/auth
+    tokenEndpoint: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/token
+    redirectURI: https://REPLACE_ME_OIDC_HOSTNAME/auth/callback
   auth:
     tokenSource:
       cookie:
         name: rhcl_token
+` },
+          { name: "DNSPolicy (Route53 record)", yaml: `apiVersion: kuadrant.io/v1
+kind: DNSPolicy
+metadata:
+  name: rhcl-gw-dns
+  namespace: openshift-ingress
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-gw
+    sectionName: https
+  providerRefs:
+    - name: route53-credentials
 ` },
           { name: "AuthPolicy (JWT verify)", yaml: `apiVersion: kuadrant.io/v1
 kind: AuthPolicy
@@ -1391,7 +1388,7 @@ spec:
       authentication:
         jwt:
           jwt:
-            issuerUrl: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl
+            issuerUrl: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl
           credentials:
             authorizationHeader:
               prefix: "Bearer"
@@ -1405,7 +1402,9 @@ spec:
         ],
         "roles-infra": [
           { name: "TLSPolicy (Gateway)", yaml: `apiVersion: kuadrant.io/v1\nkind: TLSPolicy\nmetadata:\n  name: rhcl-gw-tls\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n    sectionName: https\n  issuerRef:\n    group: cert-manager.io\n    kind: ClusterIssuer\n    name: REPLACE_ME_CLUSTER_ISSUER\n` },
-          { name: "OpenShift Route (passthrough)", yaml: `apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: rhcl-gw\n  namespace: openshift-ingress\nspec:\n  host: REPLACE_ME_DEMO_HOSTNAME\n  tls:\n    termination: passthrough\n` },
+          { name: "OpenShift Route (main host)", yaml: `apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: rhcl-gw\n  namespace: openshift-ingress\nspec:\n  host: REPLACE_ME_DEMO_HOSTNAME\n  tls:\n    termination: passthrough\n` },
+          { name: "OpenShift Route (OIDC portal host)", yaml: `apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: rhcl-gw-oidc\n  namespace: openshift-ingress\nspec:\n  host: REPLACE_ME_OIDC_HOSTNAME\n  tls:\n    termination: passthrough\n` },
+          { name: "DNSPolicy (Route53)", yaml: `apiVersion: kuadrant.io/v1\nkind: DNSPolicy\nmetadata:\n  name: rhcl-gw-dns\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n    sectionName: https\n  providerRefs:\n    - name: route53-credentials\n` },
         ],
         "roles-platform": [
           { name: "Gateway AuthPolicy (deny-all)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: rhcl-gw-auth\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n  defaults:\n    rules:\n      authorization:\n        deny-all:\n          opa:\n            rego: \"allow = false\"\n` },
@@ -1414,7 +1413,7 @@ spec:
         "roles-dev": [
           { name: "API AuthPolicy (API keys)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: demo-api-auth\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: demo-api\n  defaults:\n    rules:\n      authentication:\n        api-key-users:\n          apiKey:\n            selector:\n              matchLabels:\n                app: demo-api\n` },
           { name: "RateLimitPolicy (per identity)", yaml: `apiVersion: kuadrant.io/v1\nkind: RateLimitPolicy\nmetadata:\n  name: demo-api-rlp\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: demo-api\n  limits:\n    general-user:\n      rates:\n        - limit: 5\n          window: 10s\n      counters:\n        - expression: auth.identity.userid\n` },
-          { name: "JWT AuthPolicy (OIDC issuer)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: secure-demo-jwt\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: secure-demo\n  defaults:\n    rules:\n      authentication:\n        jwt:\n          jwt:\n            issuerUrl: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl\n          credentials:\n            authorizationHeader:\n              prefix: \"Bearer\"\n` },
+          { name: "JWT AuthPolicy (OIDC issuer)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: secure-demo-jwt\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: secure-demo\n  defaults:\n    rules:\n      authentication:\n        jwt:\n          jwt:\n            issuerUrl: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl\n          credentials:\n            authorizationHeader:\n              prefix: \"Bearer\"\n` },
         ],
       };
 
@@ -1427,10 +1426,14 @@ spec:
 
       function renderYaml(txt){
         const host = (location && location.host) ? String(location.host) : "example.com";
+        const oidcHost = oidcPortalHost();
         const issuer = `https://${host}/auth/realms/rhcl`;
+        const oidcIssuer = `https://${oidcHost}/auth/realms/rhcl`;
         return String(txt || "")
           .replaceAll("https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl", issuer)
           .replaceAll("REPLACE_ME_DEMO_HOSTNAME", host)
+          .replaceAll("https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl", oidcIssuer)
+          .replaceAll("REPLACE_ME_OIDC_HOSTNAME", oidcHost)
           .replaceAll("REPLACE_ME_CLUSTER_ISSUER", "letsencrypt-production-ec2");
       }
 
@@ -1513,8 +1516,10 @@ spec:
         trafficLatency = [];
         trafficMode = "";
         if (trafficFill) trafficFill.style.width = "0%";
-        if (trafficRunEl) trafficRunEl.textContent = "—";
-        if (trafficSplitEl) trafficSplitEl.textContent = "—";
+        if (trafficRunMainEl) trafficRunMainEl.textContent = "—";
+        if (trafficRunSubEl) trafficRunSubEl.textContent = "—";
+        if (trafficSplitMainEl) trafficSplitMainEl.textContent = "—";
+        if (trafficSplitSubEl) trafficSplitSubEl.textContent = "—";
         if (trafficAvgEl) trafficAvgEl.textContent = "—";
         if (trafficLogEl) trafficLogEl.textContent = "";
         if (legendPrimaryEl) legendPrimaryEl.textContent = "primary";
@@ -1687,7 +1692,8 @@ spec:
         if (trafficLogEl) trafficLogEl.textContent = "";
         if (trafficFill) trafficFill.style.width = "0%";
         setTrafficStatus("", `Sampling…`);
-        if (trafficRunEl) trafficRunEl.textContent = `${mode} · N=${n} · ${path}`;
+        if (trafficRunMainEl) trafficRunMainEl.textContent = (mode === "ab") ? "A/B 80/20" : (mode === "canary") ? "Canary 90/10" : String(mode || "");
+        if (trafficRunSubEl) trafficRunSubEl.textContent = `N=${n} · ${path}`;
 
         for (let i = 1; i <= n; i++){
           const t0 = performance.now();
@@ -1715,7 +1721,8 @@ spec:
         const c = await sample("/ab", n, "ab");
         const a = c["A"] || 0;
         const b = c["B"] || 0;
-        if (trafficSplitEl) trafficSplitEl.textContent = `A=${a} (${fmtPct(a,n)}) · B=${b} (${fmtPct(b,n)}) · expected 80/20`;
+        if (trafficSplitMainEl) trafficSplitMainEl.textContent = `${fmtPct(a,n)} / ${fmtPct(b,n)}`;
+        if (trafficSplitSubEl) trafficSplitSubEl.textContent = `A=${a} · B=${b} · expected 80/20`;
         if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
@@ -1726,7 +1733,8 @@ spec:
         const c = await sample("/canary", n, "canary");
         const v1 = c["v1"] || 0;
         const v2 = c["v2"] || 0;
-        if (trafficSplitEl) trafficSplitEl.textContent = `v1=${v1} (${fmtPct(v1,n)}) · v2=${v2} (${fmtPct(v2,n)}) · expected 90/10`;
+        if (trafficSplitMainEl) trafficSplitMainEl.textContent = `${fmtPct(v1,n)} / ${fmtPct(v2,n)}`;
+        if (trafficSplitSubEl) trafficSplitSubEl.textContent = `v1=${v1} · v2=${v2} · expected 90/10`;
         if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
@@ -2297,140 +2305,30 @@ spec:
         externalRawDlg.showModal();
       }
 
-      const OIDC_TOKEN_KEY = "rhcl_oidc_token";
-      let oidcLastEvents = [];
-      let oidcTab = "live";
-
-      function setOidcTab(tab){
-        const t = (tab || "live").toLowerCase();
-        oidcTab = (t === "final" || t === "upcoming" || t === "live") ? t : "live";
-        if (oidcTabLiveEl) oidcTabLiveEl.classList.toggle("primary", oidcTab === "live");
-        if (oidcTabFinalEl) oidcTabFinalEl.classList.toggle("primary", oidcTab === "final");
-        if (oidcTabUpcomingEl) oidcTabUpcomingEl.classList.toggle("primary", oidcTab === "upcoming");
-        renderOidcScoreboard(oidcLastEvents || []);
+      function oidcPortalHost(){
+        const h = (location && location.host) ? String(location.host) : "example.com";
+        if (h.startsWith("oidc-")) return h;
+        return `oidc-${h}`;
       }
 
-      function renderOidcScoreboard(events){
-        if (!oidcBoardEl) return;
-        oidcBoardEl.innerHTML = "";
-        const all = (events || []).slice();
-        if (all.length === 0){
-          oidcBoardEl.innerHTML = `<div class="match"><div class="top"><span class="badge sched">No events</span><span>Get a token and call the protected scoreboard.</span></div></div>`;
-          return;
-        }
-
-        const finals = [];
-        const live = [];
-        const upcoming = [];
-        for (const ev of all){
-          const c = classifyExternalEvent(ev);
-          if (c.isLive) live.push(ev);
-          else if (c.isFinal) finals.push(ev);
-          else upcoming.push(ev);
-        }
-        finals.sort((a,b)=> (new Date(b.date)) - (new Date(a.date)));
-        live.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
-        upcoming.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
-
-        const pick = (oidcTab === "final") ? finals : (oidcTab === "upcoming" ? upcoming : live);
-        const title = (oidcTab === "final") ? "FINAL (recent)" : (oidcTab === "upcoming" ? "UPCOMING" : "LIVE");
-        const limit = (oidcTab === "upcoming") ? 18 : 12;
-        const items = pick.slice(0, limit);
-        if (items.length === 0){
-          oidcBoardEl.innerHTML = `<div class="match"><div class="top"><span class="badge sched">No events</span><span>Try another tab or widen the date range.</span></div></div>`;
-          return;
-        }
-
-        const head = document.createElement("div");
-        head.className = "boardTitle";
-        head.innerHTML = `<span>${title}</span><span class="muted">${items.length} shown</span>`;
-        oidcBoardEl.appendChild(head);
-
-        const grid = document.createElement("div");
-        grid.className = "boardGrid";
-        for (const ev of items){
-          const { stType, comp } = classifyExternalEvent(ev);
-          const state = (stType.state || "").toLowerCase();
-          const detail = (stType.shortDetail || stType.detail || "").trim();
-          const isLive2 = state === "in" || state === "inprogress";
-          const isFinal2 = state === "post" || state === "final";
-
-          const badgeCls = isLive2 ? "live" : (isFinal2 ? "final" : "sched");
-          const badgeText = isLive2 ? "LIVE" : (isFinal2 ? "FINAL" : "SCHEDULED");
-          const series = seriesScore(comp);
-          const seriesSummary = (comp && comp.series && comp.series.summary) ? String(comp.series.summary) : "";
-          const seriesHtml = series ? `<span class="seriesPill" title="${escAttr(seriesSummary || "Playoff series")}">Series ${esc(series)}</span>` : "";
-
-          let home = null, away = null;
-          if (comp && Array.isArray(comp.competitors)){
-            for (const c2 of comp.competitors){
-              const ha = (c2.homeAway || "").toLowerCase();
-              const t = c2.team || {};
-              const logo = httpsFix(
-                (t.logos && t.logos[0] && t.logos[0].href) ||
-                (typeof t.logo === "string" ? t.logo : "") ||
-                (t.logo && t.logo.href) ||
-                ""
-              );
-              const full = (t.displayName || t.name || t.shortDisplayName || t.abbreviation || ha || "team");
-              const name = (t.shortDisplayName || t.abbreviation || full);
-              const abbr = (t.abbreviation || "").trim();
-              const score = (c2.score != null ? String(c2.score) : "");
-              const winner = !!c2.winner;
-              const obj = { logo, name, full, abbr, score, winner };
-              if (ha === "home") home = obj;
-              else if (ha === "away") away = obj;
-            }
-          }
-
-          const eventName = (ev.shortName || ev.name || "").trim();
-          const when = fmtWhen(ev.date || (comp && comp.date) || "");
-          const venue = fmtVenue(comp && comp.venue);
-          const right = isFinal2 ? when : (isLive2 ? (detail || when) : when);
-          const topRight = right || "TBD";
-
-          const metaParts = [];
-          if (venue) metaParts.push(venue);
-          if (seriesSummary) metaParts.push(seriesSummary);
-          if (metaParts.length === 0 && (!home && !away) && eventName) metaParts.push(eventName);
-          const meta = metaParts.join(" · ");
-          const metaHtml = meta ? `<div class="meta">${esc(meta)}</div>` : "";
-
-          const match = document.createElement("div");
-          match.className = "match";
-          match.innerHTML = `
-            <div class="top">
-              <span class="row" style="gap:8px; flex-wrap:wrap; align-items:center">
-                <span class="badge ${badgeCls}">${badgeText}</span>
-                ${seriesHtml}
-              </span>
-              <span>${esc(topRight)}</span>
-            </div>
-            <div class="teams">
-              <div class="teamrow">
-                ${teamLogoBox(away)}
-                <div class="tname" title="${escAttr(away ? away.full : eventName)}">${esc(away ? away.name : eventName)}</div>
-                <div class="score ${away && away.winner ? "win" : ""}">${away ? (away.score || "—") : ""}</div>
-              </div>
-              <div class="teamrow">
-                ${teamLogoBox(home)}
-                <div class="tname" title="${escAttr(home ? home.full : "")}">${esc(home ? home.name : "")}</div>
-                <div class="score ${home && home.winner ? "win" : ""}">${home ? (home.score || "—") : ""}</div>
-              </div>
-            </div>
-            ${metaHtml}
-          `;
-          grid.appendChild(match);
-        }
-        oidcBoardEl.appendChild(grid);
+      function oidcPortalUrl(){
+        const u = new URL(`https://${oidcPortalHost()}/`);
+        u.searchParams.set("main", location.origin);
+        return u.toString();
       }
 
-      function oidcDates(days){
-        const rDays = Math.max(1, Math.min(21, parseInt(String(days || 7), 10) || 7));
-        const today = new Date();
-        const start = new Date(today); start.setDate(today.getDate() - rDays);
-        const end = new Date(today); end.setDate(today.getDate() + rDays);
-        return `${ymd(start)}-${ymd(end)}`;
+      function refreshOidcPortalPill(){
+        if (!oidcPortalPillEl) return;
+        oidcPortalPillEl.textContent = oidcPortalUrl();
+      }
+
+      function openOidcPortal(){
+        window.open(oidcPortalUrl(), "_blank", "noopener,noreferrer");
+      }
+
+      async function copyOidcPortal(){
+        const ok = await copyText(oidcPortalUrl());
+        if (!ok) return;
       }
 
       function clearRoleChecks(){
@@ -2498,178 +2396,6 @@ spec:
         window.open("/auth", "_blank", "noopener,noreferrer");
       }
 
-      async function oidcDiscovery(){
-        oidcLogEl.textContent = "";
-        appendTo(oidcLogEl, `[${now()}] GET /auth/realms/rhcl/.well-known/openid-configuration`, "muted");
-        const r = await fetch("/auth/realms/rhcl/.well-known/openid-configuration", { cache: "no-store" });
-        const txt = await r.text();
-        appendTo(oidcLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
-        try{
-          const obj = JSON.parse(txt);
-          const pick = {
-            issuer: obj.issuer,
-            authorization_endpoint: obj.authorization_endpoint,
-            token_endpoint: obj.token_endpoint,
-            jwks_uri: obj.jwks_uri,
-          };
-          appendTo(oidcLogEl, JSON.stringify(pick, null, 2));
-        } catch {
-          appendTo(oidcLogEl, txt.slice(0, 800), r.status === 200 ? "muted" : "bad");
-        }
-      }
-
-      async function getToken(){
-        oidcLogEl.textContent = "";
-        appendTo(oidcLogEl, `[${now()}] POST /auth/.../token (password grant)`, "muted");
-
-        const body = new URLSearchParams({
-          grant_type: "password",
-          client_id: "rhcl-ui",
-          username: (oidcUserEl.value || "").trim(),
-          password: oidcPassEl.value || "",
-          scope: "openid",
-        });
-
-        const r = await fetch("/auth/realms/rhcl/protocol/openid-connect/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body,
-        });
-
-        let data = null;
-        try { data = await r.json(); } catch (e) { /* ignore */ }
-
-        appendTo(oidcLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
-        if (r.status !== 200){
-          appendTo(oidcLogEl, (data && data.error_description) ? data.error_description : (data ? JSON.stringify(data) : "token request failed"), "bad");
-          return;
-        }
-        oidcTokenEl.value = data.access_token || "";
-        try{ localStorage.setItem(OIDC_TOKEN_KEY, oidcTokenEl.value); } catch {}
-        appendTo(oidcLogEl, `token received (len=${(data.access_token || "").length})`, "ok");
-      }
-
-      function showTokenClaims(){
-        oidcLogEl.textContent = "";
-        const t = (oidcTokenEl.value || "").trim();
-        if (!t){
-          appendTo(oidcLogEl, `[${now()}] no token yet (click Get token)`, "warn");
-          return;
-        }
-        const parts = t.split(".");
-        if (parts.length < 2){
-          appendTo(oidcLogEl, `[${now()}] token is not a JWT`, "bad");
-          return;
-        }
-        const dec = (s) => {
-          const pad = "=".repeat((4 - (s.length % 4)) % 4);
-          const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
-          return decodeURIComponent(Array.from(atob(b64)).map(c => "%" + c.charCodeAt(0).toString(16).padStart(2,"0")).join(""));
-        };
-        try{
-          const header = JSON.parse(dec(parts[0]));
-          const payload = JSON.parse(dec(parts[1]));
-          appendTo(oidcLogEl, `[${now()}] JWT header`, "muted");
-          appendTo(oidcLogEl, JSON.stringify(header, null, 2));
-          appendTo(oidcLogEl, `\n[${now()}] JWT claims`, "muted");
-          appendTo(oidcLogEl, JSON.stringify(payload, null, 2));
-        } catch (e){
-          appendTo(oidcLogEl, `[${now()}] decode failed: ${String(e)}`, "bad");
-        }
-      }
-
-      async function callSecure(){
-        oidcLogEl.textContent = "";
-        const t = (oidcTokenEl.value || "").trim();
-        if (!t){
-          appendTo(oidcLogEl, `[${now()}] no token set (use Get token, or Try without token to see the 401/403)`, "warn");
-          return;
-        }
-        const dates = oidcDates(7);
-        const path = `/secure/nba?dates=${dates}&_=${Date.now()}`;
-        if (oidcReqEl) oidcReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
-        appendTo(oidcLogEl, `[${now()}] GET ${path} (Bearer token)`, "muted");
-        const t0 = performance.now();
-        const r = await fetch(path, { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
-        const ms = Math.round(performance.now() - t0);
-        const txt = await r.text();
-        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, r.status === 200 ? "ok" : "bad");
-        if (oidcMetaEl) oidcMetaEl.textContent = `${(txt || "").length.toLocaleString()} bytes · range=${dates}`;
-        if (r.status !== 200){
-          appendTo(oidcLogEl, txt.slice(0, 2000));
-          oidcLastEvents = [];
-          renderOidcScoreboard([]);
-          return;
-        }
-        let obj = null;
-        try{ obj = JSON.parse(txt); } catch {}
-        const events = (obj && Array.isArray(obj.events)) ? obj.events : [];
-        oidcLastEvents = events;
-        renderOidcScoreboard(events);
-        appendTo(oidcLogEl, `events=${events.length}`, "muted");
-      }
-
-      async function callSecureNoToken(){
-        oidcLogEl.textContent = "";
-        const dates = oidcDates(7);
-        const path = `/secure/nba?dates=${dates}&_=${Date.now()}`;
-        if (oidcReqEl) oidcReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
-        appendTo(oidcLogEl, `[${now()}] GET ${path} (no login)`, "muted");
-        const t0 = performance.now();
-        const r = await fetch(path, { redirect: "manual", cache: "no-store" });
-        const ms = Math.round(performance.now() - t0);
-        const txt = await r.text();
-        const loc = r.headers.get("location") || "";
-        const ok = (r.status === 302 && loc.includes("/auth/realms/rhcl/")) || r.status === 401 || r.status === 403;
-        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, ok ? "ok" : "warn");
-        if (loc) appendTo(oidcLogEl, `redirect -> ${loc}`, "muted");
-        if (txt) appendTo(oidcLogEl, txt.slice(0, 2000));
-        oidcLastEvents = [];
-        renderOidcScoreboard([]);
-      }
-
-      async function loginViaGateway(){
-        oidcLogEl.textContent = "";
-        appendTo(oidcLogEl, `[${now()}] opening login popup (protected URL)`, "muted");
-        const w = window.open("/secure-ui", "rhcl_oidc_popup", "popup=yes,width=1100,height=780,menubar=no,toolbar=no,location=yes,status=no,scrollbars=yes,resizable=yes");
-        if (!w){
-          appendTo(oidcLogEl, `[${now()}] popup blocked by the browser (allow popups and try again)`, "bad");
-          return;
-        }
-        try{ w.focus(); } catch {}
-        appendTo(oidcLogEl, `[${now()}] complete login in the popup, then return here`, "muted");
-
-        const startedAt = Date.now();
-        const timer = setInterval(() => {
-          if (w.closed){
-            clearInterval(timer);
-            const secs = Math.round((Date.now() - startedAt) / 1000);
-            appendTo(oidcLogEl, `[${now()}] popup closed (${secs}s). Now call the protected scoreboard.`, "ok");
-          }
-        }, 600);
-      }
-
-      async function logoutGateway(){
-        oidcLogEl.textContent = "";
-        appendTo(oidcLogEl, `[${now()}] GET /logout (clearing session cookie)`, "muted");
-        try{
-          const r = await fetch("/logout", { cache: "no-store" });
-          const txt = await r.text();
-          appendTo(oidcLogEl, `status=${r.status}`, (r.status >= 200 && r.status < 400) ? "ok" : "warn");
-          if (txt) appendTo(oidcLogEl, txt.slice(0, 500), "muted");
-        } catch (e){
-          appendTo(oidcLogEl, `logout failed: ${String(e)}`, "bad");
-        }
-        clearOidcToken();
-      }
-
-      function clearOidcToken(){
-        oidcTokenEl.value = "";
-        try{ localStorage.removeItem(OIDC_TOKEN_KEY); } catch {}
-        oidcLogEl.textContent = "";
-        appendTo(oidcLogEl, `[${now()}] token cleared`, "muted");
-      }
-
       async function runRoleChecks(){
         rolesChecksEl.innerHTML = `<div class="sub">[${now()}] Running checks…</div>`;
         const rows = [];
@@ -2715,42 +2441,6 @@ spec:
           why: "Confirms the platform capability exists and a team can opt-in by adding a route.",
         }));
 
-        rows.push(await httpCheck({
-          title: "OIDC-protected route rejects missing token",
-          path: `/secure/nba?dates=${oidcDates(7)}&_=${Date.now()}`,
-          expected: "302 / 401 / 403",
-          okFn: (s) => (s === 302 || s === 401 || s === 403),
-          owner: "Platform engineer",
-          layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
-          why: "Shows enforcement at the Gateway: no token means no backend access.",
-        }));
-
-        const tok = (oidcTokenEl?.value || "").trim();
-        if (!tok){
-          rows.push({
-            title: "OIDC-protected route accepts valid token",
-            method: "GET",
-            path: `/secure/nba?dates=${oidcDates(7)}`,
-            expected: "200",
-            observed: "—",
-            ok: null,
-            owner: "Developer",
-            layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
-            why: "Get a token in the OIDC module, then rerun checks to see the success path.",
-          });
-        } else {
-          rows.push(await httpCheck({
-            title: "OIDC-protected route accepts valid token",
-            path: `/secure/nba?dates=${oidcDates(7)}&_=${Date.now()}`,
-            expected: "200",
-            okFn: (s) => s === 200,
-            fetchOpts: { headers: { Authorization: `Bearer ${tok}` } },
-            owner: "Developer",
-            layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
-            why: "Validates the end-to-end happy path using Keycloak as the IdP.",
-          }));
-        }
-
         renderRoleChecks(rows);
       }
 
@@ -2762,51 +2452,7 @@ spec:
       initExternalTreeUi();
       setExternalTab("final");
       installJsDiagnostics();
-      setOidcTab("live");
-      try{ oidcTokenEl.value = localStorage.getItem(OIDC_TOKEN_KEY) || ""; } catch {}
-      oidcTokenEl.addEventListener("input", () => {
-        try{
-          const t = (oidcTokenEl.value || "").trim();
-          if (t) localStorage.setItem(OIDC_TOKEN_KEY, t);
-          else localStorage.removeItem(OIDC_TOKEN_KEY);
-        } catch {}
-      });
-
-      // If this page was opened as the OIDC login popup, auto-close it once we land back here.
-      // The popup name persists across redirects.
-      try{
-        if (window.opener && window.name === "rhcl_oidc_popup" && (location.pathname.startsWith("/secure-ui") || location.pathname.startsWith("/auth/callback"))){
-          window.opener.postMessage({ type: "rhcl_oidc_popup_done" }, location.origin);
-          document.body.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; min-height:100vh; color:#eaf1ff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;">
-            <div style="max-width:720px; padding:24px; border:1px solid rgba(255,255,255,.12); border-radius:18px; background:rgba(0,0,0,.25)">
-              <div style="font-weight:650; margin-bottom:8px">Login complete</div>
-              <div style="color:#a7b3d4; line-height:1.4">You can close this window. Returning to the main demo…</div>
-            </div>
-          </div>`;
-          setTimeout(() => { window.close(); }, 400);
-        }
-      } catch {}
-
-      window.addEventListener("message", (ev) => {
-        if (ev.origin !== location.origin) return;
-        if (!ev.data || ev.data.type !== "rhcl_oidc_popup_done") return;
-        appendTo(oidcLogEl, `[${now()}] login completed in popup (cookie session is now set)`, "ok");
-      });
-
-      // Friendly UX for OAuth errors that may land back on the main UI (e.g., misconfigured client).
-      try{
-        const qs = new URLSearchParams(location.search || "");
-        const err = qs.get("error");
-        const desc = qs.get("error_description");
-        const iss = qs.get("iss");
-        if (err){
-          appendTo(oidcLogEl, `[${now()}] login error: ${err}`, "bad");
-          if (desc) appendTo(oidcLogEl, desc, "bad");
-          if (iss) appendTo(oidcLogEl, `issuer: ${iss}`, "muted");
-          const clean = location.origin + location.pathname + location.hash;
-          history.replaceState(null, "", clean);
-        }
-      } catch {}
+      refreshOidcPortalPill();
 
       setTimeout(() => { selfTest(); }, 250);
     </script>

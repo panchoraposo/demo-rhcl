@@ -3,14 +3,17 @@ kind: Kustomization
 
 resources:
   - resources/00-namespace.yaml
+  - resources/05-console-banner.yaml
   - resources/10-demo-api.yaml
   - resources/15-ui.yaml
+  - resources/15-oidc-ui.yaml
   - resources/16-ab-canary-external.yaml
   - resources/17-oidc-keycloak.yaml
   - resources/18-rhbk-operator.yaml
   - resources/20-gateway.yaml
   - resources/24-gateway-certificate.yaml
   - resources/25-gateway-tlspolicy.yaml
+  - resources/26-gateway-dnspolicy.yaml
   - resources/30-httproute-api.yaml
   - resources/31-httproute-ui.yaml
   - resources/32-httproute-ab-canary-external.yaml
@@ -25,12 +28,17 @@ resources:
   - resources/66-secure-oidcpolicy.yaml
   - resources/70-route-ratelimitpolicy.yaml
   - resources/80-route-passthrough.yaml
+  - resources/81-route-oidc-passthrough.yaml
 
 configMapGenerator:
   - name: rhcl-ui
     namespace: demo
     files:
       - index.html=ui/index.html
+  - name: rhcl-oidc-ui
+    namespace: demo
+    files:
+      - index.html=oidc-ui/index.html
 
 generatorOptions:
   annotations:

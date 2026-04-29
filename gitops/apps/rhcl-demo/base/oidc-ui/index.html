@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>RHCL Workshop — OIDC portal</title>
+    <style>
+      :root{
+        --bg0:#04050a;
+        --bg1:#0a0f22;
+        --card: rgba(255,255,255,.06);
+        --line: rgba(255,255,255,.10);
+        --text: #eaf1ff;
+        --muted: rgba(234,241,255,.72);
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --bad: #ef4444;
+        --a1: #ff4d8d;
+        --a2: #8b5cf6;
+        --a3: #38bdf8;
+        --shadow: 0 18px 60px rgba(0,0,0,.45);
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      *{box-sizing:border-box}
+      html,body{height:100%}
+      body{
+        margin:0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        color: var(--text);
+        background:
+          radial-gradient(900px 560px at 18% 12%, rgba(255,77,141,.24), transparent 60%),
+          radial-gradient(900px 560px at 84% 24%, rgba(139,92,246,.22), transparent 60%),
+          radial-gradient(900px 560px at 50% 90%, rgba(56,189,248,.14), transparent 60%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+      }
+      a{color:#b7d8ff}
+      .wrap{max-width:1200px; margin:0 auto; padding:28px 18px 60px}
+      .top{
+        display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;
+        margin-bottom:16px;
+      }
+      .brand{
+        display:flex; flex-direction:column; gap:6px;
+      }
+      .brand h1{margin:0; font-size:20px; letter-spacing:.01em}
+      .brand .sub{color:var(--muted); font-size:13px; max-width:760px}
+      .pills{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+      .pill{
+        display:inline-flex; align-items:center; gap:8px;
+        border:1px solid var(--line);
+        background: rgba(0,0,0,.20);
+        padding:8px 10px;
+        border-radius:999px;
+        font-size:12px;
+        color: var(--muted);
+      }
+      .dot{width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.35)}
+      .dot.ok{background:var(--ok)}
+      .dot.warn{background:var(--warn)}
+      .dot.bad{background:var(--bad)}
+      button{
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.06);
+        color: var(--text);
+        padding:10px 12px;
+        border-radius:12px;
+        cursor:pointer;
+        font-weight:650;
+      }
+      button.primary{
+        background: linear-gradient(90deg, rgba(255,77,141,.90), rgba(139,92,246,.80));
+        border-color: rgba(255,77,141,.40);
+        box-shadow: 0 10px 24px rgba(255,77,141,.10);
+      }
+      button.warn{
+        background: rgba(245,158,11,.12);
+        border-color: rgba(245,158,11,.30);
+      }
+      button.good{
+        background: rgba(34,197,94,.12);
+        border-color: rgba(34,197,94,.30);
+      }
+      .grid{
+        display:grid;
+        grid-template-columns: 1.25fr .75fr;
+        gap:14px;
+        margin-top:12px;
+      }
+      @media (max-width: 980px){
+        .grid{grid-template-columns:1fr}
+      }
+      .card{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.05);
+        border-radius:18px;
+        box-shadow: var(--shadow);
+        overflow:hidden;
+      }
+      .cardHead{
+        padding:14px 14px 10px;
+        border-bottom:1px solid rgba(255,255,255,.08);
+        display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
+      }
+      .cardHead h2{margin:0; font-size:15px}
+      .cardBody{padding:14px}
+      .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+      .row > *{flex:0 0 auto}
+      .row .grow{flex:1 1 320px; min-width: 260px}
+      .hint{color:var(--muted); font-size:12px; line-height:1.55}
+      .mono{font-family: var(--mono)}
+      .board{display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px}
+      @media (max-width: 760px){.board{grid-template-columns:1fr}}
+      .game{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+        border-radius:16px;
+        padding:12px;
+      }
+      .gTop{display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:10px}
+      .gMeta{display:flex; flex-direction:column; gap:2px}
+      .gMeta .st{font-size:12px; color:var(--muted)}
+      .gMeta .dt{font-size:12px; color:rgba(234,241,255,.85)}
+      .gBadge{
+        border:1px solid rgba(255,255,255,.14);
+        background: rgba(255,255,255,.06);
+        border-radius:999px;
+        padding:6px 10px;
+        font-size:12px;
+        color: rgba(234,241,255,.85);
+        white-space:nowrap;
+      }
+      .teams{display:flex; flex-direction:column; gap:8px}
+      .tm{display:flex; gap:10px; align-items:center}
+      .logo{
+        width:34px; height:34px; border-radius:10px;
+        background: rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.10);
+        object-fit: contain;
+        padding:4px;
+      }
+      .nm{min-width:0; flex:1 1 auto}
+      .nm .name{font-weight:750; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+      .nm .rec{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+      .sc{font-size:18px; font-weight:850}
+      .log{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.20);
+        border-radius:16px;
+        padding:12px;
+        font-family: var(--mono);
+        font-size:12px;
+        line-height:1.45;
+        white-space:pre-wrap;
+        max-height: 300px;
+        overflow:auto;
+      }
+      .err{
+        border:1px solid rgba(239,68,68,.35);
+        background: rgba(239,68,68,.10);
+        border-radius:16px;
+        padding:12px;
+        color: rgba(255,255,255,.92);
+        font-size:12px;
+        line-height:1.55;
+      }
+      .kvs{
+        display:grid;
+        grid-template-columns: 150px 1fr;
+        gap:10px 12px;
+        align-items:center;
+        margin-top:10px;
+      }
+      .kvs .k{color:var(--muted); font-size:12px}
+      .kvs .v{font-family: var(--mono); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <div class="brand">
+          <h1>RHCL Workshop — OIDC portal</h1>
+          <div class="sub">
+            This page is a <b>separate frontend</b> from the Policies playground. It demonstrates <b>OIDCPolicy browser login</b> at the Gateway and then renders a protected ESPN NBA scoreboard.
+          </div>
+        </div>
+        <div class="pills">
+          <span class="pill"><span class="dot" id="sDot"></span><span id="sText">Loading…</span></span>
+          <span class="pill"><span class="dot"></span><span class="mono" id="hostPill">—</span></span>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="primary" onclick="refresh()">Refresh scoreboard</button>
+        <button class="good" onclick="openMain()">Back to Policies playground</button>
+        <button class="warn" onclick="logout()">Logout</button>
+        <span class="pill"><span class="dot"></span><span id="meta">—</span></span>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="cardHead">
+            <h2>Protected NBA scoreboard</h2>
+            <div class="row">
+              <span class="pill"><span class="dot"></span><span>View</span>
+                <button id="tabLive" class="primary" onclick="setTab('live')" style="padding:6px 10px; border-radius:999px">Live</button>
+                <button id="tabFinal" onclick="setTab('final')" style="padding:6px 10px; border-radius:999px">Final</button>
+                <button id="tabUpcoming" onclick="setTab('upcoming')" style="padding:6px 10px; border-radius:999px">Upcoming</button>
+              </span>
+            </div>
+          </div>
+          <div class="cardBody">
+            <div id="errorBox" style="display:none" class="err"></div>
+            <div class="board" id="board"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="cardHead">
+            <h2>What is happening?</h2>
+            <span class="pill"><span class="dot"></span><span class="mono">/secure/nba</span></span>
+          </div>
+          <div class="cardBody">
+            <div class="hint">
+              - If you are not logged in, the Gateway will redirect you to Keycloak.\n
+              - After login, the Gateway stores a session token in a cookie and you can access the protected route.\n
+              - The backend never sees unauthenticated traffic: enforcement happens <b>before</b> the request reaches the service.
+            </div>
+            <div class="kvs">
+              <div class="k">Protected URL</div><div class="v" id="req">GET /secure/nba</div>
+              <div class="k">Timezone</div><div class="v" id="tz">—</div>
+            </div>
+            <div class="hint" style="margin-top:12px">Request log</div>
+            <div class="log" id="log" style="margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      const logEl = el("log");
+      const boardEl = el("board");
+      const metaEl = el("meta");
+      const sDot = el("sDot");
+      const sText = el("sText");
+      const hostPill = el("hostPill");
+      const errBox = el("errorBox");
+      const tabLive = el("tabLive");
+      const tabFinal = el("tabFinal");
+      const tabUpcoming = el("tabUpcoming");
+      const tzEl = el("tz");
+      const reqEl = el("req");
+
+      let tab = "live";
+      let lastEvents = [];
+
+      function now(){ return new Date().toLocaleTimeString(); }
+      function setStatus(kind, text){
+        sDot.className = "dot " + (kind || "");
+        sText.textContent = text;
+      }
+      function append(line){
+        logEl.textContent += (logEl.textContent ? "\n" : "") + line;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function ymd(d){
+        const y=d.getFullYear();
+        const m=String(d.getMonth()+1).padStart(2,'0');
+        const day=String(d.getDate()).padStart(2,'0');
+        return `${y}${m}${day}`;
+      }
+      function datesWindow(days){
+        const out = [];
+        const n = Number(days || 7);
+        const base = new Date();
+        for (let i = -n; i <= n; i++){
+          const d = new Date(base.getTime());
+          d.setDate(d.getDate() + i);
+          out.push(ymd(d));
+        }
+        return out.join(",");
+      }
+
+      function setTab(t){
+        tab = t;
+        tabLive.classList.toggle("primary", tab === "live");
+        tabFinal.classList.toggle("primary", tab === "final");
+        tabUpcoming.classList.toggle("primary", tab === "upcoming");
+        render(lastEvents);
+      }
+
+      function safe(v, d=""){ return (v === undefined || v === null) ? d : String(v); }
+
+      function pickCompetitors(ev){
+        const comps = (ev && ev.competitions && ev.competitions[0]) ? ev.competitions[0] : null;
+        const arr = comps && Array.isArray(comps.competitors) ? comps.competitors : [];
+        const home = arr.find(x => x.homeAway === "home") || arr[0] || null;
+        const away = arr.find(x => x.homeAway === "away") || arr[1] || null;
+        return { comps, home, away };
+      }
+
+      function seriesLabel(ev){
+        const comps = (ev && ev.competitions && ev.competitions[0]) ? ev.competitions[0] : null;
+        const s = comps && comps.series ? comps.series : null;
+        const sum = s && (s.summary || s.seriesSummary || s.description);
+        return sum ? safe(sum) : "";
+      }
+
+      function eventState(ev){
+        const st = ev && ev.status ? ev.status : null;
+        const type = st && st.type ? st.type : null;
+        return {
+          short: safe(type && type.shortDetail, ""),
+          state: safe(type && type.state, ""),
+          completed: !!(type && type.completed),
+          id: safe(type && type.id, ""),
+        };
+      }
+
+      function fmtDate(ev){
+        const iso = ev && ev.date ? ev.date : "";
+        if (!iso) return "";
+        const d = new Date(iso);
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        tzEl.textContent = tz;
+        try{
+          return d.toLocaleString(undefined, { weekday:"short", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit", timeZoneName:"short" });
+        } catch {
+          return d.toLocaleString();
+        }
+      }
+
+      function filterByTab(events){
+        const out = [];
+        for (const ev of (events || [])){
+          const st = eventState(ev);
+          if (tab === "final" && st.completed) out.push(ev);
+          else if (tab === "live" && st.state === "in") out.push(ev);
+          else if (tab === "upcoming" && st.state === "pre") out.push(ev);
+        }
+        return out;
+      }
+
+      function render(events){
+        lastEvents = Array.isArray(events) ? events : [];
+        const show = filterByTab(lastEvents);
+        boardEl.innerHTML = "";
+        if (!show.length){
+          const d = document.createElement("div");
+          d.className = "hint";
+          d.textContent = "No events for this tab.";
+          boardEl.appendChild(d);
+          return;
+        }
+        for (const ev of show.slice(0, 18)){
+          const { comps, home, away } = pickCompetitors(ev);
+          const st = eventState(ev);
+          const ser = seriesLabel(ev);
+          const venue = comps && comps.venue ? comps.venue : null;
+          const venueTxt = venue ? [venue.fullName, venue.address && (venue.address.city || venue.address.state)].filter(Boolean).join(" · ") : "";
+
+          const card = document.createElement("div");
+          card.className = "game";
+
+          const top = document.createElement("div");
+          top.className = "gTop";
+          const meta = document.createElement("div");
+          meta.className = "gMeta";
+          const stEl = document.createElement("div");
+          stEl.className = "st";
+          stEl.textContent = st.short || "—";
+          const dt = document.createElement("div");
+          dt.className = "dt";
+          dt.textContent = fmtDate(ev) + (venueTxt ? ` · ${venueTxt}` : "");
+          meta.appendChild(stEl);
+          meta.appendChild(dt);
+          top.appendChild(meta);
+
+          const badge = document.createElement("div");
+          badge.className = "gBadge";
+          badge.textContent = ser || (comps && comps.type && comps.type.text) || "NBA";
+          top.appendChild(badge);
+          card.appendChild(top);
+
+          const teams = document.createElement("div");
+          teams.className = "teams";
+          for (const c of [away, home]){
+            if (!c) continue;
+            const tm = c.team || {};
+            const row = document.createElement("div");
+            row.className = "tm";
+            const img = document.createElement("img");
+            img.className = "logo";
+            img.alt = safe(tm.shortDisplayName || tm.displayName || tm.name || "team");
+            img.loading = "lazy";
+            const logos = tm.logos || [];
+            img.src = (logos && logos[0] && logos[0].href) ? logos[0].href : "";
+            row.appendChild(img);
+            const nm = document.createElement("div");
+            nm.className = "nm";
+            const name = document.createElement("div");
+            name.className = "name";
+            name.textContent = safe(tm.location ? `${tm.location} ${tm.name || ""}`.trim() : (tm.displayName || tm.shortDisplayName || ""));
+            const rec = document.createElement("div");
+            rec.className = "rec";
+            const r = c.records && c.records[0] ? c.records[0].summary : "";
+            rec.textContent = r ? `Record: ${r}` : "";
+            nm.appendChild(name);
+            nm.appendChild(rec);
+            row.appendChild(nm);
+            const sc = document.createElement("div");
+            sc.className = "sc";
+            sc.textContent = safe(c.score || "—");
+            row.appendChild(sc);
+            teams.appendChild(row);
+          }
+          card.appendChild(teams);
+          boardEl.appendChild(card);
+        }
+      }
+
+      function showErrorFromUrl(){
+        const u = new URL(location.href);
+        const err = u.searchParams.get("error");
+        const desc = u.searchParams.get("error_description");
+        if (!err && !desc) return;
+        errBox.style.display = "block";
+        errBox.innerHTML = `<b>OAuth error</b><br><span class="mono">${(err || "").replaceAll("<","&lt;")}</span><br>${(desc || "").replaceAll("<","&lt;")}`;
+      }
+
+      async function refresh(){
+        errBox.style.display = "none";
+        showErrorFromUrl();
+
+        const dates = datesWindow(7);
+        const path = `/secure/nba?dates=${encodeURIComponent(dates)}&_=${Date.now()}`;
+        reqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
+        metaEl.textContent = `range=${dates}`;
+        hostPill.textContent = location.host;
+
+        setStatus("", "Fetching…");
+        append(`[${now()}] GET ${path}`);
+        const t0 = performance.now();
+        const r = await fetch(path, { redirect: "manual", cache: "no-store" });
+        const ms = Math.round(performance.now() - t0);
+
+        const ct = r.headers.get("content-type") || "";
+        const loc = r.headers.get("location") || "";
+        append(`[${now()}] status=${r.status} · ${ms}ms · content-type=${ct || "—"}`);
+        if (loc) append(`[${now()}] redirect -> ${loc}`);
+
+        if (r.status === 302){
+          setStatus("warn", "Login required (redirect)");
+          render([]);
+          return;
+        }
+        const txt = await r.text();
+        if (r.status !== 200){
+          setStatus("bad", "Request failed");
+          append(txt.slice(0, 2000));
+          render([]);
+          return;
+        }
+        let obj = null;
+        try{ obj = JSON.parse(txt); } catch {}
+        const events = (obj && Array.isArray(obj.events)) ? obj.events : [];
+        setStatus("ok", "Ready");
+        metaEl.textContent = `${txt.length.toLocaleString()} bytes · events=${events.length} · range=${dates}`;
+        render(events);
+      }
+
+      async function logout(){
+        append(`[${now()}] GET /logout`);
+        try{
+          const r = await fetch("/logout", { cache: "no-store" });
+          append(`[${now()}] /logout status=${r.status}`);
+        } catch (e){
+          append(`[${now()}] logout failed: ${String(e)}`);
+        }
+        location.reload();
+      }
+
+      function openMain(){
+        const u = new URL(location.href);
+        const main = (u.searchParams.get("main") || "").trim();
+        if (main){
+          try{
+            const m = new URL(main);
+            location.href = m.toString();
+            return;
+          } catch {}
+        }
+        // Best-effort fallback if the portal hostname follows the "oidc-<main>" convention.
+        const host = String(location.host || "");
+        if (host.startsWith("oidc-")){
+          location.href = `https://${host.slice(5)}/`;
+          return;
+        }
+        location.href = "/";
+      }
+
+      function tryPopupClose(){
+        // If this portal is opened as a popup from the main demo, let the opener know we landed here.
+        if (!window.opener) return;
+        try{ window.opener.postMessage({ type: "rhcl_oidc_portal_ready" }, location.origin); } catch {}
+      }
+
+      setTab("live");
+      tryPopupClose();
+      refresh().catch(e => {
+        setStatus("bad", "Error");
+        append(`[${now()}] error: ${String(e)}`);
+      });
+    </script>
+  </body>
+</html>
+
