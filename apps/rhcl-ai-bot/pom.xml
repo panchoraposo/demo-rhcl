@@ -16,6 +16,7 @@
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.version>3.27.3.redhat-00001</quarkus.platform.version>
+    <quarkus.mcp.server.version>1.7.3</quarkus.mcp.server.version>
   </properties>
 
   <dependencyManagement>
@@ -24,6 +25,13 @@
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>${quarkus.platform.artifact-id}</artifactId>
         <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.quarkiverse.mcp</groupId>
+        <artifactId>quarkus-mcp-server-bom</artifactId>
+        <version>${quarkus.mcp.server.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -50,6 +58,10 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkiverse.mcp</groupId>
+      <artifactId>quarkus-mcp-server-sse</artifactId>
     </dependency>
   </dependencies>
 

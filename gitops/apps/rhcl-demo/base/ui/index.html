@@ -2471,11 +2471,26 @@ spec:
         aiSetStatus("Pinging…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          const r = await fetch("/mcp", { cache: "no-store" });
+          const body = { jsonrpc:"2.0", id: 1, method: "tools/list", params: {} };
+          const r = await fetch("/mcp", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+            cache: "no-store",
+          });
           aiSetStatus(`HTTP ${r.status}`);
           const txt = await r.text();
-          appendTo(aiLogEl, `[${now()}] GET /mcp -> ${r.status}`, r.ok ? "good" : "bad");
-          if (txt) appendTo(aiLogEl, txt.slice(0, 2000), r.ok ? "" : "bad");
+          appendTo(aiLogEl, `[${now()}] POST /mcp tools/list -> ${r.status}`, r.ok ? "good" : "bad");
+          if (txt){
+            let obj = null;
+            try{ obj = JSON.parse(txt); } catch {}
+            if (obj && obj.result && Array.isArray(obj.result.tools)){
+              const names = obj.result.tools.map(t => t.name).slice(0, 20).join(", ");
+              appendTo(aiLogEl, `tools: ${names || "(none)"}`, "muted");
+            } else {
+              appendTo(aiLogEl, txt.slice(0, 2000), r.ok ? "" : "bad");
+            }
+          }
         } catch (e){
           aiSetStatus("Error");
           appendTo(aiLogEl, `[${now()}] /mcp error: ${String(e)}`, "bad");
