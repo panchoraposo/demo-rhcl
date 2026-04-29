@@ -268,6 +268,48 @@
       .log .warn{color:#fde68a}
       .log .bad{color:#fca5a5}
 
+      .checks{
+        overflow:auto;
+        padding:12px;
+        border-radius:14px;
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.14);
+      }
+      .checkHead,.checkRow{
+        display:grid;
+        grid-template-columns: 1.2fr 1.2fr .6fr .7fr .9fr .7fr;
+        gap:10px;
+        align-items:center;
+        padding:10px 10px;
+        border-radius:12px;
+      }
+      .checkHead{
+        background: rgba(255,255,255,.04);
+        border:1px solid rgba(255,255,255,.08);
+        color:var(--muted);
+        font-size:12px;
+      }
+      .checkRow{
+        margin-top:10px;
+        border:1px solid rgba(255,255,255,.08);
+        background: rgba(0,0,0,.10);
+      }
+      .checkRow .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+      .badge{
+        display:inline-flex; align-items:center; gap:8px;
+        border-radius:999px;
+        padding:4px 10px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.16);
+        color:var(--muted);
+        font-size:12px;
+        white-space:nowrap;
+      }
+      .badge.good{border-color: rgba(34,197,94,.45); color:#b6f7cd}
+      .badge.bad{border-color: rgba(239,68,68,.50); color:#fecaca}
+      .badge.warn{border-color: rgba(245,158,11,.50); color:#fde68a}
+      .badge .dot{width:7px;height:7px;border-radius:999px}
+
       .chart{
         margin-top:10px;
         padding:12px;
@@ -695,12 +737,13 @@
               <div class="card" style="grid-column: 1 / -1;">
                 <h2>Role separation (runtime checks)</h2>
                 <div class="sub">
-                  Click "Run checks" to validate the current state and narrate who would fix what if a step fails.
+                  Runs real HTTP requests against the demo. Each row shows <b>what</b> was tested, <b>expected vs observed</b> behavior, the <b>policy layer</b> involved, and <b>who owns the fix</b> if it fails.
                 </div>
                 <div class="row" style="margin-top:10px">
                   <button class="primary" onclick="runRoleChecks()">Run checks</button>
+                  <button onclick="clearRoleChecks()">Clear</button>
                 </div>
-                <div class="log" id="rolesLog" style="height:240px; margin-top:10px"></div>
+                <div class="checks" id="rolesChecks" style="height:260px; margin-top:10px"></div>
               </div>
             </div>
           </section>
@@ -881,7 +924,7 @@
             <div class="moduleHero">
               <div class="k">Module</div>
               <div class="t"><b>OIDC</b> — Keycloak + protected route</div>
-              <div class="d">Discover OIDC config (<code>/auth</code>), get a token, inspect claims, then call a protected API (<code>/secure</code>).</div>
+              <div class="d">Discover OIDC config (<code>/auth</code>), get a token, inspect claims, then call a protected API (<code>/secure</code>). Enforcement happens at the Gateway by <b>Kuadrant/Authorino</b> via <code>OIDCPolicy</code> + <code>AuthPolicy</code>.</div>
               <div class="row" style="margin-top:10px">
                 <button onclick="openYamlSet('oidc')">View policy YAML</button>
               </div>
@@ -890,7 +933,8 @@
               <div class="card" style="grid-column: 1 / -1;">
                 <h2>OIDC: Keycloak + protected route</h2>
                 <div class="sub">
-                  Steps: fetch OIDC discovery, get a token (password grant), decode JWT claims, then call the protected API (<code>/secure/headers</code>).
+                  Steps: fetch OIDC discovery, get a token (password grant), decode JWT claims, then call a protected external API via the Gateway (<code>/secure/nba</code>).
+                  The request is <b>accepted/rejected before it reaches the backend</b> by Kuadrant (Gateway policies) using Authorino.
                 </div>
                 <div class="row" style="margin-top:10px">
                   <button class="primary" onclick="openKeycloak()">Open Keycloak</button>
@@ -909,7 +953,9 @@
                 <div class="row">
                   <button class="good" onclick="getToken()">Get token</button>
                   <button onclick="showTokenClaims()">Show token claims</button>
-                  <button class="good" onclick="callSecure()">GET /secure/headers</button>
+                  <button class="good" onclick="callSecure()">GET protected NBA scoreboard</button>
+                  <button class="warn" onclick="callSecureNoToken()">Try without token</button>
+                  <button class="warn" onclick="clearOidcToken()">Clear token</button>
                 </div>
                 <div class="row" style="margin-top:10px">
                   <div class="input" style="flex:1 1 100%; min-width: 300px;">
@@ -917,6 +963,18 @@
                     <input id="oidcToken" value="" spellcheck="false" placeholder="(click Get token)" />
                   </div>
                 </div>
+                <div class="row" style="margin-top:10px">
+                  <span class="pill"><span class="dot"></span><b>Protected</b>: <code id="oidcReq">GET /secure/nba</code></span>
+                  <span class="pill"><span class="dot"></span><span id="oidcMeta">—</span></span>
+                  <span class="pill">
+                    <span class="dot"></span>
+                    <span>View:</span>
+                    <button id="oidcTabLive" class="primary" onclick="setOidcTab('live')" style="padding:6px 10px; border-radius:999px">Live</button>
+                    <button id="oidcTabFinal" onclick="setOidcTab('final')" style="padding:6px 10px; border-radius:999px">Final</button>
+                    <button id="oidcTabUpcoming" onclick="setOidcTab('upcoming')" style="padding:6px 10px; border-radius:999px">Upcoming</button>
+                  </span>
+                </div>
+                <div id="oidcBoard" style="margin-top:10px"></div>
                 <div class="log" id="oidcLog" style="height:200px; margin-top:10px"></div>
               </div>
             </div>
@@ -971,7 +1029,7 @@
       const kpiUser = el("kpiUser");
       const bars = el("bars");
       const jsTag = el("jsTag");
-      const rolesLogEl = el("rolesLog");
+      const rolesChecksEl = el("rolesChecks");
       const abKpiEl = el("abKpi");
       const canaryKpiEl = el("canaryKpi");
       const trafficBarsEl = el("trafficBars");
@@ -1016,6 +1074,12 @@
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
       const oidcTokenEl = el("oidcToken");
+      const oidcReqEl = el("oidcReq");
+      const oidcMetaEl = el("oidcMeta");
+      const oidcBoardEl = el("oidcBoard");
+      const oidcTabLiveEl = el("oidcTabLive");
+      const oidcTabFinalEl = el("oidcTabFinal");
+      const oidcTabUpcomingEl = el("oidcTabUpcoming");
 
       let lastBurst = [];
       let trafficSample = [];
@@ -2199,6 +2263,203 @@ spec:
         externalRawDlg.showModal();
       }
 
+      const OIDC_TOKEN_KEY = "rhcl_oidc_token";
+      let oidcLastEvents = [];
+      let oidcTab = "live";
+
+      function setOidcTab(tab){
+        const t = (tab || "live").toLowerCase();
+        oidcTab = (t === "final" || t === "upcoming" || t === "live") ? t : "live";
+        if (oidcTabLiveEl) oidcTabLiveEl.classList.toggle("primary", oidcTab === "live");
+        if (oidcTabFinalEl) oidcTabFinalEl.classList.toggle("primary", oidcTab === "final");
+        if (oidcTabUpcomingEl) oidcTabUpcomingEl.classList.toggle("primary", oidcTab === "upcoming");
+        renderOidcScoreboard(oidcLastEvents || []);
+      }
+
+      function renderOidcScoreboard(events){
+        if (!oidcBoardEl) return;
+        oidcBoardEl.innerHTML = "";
+        const all = (events || []).slice();
+        if (all.length === 0){
+          oidcBoardEl.innerHTML = `<div class="match"><div class="top"><span class="badge sched">No events</span><span>Get a token and call the protected scoreboard.</span></div></div>`;
+          return;
+        }
+
+        const finals = [];
+        const live = [];
+        const upcoming = [];
+        for (const ev of all){
+          const c = classifyExternalEvent(ev);
+          if (c.isLive) live.push(ev);
+          else if (c.isFinal) finals.push(ev);
+          else upcoming.push(ev);
+        }
+        finals.sort((a,b)=> (new Date(b.date)) - (new Date(a.date)));
+        live.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
+        upcoming.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
+
+        const pick = (oidcTab === "final") ? finals : (oidcTab === "upcoming" ? upcoming : live);
+        const title = (oidcTab === "final") ? "FINAL (recent)" : (oidcTab === "upcoming" ? "UPCOMING" : "LIVE");
+        const limit = (oidcTab === "upcoming") ? 18 : 12;
+        const items = pick.slice(0, limit);
+        if (items.length === 0){
+          oidcBoardEl.innerHTML = `<div class="match"><div class="top"><span class="badge sched">No events</span><span>Try another tab or widen the date range.</span></div></div>`;
+          return;
+        }
+
+        const head = document.createElement("div");
+        head.className = "boardTitle";
+        head.innerHTML = `<span>${title}</span><span class="muted">${items.length} shown</span>`;
+        oidcBoardEl.appendChild(head);
+
+        const grid = document.createElement("div");
+        grid.className = "boardGrid";
+        for (const ev of items){
+          const { stType, comp } = classifyExternalEvent(ev);
+          const state = (stType.state || "").toLowerCase();
+          const detail = (stType.shortDetail || stType.detail || "").trim();
+          const isLive2 = state === "in" || state === "inprogress";
+          const isFinal2 = state === "post" || state === "final";
+
+          const badgeCls = isLive2 ? "live" : (isFinal2 ? "final" : "sched");
+          const badgeText = isLive2 ? "LIVE" : (isFinal2 ? "FINAL" : "SCHEDULED");
+          const series = seriesScore(comp);
+          const seriesSummary = (comp && comp.series && comp.series.summary) ? String(comp.series.summary) : "";
+          const seriesHtml = series ? `<span class="seriesPill" title="${escAttr(seriesSummary || "Playoff series")}">Series ${esc(series)}</span>` : "";
+
+          let home = null, away = null;
+          if (comp && Array.isArray(comp.competitors)){
+            for (const c2 of comp.competitors){
+              const ha = (c2.homeAway || "").toLowerCase();
+              const t = c2.team || {};
+              const logo = httpsFix(
+                (t.logos && t.logos[0] && t.logos[0].href) ||
+                (typeof t.logo === "string" ? t.logo : "") ||
+                (t.logo && t.logo.href) ||
+                ""
+              );
+              const full = (t.displayName || t.name || t.shortDisplayName || t.abbreviation || ha || "team");
+              const name = (t.shortDisplayName || t.abbreviation || full);
+              const abbr = (t.abbreviation || "").trim();
+              const score = (c2.score != null ? String(c2.score) : "");
+              const winner = !!c2.winner;
+              const obj = { logo, name, full, abbr, score, winner };
+              if (ha === "home") home = obj;
+              else if (ha === "away") away = obj;
+            }
+          }
+
+          const eventName = (ev.shortName || ev.name || "").trim();
+          const when = fmtWhen(ev.date || (comp && comp.date) || "");
+          const venue = fmtVenue(comp && comp.venue);
+          const right = isFinal2 ? when : (isLive2 ? (detail || when) : when);
+          const topRight = right || "TBD";
+
+          const metaParts = [];
+          if (venue) metaParts.push(venue);
+          if (seriesSummary) metaParts.push(seriesSummary);
+          if (metaParts.length === 0 && (!home && !away) && eventName) metaParts.push(eventName);
+          const meta = metaParts.join(" · ");
+          const metaHtml = meta ? `<div class="meta">${esc(meta)}</div>` : "";
+
+          const match = document.createElement("div");
+          match.className = "match";
+          match.innerHTML = `
+            <div class="top">
+              <span class="row" style="gap:8px; flex-wrap:wrap; align-items:center">
+                <span class="badge ${badgeCls}">${badgeText}</span>
+                ${seriesHtml}
+              </span>
+              <span>${esc(topRight)}</span>
+            </div>
+            <div class="teams">
+              <div class="teamrow">
+                ${teamLogoBox(away)}
+                <div class="tname" title="${escAttr(away ? away.full : eventName)}">${esc(away ? away.name : eventName)}</div>
+                <div class="score ${away && away.winner ? "win" : ""}">${away ? (away.score || "—") : ""}</div>
+              </div>
+              <div class="teamrow">
+                ${teamLogoBox(home)}
+                <div class="tname" title="${escAttr(home ? home.full : "")}">${esc(home ? home.name : "")}</div>
+                <div class="score ${home && home.winner ? "win" : ""}">${home ? (home.score || "—") : ""}</div>
+              </div>
+            </div>
+            ${metaHtml}
+          `;
+          grid.appendChild(match);
+        }
+        oidcBoardEl.appendChild(grid);
+      }
+
+      function oidcDates(days){
+        const rDays = Math.max(1, Math.min(21, parseInt(String(days || 7), 10) || 7));
+        const today = new Date();
+        const start = new Date(today); start.setDate(today.getDate() - rDays);
+        const end = new Date(today); end.setDate(today.getDate() + rDays);
+        return `${ymd(start)}-${ymd(end)}`;
+      }
+
+      function clearRoleChecks(){
+        if (rolesChecksEl) rolesChecksEl.textContent = "";
+      }
+
+      function badgeHtml(kind, label){
+        const cls = kind === "good" ? "good" : kind === "bad" ? "bad" : kind === "warn" ? "warn" : "";
+        const dotClass = kind === "good" ? "dot good" : kind === "bad" ? "dot bad" : kind === "warn" ? "dot" : "dot";
+        return `<span class="badge ${cls}"><span class="${dotClass}"></span>${label}</span>`;
+      }
+
+      function escHtml(s){
+        return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#39;");
+      }
+
+      function renderRoleChecks(rows){
+        const head = `
+          <div class="checkHead">
+            <div>Check</div>
+            <div>Request</div>
+            <div>Expected</div>
+            <div>Observed</div>
+            <div>Policy layer</div>
+            <div>Owner</div>
+          </div>
+        `;
+        const body = rows.map(r => {
+          const status = r.ok === true ? badgeHtml("good", "PASS") : r.ok === false ? badgeHtml("bad", "FAIL") : badgeHtml("warn", "SKIP");
+          const exp = `<span class="mono">${escHtml(r.expected || "—")}</span>`;
+          const obs = `<span class="mono">${escHtml(r.observed || "—")}</span>`;
+          const req = `<span class="mono">${escHtml(r.method || "GET")} ${escHtml(r.path || "")}</span>`;
+          const who = `<span class="pill"><span class="dot"></span>${escHtml(r.owner || "—")}</span>`;
+          const pol = `<span class="pill"><span class="dot"></span>${escHtml(r.layer || "—")}</span>`;
+          const title = `<div><div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">${status}<b>${escHtml(r.title || "")}</b></div><div class="sub" style="margin-top:6px">${escHtml(r.why || "")}</div></div>`;
+          return `
+            <div class="checkRow">
+              ${title}
+              <div>${req}</div>
+              <div>${exp}</div>
+              <div>${obs}</div>
+              <div>${pol}</div>
+              <div>${who}</div>
+            </div>
+          `;
+        }).join("");
+        rolesChecksEl.innerHTML = head + body;
+      }
+
+      async function httpCheck({ title, method="GET", path, expected, okFn, fetchOpts, owner, layer, why }){
+        const t0 = performance.now();
+        let status = 0;
+        try{
+          const r = await fetch(path, { method, cache:"no-store", ...(fetchOpts || {}) });
+          status = r.status;
+        } catch (e){
+          return { title, method, path, expected, observed: `error`, ok: false, owner, layer, why };
+        }
+        const ms = Math.round(performance.now() - t0);
+        const ok = okFn ? !!okFn(status) : false;
+        return { title, method, path, expected, observed: `${status} (${ms}ms)`, ok, owner, layer, why };
+      }
+
       function openKeycloak(){
         window.open("/auth", "_blank", "noopener,noreferrer");
       }
@@ -2250,6 +2511,7 @@ spec:
           return;
         }
         oidcTokenEl.value = data.access_token || "";
+        try{ localStorage.setItem(OIDC_TOKEN_KEY, oidcTokenEl.value); } catch {}
         appendTo(oidcLogEl, `token received (len=${(data.access_token || "").length})`, "ok");
       }
 
@@ -2285,32 +2547,139 @@ spec:
       async function callSecure(){
         oidcLogEl.textContent = "";
         const t = (oidcTokenEl.value || "").trim();
-        appendTo(oidcLogEl, `[${now()}] GET /secure/headers (Bearer token)`, "muted");
-        const r = await fetch("/secure/headers", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
+        if (!t){
+          appendTo(oidcLogEl, `[${now()}] no token set (use Get token, or Try without token to see the 401/403)`, "warn");
+          return;
+        }
+        const dates = oidcDates(7);
+        const path = `/secure/nba?dates=${dates}&_=${Date.now()}`;
+        if (oidcReqEl) oidcReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
+        appendTo(oidcLogEl, `[${now()}] GET ${path} (Bearer token)`, "muted");
+        const t0 = performance.now();
+        const r = await fetch(path, { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
+        const ms = Math.round(performance.now() - t0);
         const txt = await r.text();
-        appendTo(oidcLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
+        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, r.status === 200 ? "ok" : "bad");
+        if (oidcMetaEl) oidcMetaEl.textContent = `${(txt || "").length.toLocaleString()} bytes · range=${dates}`;
+        if (r.status !== 200){
+          appendTo(oidcLogEl, txt.slice(0, 2000));
+          oidcLastEvents = [];
+          renderOidcScoreboard([]);
+          return;
+        }
+        let obj = null;
+        try{ obj = JSON.parse(txt); } catch {}
+        const events = (obj && Array.isArray(obj.events)) ? obj.events : [];
+        oidcLastEvents = events;
+        renderOidcScoreboard(events);
+        appendTo(oidcLogEl, `events=${events.length}`, "muted");
+      }
+
+      async function callSecureNoToken(){
+        oidcLogEl.textContent = "";
+        const dates = oidcDates(7);
+        const path = `/secure/nba?dates=${dates}&_=${Date.now()}`;
+        if (oidcReqEl) oidcReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
+        appendTo(oidcLogEl, `[${now()}] GET ${path} (no token)`, "muted");
+        const t0 = performance.now();
+        const r = await fetch(path, { cache: "no-store" });
+        const ms = Math.round(performance.now() - t0);
+        const txt = await r.text();
+        appendTo(oidcLogEl, `status=${r.status} · ${ms}ms`, (r.status === 401 || r.status === 403) ? "ok" : "warn");
         appendTo(oidcLogEl, txt.slice(0, 2000));
+        oidcLastEvents = [];
+        renderOidcScoreboard([]);
+      }
+
+      function clearOidcToken(){
+        oidcTokenEl.value = "";
+        try{ localStorage.removeItem(OIDC_TOKEN_KEY); } catch {}
+        oidcLogEl.textContent = "";
+        appendTo(oidcLogEl, `[${now()}] token cleared`, "muted");
       }
 
       async function runRoleChecks(){
-        rolesLogEl.textContent = "";
-        appendTo(rolesLogEl, `[${now()}] Running role checks…`, "muted");
+        rolesChecksEl.innerHTML = `<div class="sub">[${now()}] Running checks…</div>`;
+        const rows = [];
 
-        // Infrastructure owner: HTTPS entrypoint exists (Route + cert => Gateway programmed)
-        const h = await fetch("/health");
-        appendTo(rolesLogEl, `Infrastructure owner: HTTPS entrypoint reachable -> /health = ${h.status}`, h.status === 200 ? "ok" : "bad");
+        rows.push(await httpCheck({
+          title: "HTTPS entrypoint works",
+          path: "/health",
+          expected: "200",
+          okFn: (s) => s === 200,
+          owner: "Infrastructure owner",
+          layer: "Route + Gateway + TLS",
+          why: "If this fails, nothing else matters: DNS/TLS/Gateway wiring is broken.",
+        }));
 
-        // Platform engineer: default deny-all on Gateway (developer must override per route)
-        const noKey = await fetch("/hello");
-        appendTo(rolesLogEl, `Platform engineer: default policy blocks /hello without credentials -> ${noKey.status}`, (noKey.status >= 400) ? "ok" : "warn");
+        rows.push(await httpCheck({
+          title: "Zero-trust default deny is active",
+          path: "/hello",
+          expected: "401/403",
+          okFn: (s) => (s === 401 || s === 403),
+          owner: "Platform engineer",
+          layer: "Gateway AuthPolicy (deny-all)",
+          why: "Shows the global guardrail: routes are not public unless explicitly allowed.",
+        }));
 
-        // Developer: per-route AuthPolicy enables API key auth
-        const withKey = await fetch("/hello", { headers: { Authorization: (apikeyEl.value || "").trim() } });
-        appendTo(rolesLogEl, `Developer: route-level AuthPolicy allows valid API key -> ${withKey.status}`, withKey.status === 200 ? "ok" : "bad");
+        rows.push(await httpCheck({
+          title: "Developer onboarding enables API access",
+          path: "/hello",
+          expected: "200",
+          okFn: (s) => s === 200,
+          fetchOpts: { headers: { Authorization: (apikeyEl.value || "").trim() } },
+          owner: "Developer",
+          layer: "Route AuthPolicy (API key)",
+          why: "The app team provides the minimum auth override for its route.",
+        }));
 
-        // Platform + developer: traffic shaping exists as a platform feature, developers onboard routes
-        const ab = await fetch("/ab");
-        appendTo(rolesLogEl, `Platform feature: traffic shaping route available -> /ab = ${ab.status}`, ab.status === 200 ? "ok" : "bad");
+        rows.push(await httpCheck({
+          title: "Traffic shaping route is deployed",
+          path: "/ab",
+          expected: "200",
+          okFn: (s) => s === 200,
+          owner: "Platform + developer",
+          layer: "HTTPRoute weighted backends",
+          why: "Confirms the platform capability exists and a team can opt-in by adding a route.",
+        }));
+
+        rows.push(await httpCheck({
+          title: "OIDC-protected route rejects missing token",
+          path: `/secure/nba?dates=${oidcDates(7)}&_=${Date.now()}`,
+          expected: "401/403",
+          okFn: (s) => (s === 401 || s === 403),
+          owner: "Platform engineer",
+          layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
+          why: "Shows enforcement at the Gateway: no token means no backend access.",
+        }));
+
+        const tok = (oidcTokenEl?.value || "").trim();
+        if (!tok){
+          rows.push({
+            title: "OIDC-protected route accepts valid token",
+            method: "GET",
+            path: `/secure/nba?dates=${oidcDates(7)}`,
+            expected: "200",
+            observed: "—",
+            ok: null,
+            owner: "Developer",
+            layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
+            why: "Get a token in the OIDC module, then rerun checks to see the success path.",
+          });
+        } else {
+          rows.push(await httpCheck({
+            title: "OIDC-protected route accepts valid token",
+            path: `/secure/nba?dates=${oidcDates(7)}&_=${Date.now()}`,
+            expected: "200",
+            okFn: (s) => s === 200,
+            fetchOpts: { headers: { Authorization: `Bearer ${tok}` } },
+            owner: "Developer",
+            layer: "OIDCPolicy + JWT AuthPolicy (Authorino)",
+            why: "Validates the end-to-end happy path using Keycloak as the IdP.",
+          }));
+        }
+
+        renderRoleChecks(rows);
       }
 
       // Bootstrap
@@ -2321,6 +2690,15 @@ spec:
       initExternalTreeUi();
       setExternalTab("final");
       installJsDiagnostics();
+      setOidcTab("live");
+      try{ oidcTokenEl.value = localStorage.getItem(OIDC_TOKEN_KEY) || ""; } catch {}
+      oidcTokenEl.addEventListener("input", () => {
+        try{
+          const t = (oidcTokenEl.value || "").trim();
+          if (t) localStorage.setItem(OIDC_TOKEN_KEY, t);
+          else localStorage.removeItem(OIDC_TOKEN_KEY);
+        } catch {}
+      });
       setTimeout(() => { selfTest(); }, 250);
     </script>
   </body>

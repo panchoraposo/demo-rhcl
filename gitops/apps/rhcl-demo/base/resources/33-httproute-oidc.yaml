@@ -51,11 +51,11 @@ spec:
           urlRewrite:
             path:
               type: ReplacePrefixMatch
-              replacePrefixMatch: /
+              replacePrefixMatch: /external
       backendRefs:
         - group: ""
           kind: Service
-          name: secure-api
+          name: external-proxy
           port: 80
           weight: 1
 
