@@ -47,10 +47,13 @@ public class ChatResource {
         if (llm.enabled()) {
           try {
             ArrayNode prompt = json.mapper().createArrayNode();
-            prompt.add(obj("system", "You are a helpful sports assistant for a workshop demo. Use the provided NBA scoreboard summary to answer the user question. Be concise."));
+            prompt.add(obj("system",
+                "You are a helpful sports assistant for a workshop demo. Use the provided NBA scoreboard summary to answer the user question. " +
+                "Be concise. Do not include internal reasoning or <think> tags; only output the final answer."));
             prompt.add(obj("user", "User question: " + safe(userText) + "\n\nNBA scoreboard summary:\n" + summary));
             JsonNode llmRes = llm.chat(prompt);
             answer = llmRes.at("/choices/0/message/content").asText("");
+            answer = sanitizeAnswer(answer);
             if (answer.isBlank()) {
               answer = summary;
               llmError = "LLM returned an empty answer";
@@ -183,6 +186,11 @@ public class ChatResource {
   private static String safe(String s) {
     if (s == null) return "";
     return s.length() > 800 ? s.substring(0, 800) : s;
+  }
+
+  private static String sanitizeAnswer(String text) {
+    if (text == null) return "";
+    return text.replaceAll("(?s)<think>.*?</think>", "").trim();
   }
 }
 
