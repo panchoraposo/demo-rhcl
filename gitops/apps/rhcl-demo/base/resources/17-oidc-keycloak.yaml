@@ -112,6 +112,112 @@ spec:
   additionalOptions:
     - name: http-relative-path
       value: /auth
+  unsupported:
+    podTemplate:
+      spec:
+        volumes:
+          - name: rhcl-theme
+            configMap:
+              name: keycloak-theme-rhcl
+              items:
+                - key: theme.properties
+                  path: rhcl/login/theme.properties
+                - key: rhcl.css
+                  path: rhcl/login/resources/css/rhcl.css
+        containers:
+          - name: keycloak
+            volumeMounts:
+              - name: rhcl-theme
+                mountPath: /opt/keycloak/themes
+                readOnly: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-theme-rhcl
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+data:
+  theme.properties: |
+    parent=keycloak.v2
+    import=common/keycloak
+    styles=css/rhcl.css
+  rhcl.css: |
+    :root{
+      --rhcl-bg0:#070a12;
+      --rhcl-bg1:#0b1020;
+      --rhcl-card: rgba(15,22,48,.72);
+      --rhcl-line: rgba(255,255,255,.10);
+      --rhcl-text:#eaf1ff;
+      --rhcl-muted:#a7b3d4;
+      --rhcl-accent:#7c5cff;
+      --rhcl-accent2:#38bdf8;
+      --rhcl-good:#22c55e;
+    }
+
+    body{
+      background:
+        radial-gradient(1200px 700px at 18% 12%, rgba(124,92,255,.32), transparent 55%),
+        radial-gradient(1000px 700px at 84% 30%, rgba(56,189,248,.22), transparent 60%),
+        linear-gradient(180deg, var(--rhcl-bg0), var(--rhcl-bg1));
+      color: var(--rhcl-text);
+    }
+
+    .pf-v5-c-login{
+      background: transparent !important;
+    }
+
+    .pf-v5-c-login__main{
+      border:1px solid var(--rhcl-line);
+      border-radius:18px;
+      background: var(--rhcl-card);
+      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+    }
+
+    .pf-v5-c-title, .pf-v5-c-form__label-text{
+      color: var(--rhcl-text) !important;
+    }
+
+    .pf-v5-c-form__helper-text, .pf-v5-c-content, .pf-v5-c-login__main-footer-band-item{
+      color: var(--rhcl-muted) !important;
+    }
+
+    .pf-v5-c-button.pf-m-primary{
+      background: linear-gradient(90deg, rgba(124,92,255,.95), rgba(56,189,248,.80));
+      border: 1px solid rgba(124,92,255,.55);
+      border-radius: 12px;
+      font-weight: 650;
+      box-shadow: 0 10px 24px rgba(124,92,255,.22);
+    }
+
+    .pf-v5-c-button.pf-m-primary:hover{
+      filter: brightness(1.05);
+    }
+
+    .pf-v5-c-form-control{
+      border-radius: 12px;
+      border-color: rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: var(--rhcl-text);
+    }
+
+    .pf-v5-c-form-control:focus{
+      box-shadow: 0 0 0 3px rgba(124,92,255,.25);
+      border-color: rgba(124,92,255,.55);
+    }
+
+    /* Subtle RHCL mark on header */
+    .pf-v5-c-login__header::after{
+      content: "RHCL Workshop";
+      display:block;
+      margin-top:8px;
+      font-size:12px;
+      letter-spacing:.18em;
+      text-transform: uppercase;
+      color: rgba(234,241,255,.72);
+    }
 ---
 apiVersion: k8s.keycloak.org/v2alpha1
 kind: KeycloakRealmImport
