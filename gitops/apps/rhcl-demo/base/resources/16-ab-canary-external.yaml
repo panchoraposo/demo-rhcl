@@ -284,6 +284,8 @@ spec:
     metadata:
       labels:
         app: external-proxy
+      annotations:
+        rhcl-demo/external-proxy-config: "espn-v1"
     spec:
       containers:
         - name: nginx
@@ -315,8 +317,8 @@ data:
       # External API demo (ESPN public JSON endpoints)
       # - UI calls same-origin (/external/*)
       # - This service proxies to upstream JSON (no browser CORS problems)
-      location = /external {
-        rewrite ^/external$ /apis/site/v2/sports/football/nfl/scoreboard break;
+      location ^~ /external {
+        rewrite ^/external/?$ /apis/site/v2/sports/football/nfl/scoreboard break;
         proxy_ssl_server_name on;
         proxy_set_header Host site.api.espn.com;
         proxy_set_header User-Agent "rhcl-demo";
@@ -324,8 +326,8 @@ data:
         proxy_pass https://site.api.espn.com;
       }
 
-      location = /external/nfl {
-        rewrite ^/external/nfl$ /apis/site/v2/sports/football/nfl/scoreboard break;
+      location ^~ /external/nfl {
+        rewrite ^/external/nfl/?$ /apis/site/v2/sports/football/nfl/scoreboard break;
         proxy_ssl_server_name on;
         proxy_set_header User-Agent "rhcl-demo";
         proxy_set_header Host site.api.espn.com;
@@ -333,8 +335,8 @@ data:
         proxy_pass https://site.api.espn.com;
       }
 
-      location = /external/nba {
-        rewrite ^/external/nba$ /apis/site/v2/sports/basketball/nba/scoreboard break;
+      location ^~ /external/nba {
+        rewrite ^/external/nba/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
         proxy_ssl_server_name on;
         proxy_set_header User-Agent "rhcl-demo";
         proxy_set_header Host site.api.espn.com;
@@ -342,8 +344,8 @@ data:
         proxy_pass https://site.api.espn.com;
       }
 
-      location = /external/epl {
-        rewrite ^/external/epl$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
+      location ^~ /external/epl {
+        rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
         proxy_ssl_server_name on;
         proxy_set_header User-Agent "rhcl-demo";
         proxy_set_header Host site.api.espn.com;
