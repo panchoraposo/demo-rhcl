@@ -593,6 +593,7 @@
           <button class="primary active" data-module="policies">AuthPolicy + RateLimitPolicy</button>
           <button data-module="traffic">A/B + canary</button>
           <button data-module="external">External API (ESPN)</button>
+          <button data-module="ai">AI chatbot</button>
           <button data-module="oidc">OIDC portal</button>
         </div>
       </aside>
@@ -927,6 +928,42 @@
             </div>
           </section>
 
+          <section class="module" id="ai" data-module="ai">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>AI chatbot</b> — tool call (ESPN) + TokenRateLimitPolicy</div>
+              <div class="d">
+                The browser talks to a Quarkus app that can call an in-cluster “tool” (the ESPN proxy) and returns an OpenAI-compatible response including <code>usage.total_tokens</code>.
+                The Gateway enforces <b>TokenRateLimitPolicy</b> on this endpoint.
+              </div>
+              <div class="row" style="margin-top:10px">
+                <button onclick="openYamlSet('ai')">View policy YAML</button>
+                <button class="primary" onclick="aiPing()">Ping MCP</button>
+                <span class="pill"><span class="dot"></span> <code id="aiStatus">—</code></span>
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>Ask about NBA games</h2>
+                <div class="sub">
+                  Try: <span class="mono">What NBA games are live?</span> or <span class="mono">Show finals in the last 7 days</span>.
+                  If you hit the token budget, you’ll get <b>429</b> from the Gateway.
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <textarea id="aiPrompt" spellcheck="false" style="flex:1; min-height:84px; resize:vertical; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); padding:10px 12px; border-radius:14px;" placeholder="Ask something about NBA games…"></textarea>
+                </div>
+                <div class="row" style="margin-top:10px; align-items:center; gap:10px">
+                  <button class="primary" onclick="aiChat()">Send</button>
+                  <button onclick="aiLongPrompt()">Make it longer</button>
+                  <span class="pill"><span class="dot"></span> <span id="aiTokens">tokens: —</span></span>
+                  <span class="pill"><span class="dot"></span> <span id="aiHttp">HTTP: —</span></span>
+                </div>
+                <div class="log" id="aiLog" style="height:210px; margin-top:10px"></div>
+              </div>
+            </div>
+          </section>
+
           <section class="module" id="oidc" data-module="oidc">
             <div class="moduleHero">
               <div class="k">Module</div>
@@ -1053,6 +1090,11 @@
       const yamlTabsEl = el("yamlTabs");
       const yamlPreEl = el("yamlPre");
       const oidcPortalPillEl = el("oidcPortalPill");
+      const aiStatusEl = el("aiStatus");
+      const aiPromptEl = el("aiPrompt");
+      const aiTokensEl = el("aiTokens");
+      const aiHttpEl = el("aiHttp");
+      const aiLogEl = el("aiLog");
 
       let lastBurst = [];
       let trafficSample = [];
@@ -1262,6 +1304,65 @@ data:
         proxy_pass https://site.api.espn.com;
       }
     }
+` },
+        ],
+        "ai": [
+          { name: "HTTPRoute (/ai + /mcp)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ai-bot
+  namespace: demo
+spec:
+  hostnames:
+    - REPLACE_ME_DEMO_HOSTNAME
+  rules:
+    - matches:
+        - method: POST
+          path: { type: PathPrefix, value: /ai }
+        - method: GET
+          path: { type: PathPrefix, value: /mcp }
+        - method: POST
+          path: { type: PathPrefix, value: /mcp }
+      backendRefs:
+        - kind: Service
+          name: rhcl-ai-bot
+          port: 80
+` },
+          { name: "AuthPolicy (allow)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: ai-bot-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ai-bot
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
+          { name: "TokenRateLimitPolicy (tokens/min)", yaml: `apiVersion: kuadrant.io/v1alpha1
+kind: TokenRateLimitPolicy
+metadata:
+  name: ai-bot-token-rl
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ai-bot
+  defaults:
+    when:
+      - predicate: request.path.startsWith("/ai/v1/chat/completions")
+    limits:
+      global:
+        rates:
+          - limit: 2500
+            window: 1m
 ` },
         ],
         "oidc": [
@@ -2359,6 +2460,96 @@ spec:
       async function copyOidcPortal(){
         const ok = await copyText(oidcPortalUrl());
         if (!ok) return;
+      }
+
+      function aiSetStatus(text){
+        if (!aiStatusEl) return;
+        aiStatusEl.textContent = text || "—";
+      }
+
+      async function aiPing(){
+        aiSetStatus("Pinging…");
+        if (aiLogEl) aiLogEl.textContent = "";
+        try{
+          const r = await fetch("/mcp", { cache: "no-store" });
+          aiSetStatus(`HTTP ${r.status}`);
+          const txt = await r.text();
+          appendTo(aiLogEl, `[${now()}] GET /mcp -> ${r.status}`, r.ok ? "good" : "bad");
+          if (txt) appendTo(aiLogEl, txt.slice(0, 2000), r.ok ? "" : "bad");
+        } catch (e){
+          aiSetStatus("Error");
+          appendTo(aiLogEl, `[${now()}] /mcp error: ${String(e)}`, "bad");
+        }
+      }
+
+      function aiLongPrompt(){
+        if (!aiPromptEl) return;
+        const base = aiPromptEl.value.trim() || "Show finals in the last 7 days and summarize key games.";
+        const extra = "\n\nAlso include context and mention notable matchups. Keep it detailed.";
+        aiPromptEl.value = base + extra + extra + extra;
+      }
+
+      async function aiChat(){
+        const prompt = (aiPromptEl && aiPromptEl.value) ? String(aiPromptEl.value).trim() : "";
+        if (!prompt){
+          aiSetStatus("Enter a prompt");
+          return;
+        }
+
+        aiSetStatus("Sending…");
+        if (aiTokensEl) aiTokensEl.textContent = "tokens: —";
+        if (aiHttpEl) aiHttpEl.textContent = "HTTP: —";
+        appendTo(aiLogEl, `[${now()}] POST /ai/v1/chat/completions`, "muted");
+
+        const body = {
+          model: "rhcl-ai-bot",
+          messages: [{ role: "user", content: prompt }],
+        };
+
+        const t0 = performance.now();
+        let r = null;
+        let txt = "";
+        try{
+          r = await fetch("/ai/v1/chat/completions", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+            cache: "no-store",
+          });
+          const ms = Math.round(performance.now() - t0);
+          if (aiHttpEl) aiHttpEl.textContent = `HTTP: ${r.status} · ${ms}ms`;
+          txt = await r.text();
+        } catch (e){
+          aiSetStatus("Error");
+          appendTo(aiLogEl, `[${now()}] error: ${String(e)}`, "bad");
+          return;
+        }
+
+        if (r.status === 429){
+          aiSetStatus("Rate limited (429)");
+          appendTo(aiLogEl, `[${now()}] 429 from Gateway (TokenRateLimitPolicy)`, "bad");
+          if (txt) appendTo(aiLogEl, txt.slice(0, 2000), "bad");
+          return;
+        }
+
+        if (!r.ok){
+          aiSetStatus(`Failed (${r.status})`);
+          appendTo(aiLogEl, `[${now()}] ${r.status} response`, "bad");
+          if (txt) appendTo(aiLogEl, txt.slice(0, 2000), "bad");
+          return;
+        }
+
+        let obj = null;
+        try{ obj = JSON.parse(txt); } catch {}
+        const content = obj?.choices?.[0]?.message?.content || "(no content)";
+        const total = obj?.usage?.total_tokens;
+        const tool = obj?.rhcl_meta?.tool || "";
+        const llmEnabled = obj?.rhcl_meta?.llm_enabled;
+
+        aiSetStatus("Ready");
+        if (aiTokensEl) aiTokensEl.textContent = `tokens: ${typeof total === "number" ? total : "—"}${tool ? " · " + tool : ""}${llmEnabled === true ? " · llm:on" : llmEnabled === false ? " · llm:off" : ""}`;
+        appendTo(aiLogEl, `[${now()}] assistant:`, "good");
+        appendTo(aiLogEl, content, "");
       }
 
       function clearRoleChecks(){

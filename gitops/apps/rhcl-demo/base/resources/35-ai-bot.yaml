@@ -1,0 +1,101 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: rhcl-ai-bot
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec: {}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: rhcl-ai-bot
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  triggers:
+    - type: ConfigChange
+  source:
+    type: Git
+    git:
+      uri: https://github.com/panchoraposo/demo-rhcl.git
+    contextDir: apps/rhcl-ai-bot
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: rhcl-ai-bot:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhcl-ai-bot
+  namespace: demo
+  labels:
+    app: rhcl-ai-bot
+  annotations:
+    argocd.argoproj.io/sync-wave: "13"
+    image.openshift.io/triggers: |
+      [{"from":{"kind":"ImageStreamTag","name":"rhcl-ai-bot:latest","namespace":"demo"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rhcl-ai-bot
+  template:
+    metadata:
+      labels:
+        app: rhcl-ai-bot
+    spec:
+      containers:
+        - name: app
+          image: rhcl-ai-bot:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Optional: enable real LLM calls (OpenAI-compatible)
+            - name: OPENAI_BASE_URL
+              value: ""
+            - name: OPENAI_API_KEY
+              value: ""
+            - name: OPENAI_MODEL
+              value: gpt-4o-mini
+            # Tool calls go through the existing in-cluster ESPN proxy
+            - name: ESPN_BASE_URL
+              value: http://external-proxy.demo.svc.cluster.local
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rhcl-ai-bot
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "13"
+spec:
+  selector:
+    app: rhcl-ai-bot
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+

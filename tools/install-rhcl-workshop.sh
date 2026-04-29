@@ -226,6 +226,22 @@ spec:
             group: gateway.networking.k8s.io
             version: v1
             kind: HTTPRoute
+            name: ai-bot
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: ai-bot
+              namespace: demo
+            spec:
+              hostnames:
+                - ${DEMO_HOSTNAME}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
             name: ab-demo
             namespace: demo
           patch: |-
