@@ -1,0 +1,12 @@
+apiVersion: console.openshift.io/v1
+kind: ConsoleNotification
+metadata:
+  name: rhcl-workshop
+  annotations:
+    argocd.argoproj.io/sync-wave: "05"
+spec:
+  location: BannerTop
+  text: RHCL Workshop
+  backgroundColor: "#1f2937"
+  color: "#ffffff"
+

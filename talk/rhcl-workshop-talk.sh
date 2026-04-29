@@ -42,6 +42,8 @@ fi
 
 HOST="rhcl-workshop.${APPS_DOMAIN}"
 BASE="https://${HOST}"
+OIDC_HOST="oidc-${HOST}"
+OIDC_BASE="https://${OIDC_HOST}"
 
 code() { curl -ksS -o /dev/null -w "%{http_code}" "$@"; }
 body1() { curl -ksS "$@" | head -n 1 | tr -d '\n'; }
@@ -61,6 +63,7 @@ assert_code() {
 say "RHCL Workshop — demo host"
 note "Contexto actual: ${CTX}"
 note "Demo URL: ${BASE}/"
+note "OIDC portal URL: ${OIDC_BASE}/"
 pause
 
 say "1) Infra owner: HTTPS entrypoint + TLS"
@@ -139,15 +142,15 @@ say "6) Use case: OIDC (Keycloak) + ruta protegida (/secure)"
 note "Qué decir:"
 note "- Keycloak corre dentro del cluster y se expone por /auth."
 note "- /secure está protegida: sin token redirige a login; con token devuelve 200."
-assert_code "200" "${BASE}/auth/realms/rhcl/.well-known/openid-configuration"
+assert_code "200" "${OIDC_BASE}/auth/realms/rhcl/.well-known/openid-configuration"
 
 note ""
 note "Sin token, /secure debería redirigir (302):"
-curl -ksS -I "${BASE}/secure" | sed -n '1,10p'
+curl -ksS -I "${OIDC_BASE}/secure" | sed -n '1,10p'
 
 note ""
 note "Token (password grant) y llamada a /secure:"
-resp="$(curl -ksS -X POST "${BASE}/auth/realms/rhcl/protocol/openid-connect/token" \
+resp="$(curl -ksS -X POST "${OIDC_BASE}/auth/realms/rhcl/protocol/openid-connect/token" \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   --data-urlencode 'grant_type=password' \
   --data-urlencode 'client_id=rhcl-ui' \
@@ -162,9 +165,9 @@ if [[ -z "$token" ]]; then
   exit 1
 fi
 
-secure_code="$(code "${BASE}/secure" -H "Authorization: Bearer ${token}")"
+secure_code="$(code "${OIDC_BASE}/secure" -H "Authorization: Bearer ${token}")"
 echo "GET /secure con Bearer -> ${secure_code}"
-curl -ksS "${BASE}/secure" -H "Authorization: Bearer ${token}" | head -n 5
+curl -ksS "${OIDC_BASE}/secure" -H "Authorization: Bearer ${token}" | head -n 5
 
 say "Estado final"
 note "Si todo llegó hasta aquí, la demo está OK."

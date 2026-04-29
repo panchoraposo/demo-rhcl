@@ -8,6 +8,8 @@ The demo includes:
 - **AuthPolicy (HTTPRoute)**: API key authentication for the API
 - **RateLimitPolicy (HTTPRoute)**: identity-aware rate limiting (Alice vs Bob)
 - **TLSPolicy (Gateway)**: TLS termination on the Gateway (integrated with `cert-manager`)
+- **OIDCPolicy (HTTPRoute)**: browser login flow against Keycloak (separate portal)
+- **DNSPolicy (Gateway)**: Route53 record management (OIDC portal hostname)
 
 ## GitOps layout
 
@@ -22,9 +24,29 @@ There is also an Argo CD `Application` manifest:
 
 ## How to deploy (Argo CD)
 
-1) Update `gitops/apps/rhcl-demo/overlays/ephemeral/kustomization.yaml`:
+### Recommended: installer (multi-environment)
+
+Run the installer while logged in as a cluster-admin:
+
+```bash
+./tools/install-rhcl-workshop.sh
+```
+
+Defaults:
+
+- **main demo host**: `rhcl-workshop.<appsDomain>`
+- **OIDC portal host**: `oidc-rhcl-workshop.<appsDomain>`
+
+Optional (for Route53 DNS via `DNSPolicy`):
+
+- Provide `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_REGION` as env vars so the installer can create `Secret/route53-credentials` in `openshift-ingress` with type `kuadrant.io/aws`.
+
+### Manual: ephemeral overlay
+
+1) Update `gitops/apps/rhcl-demo/overlays/ephemeral/kustomization.yaml` (or use Argo CD kustomize patches):
 
 - `DEMO_HOSTNAME`: the hostname you want to use for the passthrough Route + Gateway certificate
+- `OIDC_HOSTNAME`: the hostname for the OIDC portal (and the protected `/secure` route)
 - `CLUSTER_ISSUER`: an existing `ClusterIssuer` name in your cluster (for example, `letsencrypt-production`)
 
 2) Apply the Argo CD application:
@@ -36,6 +58,7 @@ oc apply -f gitops/argocd/application-rhcl-demo.yaml
 3) Open the demo UI:
 
 - `https://<DEMO_HOSTNAME>/`
+- `https://<OIDC_HOSTNAME>/` (OIDC portal)
 
 ## What you can show live
 
