@@ -357,6 +357,17 @@
       .badge.live{border-color: rgba(56,189,248,.45); background: rgba(56,189,248,.10);}
       .badge.final{border-color: rgba(245,158,11,.45); background: rgba(245,158,11,.10);}
       .badge.sched{border-color: rgba(124,92,255,.45); background: rgba(124,92,255,.10);}
+      .seriesPill{
+        display:inline-flex;
+        align-items:center;
+        padding:4px 9px;
+        border-radius:999px;
+        border:1px solid rgba(124,92,255,.28);
+        background: rgba(124,92,255,.10);
+        color:#c7d2fe;
+        font-size:11px;
+        white-space:nowrap;
+      }
       .teams{display:flex; flex-direction:column; gap:8px;}
       .teamrow{
         display:grid;
@@ -707,8 +718,6 @@
                 </div>
                 <div class="row" style="margin-top:10px">
                   <button class="primary" onclick="callExternal('nba')">NBA</button>
-                  <button class="primary" onclick="callExternal('nfl')">NFL</button>
-                  <button class="primary" onclick="callExternal('mls')">MLS</button>
                   <button class="primary" onclick="callExternal('epl')">Premier League</button>
                   <button class="primary" onclick="callExternal('laliga')">La Liga</button>
                 </div>
@@ -1329,6 +1338,9 @@
 
             const badgeCls = isLive2 ? "live" : (isFinal2 ? "final" : "sched");
             const badgeText = isLive2 ? "LIVE" : (isFinal2 ? "FINAL" : "SCHEDULED");
+            const series = seriesScore(comp);
+            const seriesSummary = (comp && comp.series && comp.series.summary) ? String(comp.series.summary) : "";
+            const seriesHtml = series ? `<span class="seriesPill" title="${escAttr(seriesSummary || "Playoff series")}">(${esc(series)})</span>` : "";
 
             let home = null, away = null;
             if (comp && Array.isArray(comp.competitors)){
@@ -1367,7 +1379,10 @@
             match.className = "match";
             match.innerHTML = `
               <div class="top">
-                <span class="badge ${badgeCls}">${badgeText}</span>
+                <span class="row" style="gap:8px; flex-wrap:nowrap; align-items:center">
+                  <span class="badge ${badgeCls}">${badgeText}</span>
+                  ${seriesHtml}
+                </span>
                 <span>${esc(topRight)}</span>
               </div>
               <div class="teams">
@@ -1403,10 +1418,8 @@
         const dates = `${ymd(start)}-${ymd(end)}`;
         const path = `/external/${p}?dates=${dates}&_=${Date.now()}`;
         const upstreamMap = {
-          nfl: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
           nba: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
           epl: "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard",
-          mls: "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard",
           laliga: "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard",
         };
         const upstream = upstreamMap[p] || "https://site.api.espn.com/";
@@ -1700,6 +1713,14 @@
         const cityState = [city, state].filter(Boolean).join(", ");
         if (full && cityState) return `${full} · ${cityState}`;
         return full || cityState;
+      }
+
+      function seriesScore(comp){
+        const s = (comp && comp.series && comp.series.summary) ? String(comp.series.summary) : "";
+        if (!s) return "";
+        const m = s.match(/(\\d+)\\s*-\\s*(\\d+)/);
+        if (!m) return "";
+        return `${m[1]}–${m[2]}`;
       }
 
       function teamLogoBox(team){
