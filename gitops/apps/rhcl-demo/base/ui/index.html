@@ -621,10 +621,24 @@
                   <span class="pill"><span class="dot"></span> team logos come from ESPN JSON</span>
                 </div>
                 <div class="chart" style="margin-top:12px">
-                  <div class="sub" style="margin-bottom:10px">Scoreboard (top events)</div>
+                  <div class="sub" style="margin-bottom:10px">Scoreboard (results + live + upcoming)</div>
                   <div class="board" id="externalBoard"></div>
                 </div>
-                <div class="log" id="externalLog" style="height:220px; margin-top:10px"></div>
+                <div class="chart" style="margin-top:12px">
+                  <div class="row" style="justify-content:space-between; gap:10px; align-items:center">
+                    <div class="sub">Response JSON</div>
+                    <div class="row" style="gap:8px">
+                      <span class="pill"><span class="dot"></span> <span id="externalBytes">—</span></span>
+                      <button onclick="copyExternalJson()">Copy</button>
+                      <button onclick="downloadExternalJson()">Download</button>
+                    </div>
+                  </div>
+                  <details style="margin-top:10px" open>
+                    <summary class="pill" style="cursor:pointer; user-select:none">Raw JSON (expand/collapse)</summary>
+                    <pre id="externalRaw" class="log" style="height:340px; margin-top:10px; white-space: pre; overflow:auto"></pre>
+                  </details>
+                </div>
+                <div class="log" id="externalLog" style="height:180px; margin-top:10px"></div>
               </div>
             </div>
           </section>
@@ -710,6 +724,8 @@
       const externalLeagueNameEl = el("externalLeagueName");
       const externalRangeEl = el("externalRange");
       const externalBreakdownEl = el("externalBreakdown");
+      const externalRawEl = el("externalRaw");
+      const externalBytesEl = el("externalBytes");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -720,6 +736,7 @@
       let trafficMode = "";
       let trafficLatency = [];
       let externalLastPreset = "nba";
+      let externalLastJsonText = "";
 
       function now() {
         const d = new Date();
@@ -988,6 +1005,31 @@
         return await callExternal(externalLastPreset || "nba");
       }
 
+      async function copyExternalJson(){
+        const txt = externalLastJsonText || "";
+        if (!txt) return;
+        try{
+          await navigator.clipboard.writeText(txt);
+          appendTo(externalLogEl, `[${now()}] copied raw JSON to clipboard`, "muted");
+        } catch (e){
+          appendTo(externalLogEl, `[${now()}] copy failed: ${e}`, "bad");
+        }
+      }
+
+      function downloadExternalJson(){
+        const txt = externalLastJsonText || "";
+        if (!txt) return;
+        const blob = new Blob([txt], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `espn-${externalLastPreset || "external"}-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }
+
       function classifyExternalEvent(ev){
         const comp = (ev.competitions && ev.competitions[0]) || null;
         const stType = (comp && comp.status && comp.status.type) || (ev.status && ev.status.type) || {};
@@ -1118,22 +1160,35 @@
         if (externalStatEl) externalStatEl.textContent = "—";
         if (externalEventsEl) externalEventsEl.textContent = "—";
         if (externalBreakdownEl) externalBreakdownEl.textContent = `range=${dates}`;
+        if (externalBytesEl) externalBytesEl.textContent = "—";
+        externalLastJsonText = "";
+        if (externalRawEl) externalRawEl.textContent = "";
         appendTo(externalLogEl, `[${now()}] GET ${path}`, "muted");
 
         const t0 = performance.now();
         const r = await fetch(path, { cache: "no-store" });
         const ms = Math.round(performance.now() - t0);
         const txt = await r.text();
+        externalLastJsonText = txt || "";
+        if (externalBytesEl) externalBytesEl.textContent = `${(txt || "").length.toLocaleString()} bytes`;
 
         if (externalStatEl) externalStatEl.textContent = `${r.status} · ${ms}ms`;
         appendTo(externalLogEl, `status=${r.status} latency=${ms}ms`, r.status === 200 ? "ok" : "bad");
         if (r.status !== 200){
           appendTo(externalLogEl, txt.slice(0, 1000), "bad");
+          if (externalRawEl) externalRawEl.textContent = txt.slice(0, 20000);
           return;
         }
 
         let data = null;
         try { data = JSON.parse(txt); } catch (e) { /* ignore */ }
+        if (externalRawEl){
+          try{
+            externalRawEl.textContent = JSON.stringify(data, null, 2);
+          } catch (e){
+            externalRawEl.textContent = txt;
+          }
+        }
         const events = (data && data.events) ? data.events : [];
         if (externalEventsEl) externalEventsEl.textContent = String(events.length);
         const league = (data && data.leagues && data.leagues[0]) ? data.leagues[0] : null;
