@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RHCL Demo — Policies Playground</title>
+    <title>Red Hat Connectivity Link — Policies playground</title>
     <meta name="color-scheme" content="dark light" />
     <style>
       :root{
@@ -354,6 +354,29 @@
         object-fit:contain;
         padding:0px;
       }
+      .logoBox{
+        width:38px; height:38px;
+        border-radius:10px;
+        background:rgba(255,255,255,.06);
+        border:1px solid rgba(255,255,255,.10);
+        overflow:hidden;
+        display:grid;
+        place-items:center;
+        position:relative;
+      }
+      .logoBox img{
+        width:100%;
+        height:100%;
+        object-fit:contain;
+        display:block;
+      }
+      .logoBox .ph{
+        display:none;
+        font-weight:700;
+        font-size:11px;
+        letter-spacing:.3px;
+        color:#c7d2fe;
+      }
       .tname{
         font-size:13px;
         color:#e7f0ff;
@@ -439,6 +462,38 @@
       }
       .results button{padding:7px 10px; border-radius:12px; text-align:left}
 
+      dialog{
+        border:1px solid rgba(255,255,255,.14);
+        background: rgba(10,12,20,.92);
+        color: var(--text);
+        border-radius:16px;
+        padding:0;
+        max-width: min(1100px, calc(100vw - 40px));
+        width: min(1100px, calc(100vw - 40px));
+      }
+      dialog::backdrop{background: rgba(0,0,0,.55)}
+      .dlgHead{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:10px;
+        padding:12px 14px;
+        border-bottom:1px solid rgba(255,255,255,.08);
+      }
+      .dlgBody{padding:14px}
+      .dlgPre{
+        white-space:pre;
+        overflow:auto;
+        max-height: min(70vh, 680px);
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+        padding:12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size:12px;
+        line-height:1.45;
+      }
+
       .footer{margin-top:14px; color:var(--muted); font-size:12px}
     </style>
   </head>
@@ -446,10 +501,10 @@
     <div class="shell">
       <aside class="side">
         <div class="brand">
-          <div class="h">RHCL Workshop</div>
+          <div class="h">Red Hat Connectivity Link</div>
         </div>
         <div class="nav">
-          <button class="primary active" data-module="policies">Policies playground</button>
+          <button class="primary active" data-module="policies">AuthPolicy + RateLimitPolicy</button>
           <button data-module="roles">Role separation</button>
           <button data-module="traffic">A/B + canary</button>
           <button data-module="external">External API (ESPN)</button>
@@ -464,7 +519,7 @@
         <div class="wrap">
           <header>
             <div class="title">
-              <h1>RHCL Demo — Use Cases</h1>
+              <h1>Red Hat Connectivity Link — Policies playground</h1>
               <div class="sub">
                 Gateway API + Kuadrant (Connectivity Link): Auth, rate-limit, TLS, traffic shaping, OIDC, and external API proxying.
               </div>
@@ -651,24 +706,6 @@
                   <span class="pill"><span class="dot"></span> proxy (cluster)</span>
                   <span class="pill"><span class="dot"></span> ESPN JSON (<code>site.api.espn.com</code>)</span>
                 </div>
-                <div class="kpi" style="margin-top:12px">
-                  <div class="box">
-                    <div class="label">Request</div>
-                    <div class="value" id="externalReq">—</div>
-                  </div>
-                  <div class="box">
-                    <div class="label">Upstream</div>
-                    <div class="value" id="externalUp">—</div>
-                  </div>
-                  <div class="box">
-                    <div class="label">Status / latency</div>
-                    <div class="value" id="externalStat">—</div>
-                  </div>
-                  <div class="box">
-                    <div class="label">Events</div>
-                    <div class="value" id="externalEvents">—</div>
-                  </div>
-                </div>
                 <div class="row" style="margin-top:10px">
                   <span class="pill"><span class="dot good"></span> Range</span>
                   <select id="externalRange" style="border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); padding:8px 10px; border-radius:12px;">
@@ -684,16 +721,35 @@
                   <span class="pill"><span class="dot good"></span> <span id="externalLeagueName">—</span></span>
                 </div>
                 <div class="chart" style="margin-top:12px">
-                  <div class="sub" style="margin-bottom:10px">Scoreboard (results + live + upcoming)</div>
+                  <div class="sub" style="margin-bottom:10px">Games (final + live + upcoming)</div>
                   <div class="board" id="externalBoard"></div>
                 </div>
                 <div class="chart" style="margin-top:12px">
                   <div class="row" style="justify-content:space-between; gap:10px; align-items:center">
-                    <div class="sub">Response JSON</div>
+                    <div class="sub">Response (tree)</div>
                     <div class="row" style="gap:8px">
                       <span class="pill"><span class="dot"></span> <span id="externalBytes">—</span></span>
+                      <button onclick="openExternalRaw()">Raw</button>
                       <button onclick="copyExternalJson()">Copy</button>
                       <button onclick="downloadExternalJson()">Download</button>
+                    </div>
+                  </div>
+                  <div class="kpi" style="margin-top:10px">
+                    <div class="box">
+                      <div class="label">Request</div>
+                      <div class="value" id="externalReq">—</div>
+                    </div>
+                    <div class="box">
+                      <div class="label">Upstream</div>
+                      <div class="value" id="externalUp">—</div>
+                    </div>
+                    <div class="box">
+                      <div class="label">Result</div>
+                      <div class="value" id="externalStat">—</div>
+                    </div>
+                    <div class="box">
+                      <div class="label">Events</div>
+                      <div class="value" id="externalEvents">—</div>
                     </div>
                   </div>
                   <div class="treeWrap" style="margin-top:10px">
@@ -759,6 +815,23 @@
       </main>
     </div>
 
+    <dialog id="externalRawDlg">
+      <div class="dlgHead">
+        <div class="row" style="gap:10px; align-items:center">
+          <span class="pill"><span class="dot"></span> Raw JSON</span>
+          <span class="pill"><span class="dot"></span> <span id="externalRawBytes">—</span></span>
+        </div>
+        <div class="row" style="gap:8px">
+          <button onclick="copyExternalJson()">Copy</button>
+          <button onclick="downloadExternalJson()">Download</button>
+          <button class="warn" onclick="document.getElementById('externalRawDlg').close()">Close</button>
+        </div>
+      </div>
+      <div class="dlgBody">
+        <pre id="externalRawPre" class="dlgPre"></pre>
+      </div>
+    </dialog>
+
     <script>
       const el = (id) => document.getElementById(id);
       const logEl = el("log");
@@ -798,9 +871,12 @@
       const externalRangeEl = el("externalRange");
       const externalBreakdownEl = el("externalBreakdown");
       const externalBytesEl = el("externalBytes");
+      const externalRawBytesEl = el("externalRawBytes");
       const externalTreeEl = el("externalTree");
       const externalSearchEl = el("externalSearch");
       const externalResultsEl = el("externalResults");
+      const externalRawDlg = el("externalRawDlg");
+      const externalRawPreEl = el("externalRawPre");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -1171,41 +1247,53 @@
               for (const c2 of comp.competitors){
                 const ha = (c2.homeAway || "").toLowerCase();
                 const t = c2.team || {};
-                const logo = (t.logos && t.logos[0] && t.logos[0].href) || "";
+                const logo = httpsFix(
+                  (t.logos && t.logos[0] && t.logos[0].href) ||
+                  (t.logo && t.logo.href) ||
+                  ""
+                );
                 const full = (t.displayName || t.name || t.shortDisplayName || t.abbreviation || ha || "team");
                 const name = (t.shortDisplayName || t.abbreviation || full);
+                const abbr = (t.abbreviation || "").trim();
                 const score = (c2.score != null ? String(c2.score) : "");
                 const winner = !!c2.winner;
-                const obj = { logo, name, full, score, winner };
+                const obj = { logo, name, full, abbr, score, winner };
                 if (ha === "home") home = obj;
                 else if (ha === "away") away = obj;
               }
             }
 
             const eventName = (ev.shortName || ev.name || "").trim();
-            const when = (ev.date ? new Date(ev.date).toLocaleString() : "");
+            const when = fmtWhen(ev.date || (comp && comp.date) || "");
             const venue = (comp && comp.venue && (comp.venue.fullName || (comp.venue.address && comp.venue.address.city))) ? (comp.venue.fullName || comp.venue.address.city) : "";
+            const right = isFinal2 ? when : (isLive2 ? (detail || when) : when);
+            const topRight = right || "TBD";
+
+            const meta =
+              (venue ? venue : "") ||
+              ((!home && !away) ? eventName : "");
+            const metaHtml = meta ? `<div class="meta">${esc(meta)}</div>` : "";
 
             const match = document.createElement("div");
             match.className = "match";
             match.innerHTML = `
               <div class="top">
                 <span class="badge ${badgeCls}">${badgeText}</span>
-                <span>${esc(detail || when)}</span>
+                <span>${esc(topRight)}</span>
               </div>
               <div class="teams">
                 <div class="teamrow">
-                  <img class="logo" alt="" loading="lazy" src="${(away && away.logo) ? away.logo : ""}" onerror="this.style.display='none'"/>
+                  ${teamLogoBox(away)}
                   <div class="tname" title="${escAttr(away ? away.full : eventName)}">${esc(away ? away.name : eventName)}</div>
                   <div class="score ${away && away.winner ? "win" : ""}">${away ? (away.score || "—") : ""}</div>
                 </div>
                 <div class="teamrow">
-                  <img class="logo" alt="" loading="lazy" src="${(home && home.logo) ? home.logo : ""}" onerror="this.style.display='none'"/>
+                  ${teamLogoBox(home)}
                   <div class="tname" title="${escAttr(home ? home.full : "")}">${esc(home ? home.name : "")}</div>
                   <div class="score ${home && home.winner ? "win" : ""}">${home ? (home.score || "—") : ""}</div>
                 </div>
               </div>
-              <div class="meta">${esc(eventName)}${venue ? " · " + esc(venue) : ""}</div>
+              ${metaHtml}
             `;
             grid.appendChild(match);
           }
@@ -1233,7 +1321,7 @@
           laliga: "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard",
         };
         const upstream = upstreamMap[p] || "https://site.api.espn.com/";
-        if (externalReqEl) externalReqEl.textContent = path.replace(/&_=[0-9]+$/, "");
+        if (externalReqEl) externalReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
         if (externalUpEl) externalUpEl.textContent = upstream.replace("https://", "");
         if (externalStatEl) externalStatEl.textContent = "—";
         if (externalEventsEl) externalEventsEl.textContent = "—";
@@ -1250,7 +1338,9 @@
         const ms = Math.round(performance.now() - t0);
         const txt = await r.text();
         externalLastJsonText = txt || "";
-        if (externalBytesEl) externalBytesEl.textContent = `${(txt || "").length.toLocaleString()} bytes`;
+        const bytesTxt = `${(txt || "").length.toLocaleString()} bytes`;
+        if (externalBytesEl) externalBytesEl.textContent = bytesTxt;
+        if (externalRawBytesEl) externalRawBytesEl.textContent = bytesTxt;
 
         if (externalStatEl) externalStatEl.textContent = `${r.status} · ${ms}ms`;
         appendTo(externalLogEl, `status=${r.status} latency=${ms}ms`, r.status === 200 ? "ok" : "bad");
@@ -1267,7 +1357,7 @@
         if (externalEventsEl) externalEventsEl.textContent = String(events.length);
         const league = (data && data.leagues && data.leagues[0]) ? data.leagues[0] : null;
         const leagueName = (league && (league.name || league.abbreviation)) ? (league.name || league.abbreviation) : "—";
-        const leagueLogo = (league && league.logos && league.logos[0] && league.logos[0].href) ? league.logos[0].href : "";
+        const leagueLogo = httpsFix((league && league.logos && league.logos[0] && league.logos[0].href) ? league.logos[0].href : "");
         if (externalLeagueNameEl) externalLeagueNameEl.textContent = leagueName;
         if (externalLeagueLogoEl){
           if (leagueLogo){
@@ -1493,6 +1583,52 @@
             if (externalResultsEl) externalResultsEl.textContent = "";
           }
         });
+      }
+
+      function httpsFix(u){
+        if (!u) return "";
+        return String(u).replace(/^http:/i, "https:");
+      }
+
+      function fmtWhen(dateStr){
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+      }
+
+      function teamLogoBox(team){
+        const ab = (team && (team.abbr || "")).trim() || initials(team && (team.name || team.full || ""));
+        const url = team && team.logo ? httpsFix(team.logo) : "";
+        const safeAb = esc(ab || "—");
+        if (!url){
+          return `<span class="logoBox"><span class="ph" style="display:block">${safeAb}</span></span>`;
+        }
+        const safeUrl = escAttr(url);
+        return `<span class="logoBox"><img alt="" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous" src="${safeUrl}" onerror="this.remove(); const ph=this.parentElement && this.parentElement.querySelector('.ph'); if(ph) ph.style.display='block';"/><span class="ph">${safeAb}</span></span>`;
+      }
+
+      function initials(name){
+        const s = String(name || "").trim();
+        if (!s) return "";
+        const parts = s.split(/\s+/).filter(Boolean).slice(0, 2);
+        return parts.map(p => p[0] ? p[0].toUpperCase() : "").join("");
+      }
+
+      function openExternalRaw(){
+        if (!externalRawDlg || !externalRawPreEl) return;
+        const txt = externalLastJsonText || "";
+        if (!txt){
+          externalRawPreEl.textContent = "(no JSON yet — run a preset)";
+        } else {
+          try{
+            const obj = JSON.parse(txt);
+            externalRawPreEl.textContent = JSON.stringify(obj, null, 2);
+          } catch {
+            externalRawPreEl.textContent = txt;
+          }
+        }
+        externalRawDlg.showModal();
       }
 
       function openKeycloak(){
