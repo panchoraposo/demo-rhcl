@@ -312,7 +312,7 @@ data:
     resolver 172.30.0.10 valid=30s ipv6=off;
     server {
       listen 8080;
-      location / {
+      location /external {
         proxy_ssl_server_name on;
         proxy_set_header User-Agent "rhcl-demo";
         proxy_pass https://httpbin.org/get;
