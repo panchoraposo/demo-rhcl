@@ -29,6 +29,9 @@ data:
         {
           "username": "demo",
           "enabled": true,
+          "firstName": "Demo",
+          "lastName": "User",
+          "email": "demo@example.com",
           "emailVerified": true,
           "credentials": [
             {
