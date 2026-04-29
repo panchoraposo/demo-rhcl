@@ -188,6 +188,24 @@
       .sw.bad{background:rgba(239,68,68,.55)}
       .sw.info{background:rgba(56,189,248,.35)}
 
+      .progress{
+        width:100%;
+        height:10px;
+        border-radius:999px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.16);
+        overflow:hidden;
+      }
+      .progress .fill{
+        height:100%;
+        width:0%;
+        background: linear-gradient(90deg, rgba(124,92,255,.9), rgba(56,189,248,.6));
+      }
+      .bar.ph{
+        opacity:.25;
+        background:rgba(255,255,255,.08);
+      }
+
       .footer{margin-top:14px; color:var(--muted); font-size:12px}
     </style>
   </head>
@@ -281,31 +299,54 @@
           <div class="log" id="rolesLog" style="height:220px; margin-top:10px"></div>
         </div>
 
-        <div class="card">
-          <h2>Traffic shaping: A/B + canary</h2>
-          <div class="sub">Make a sample of requests and watch the distribution.</div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2>
+            Traffic shaping: A/B + canary
+            <span class="pill" id="trafficPill"><span class="dot" id="trafficDot"></span><span id="trafficText">Idle</span></span>
+          </h2>
+          <div class="sub" id="trafficMeta">
+            The UI sends <b>N</b> requests to a route and counts which backend responds.
+            A/B uses <code>/ab</code> (expected <b>50/50</b>). Canary uses <code>/canary</code> (expected <b>90/10</b>).
+          </div>
+
           <div class="row" style="margin-top:10px">
             <button class="primary" onclick="sampleAB(60)">Sample A/B (60)</button>
             <button class="primary" onclick="sampleCanary(80)">Sample canary (80)</button>
             <button onclick="clearTraffic()">Clear</button>
+            <span class="pill"><span class="dot good"></span><span id="trafficExpected">expected: A/B 50/50 · canary 90/10</span></span>
           </div>
+
+          <div class="row" style="margin-top:10px">
+            <div class="progress"><div class="fill" id="trafficFill"></div></div>
+          </div>
+
           <div class="kpi" style="margin-top:12px">
             <div class="box">
-              <div class="label">A/B result</div>
-              <div class="value" id="abKpi">—</div>
+              <div class="label">Run</div>
+              <div class="value" id="trafficRun">—</div>
             </div>
             <div class="box">
-              <div class="label">Canary result</div>
-              <div class="value" id="canaryKpi">—</div>
+              <div class="label">Observed split</div>
+              <div class="value" id="trafficSplit">—</div>
+            </div>
+            <div class="box">
+              <div class="label">Avg latency (ms)</div>
+              <div class="value" id="trafficAvg">—</div>
             </div>
           </div>
-          <div class="chart">
-            <div class="sub" style="margin-bottom:10px">Latest samples</div>
+
+          <div class="chart" style="margin-top:12px">
+            <div class="sub" style="margin-bottom:10px">Latest samples (fixed width)</div>
             <div class="bars" id="trafficBars"></div>
             <div class="legend">
-              <span><span class="sw"></span> primary</span>
-              <span><span class="sw info"></span> secondary</span>
+              <span><span class="sw"></span> <span id="legendPrimary">primary</span></span>
+              <span><span class="sw info"></span> <span id="legendSecondary">secondary</span></span>
             </div>
+          </div>
+
+          <div class="log" id="trafficLog" style="height:180px; margin-top:10px"></div>
+          <div class="footer">
+            What you see: each bar is one request. Green = primary, blue = secondary. The log prints progress and a few sample lines.
           </div>
         </div>
       </div>
@@ -370,6 +411,18 @@
       const abKpiEl = el("abKpi");
       const canaryKpiEl = el("canaryKpi");
       const trafficBarsEl = el("trafficBars");
+      const trafficPill = el("trafficPill");
+      const trafficDot = el("trafficDot");
+      const trafficText = el("trafficText");
+      const trafficFill = el("trafficFill");
+      const trafficMeta = el("trafficMeta");
+      const trafficExpected = el("trafficExpected");
+      const trafficRunEl = el("trafficRun");
+      const trafficSplitEl = el("trafficSplit");
+      const trafficAvgEl = el("trafficAvg");
+      const trafficLogEl = el("trafficLog");
+      const legendPrimaryEl = el("legendPrimary");
+      const legendSecondaryEl = el("legendSecondary");
       const externalLogEl = el("externalLog");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
@@ -378,6 +431,8 @@
 
       let lastBurst = [];
       let trafficSample = [];
+      let trafficMode = "";
+      let trafficLatency = [];
 
       function now() {
         const d = new Date();
@@ -418,13 +473,17 @@
 
       function clearTraffic(){
         trafficSample = [];
-        trafficBarsEl.innerHTML = "";
-        abKpiEl.textContent = "—";
-        canaryKpiEl.textContent = "—";
-        rolesLogEl.textContent = "";
-        externalLogEl.textContent = "";
-        oidcLogEl.textContent = "";
-        oidcTokenEl.value = "";
+        trafficLatency = [];
+        trafficMode = "";
+        if (trafficFill) trafficFill.style.width = "0%";
+        if (trafficRunEl) trafficRunEl.textContent = "—";
+        if (trafficSplitEl) trafficSplitEl.textContent = "—";
+        if (trafficAvgEl) trafficAvgEl.textContent = "—";
+        if (trafficLogEl) trafficLogEl.textContent = "";
+        if (legendPrimaryEl) legendPrimaryEl.textContent = "primary";
+        if (legendSecondaryEl) legendSecondaryEl.textContent = "secondary";
+        setTrafficStatus("", "Idle");
+        renderTrafficBars();
       }
 
       function setKey(v){
@@ -506,56 +565,97 @@
         await call("/health", false);
       }
 
+      function setTrafficStatus(kind, text){
+        if (!trafficText || !trafficDot) return;
+        trafficText.textContent = text;
+        trafficDot.className = "dot" + (kind ? " " + kind : "");
+      }
+
+      function fmtPct(n, total){
+        if (!total) return "0%";
+        return Math.round((n / total) * 100) + "%";
+      }
+
+      function avg(arr){
+        if (!arr || arr.length === 0) return 0;
+        return Math.round(arr.reduce((a,b)=>a+b,0) / arr.length);
+      }
+
       function renderTrafficBars(){
         trafficBarsEl.innerHTML = "";
         const data = trafficSample.slice(-60);
+        const totalBars = 60;
+        const isSecondary = (s) => {
+          if (trafficMode === "ab") return s === "B";
+          if (trafficMode === "canary") return s === "v2";
+          return false;
+        };
         for (const s of data){
           const b = document.createElement("div");
-          const isSecondary = s === "B" || s === "v2";
-          b.className = "bar " + (isSecondary ? "" : "ok");
-          b.style.height = isSecondary ? "44px" : "58px";
+          b.className = "bar " + (isSecondary(s) ? "" : "ok");
+          b.style.height = isSecondary(s) ? "44px" : "58px";
           b.title = s;
           trafficBarsEl.appendChild(b);
         }
-        if (data.length === 0){
-          const hint = document.createElement("div");
-          hint.className = "muted";
-          hint.style.color = "#91a4d6";
-          hint.textContent = "Run a sample to populate the chart.";
-          trafficBarsEl.appendChild(hint);
+        for (let i = data.length; i < totalBars; i++){
+          const b = document.createElement("div");
+          b.className = "bar ph";
+          b.style.height = "18px";
+          b.title = "—";
+          trafficBarsEl.appendChild(b);
         }
       }
 
-      async function sample(path, n){
+      async function sample(path, n, mode){
         const counts = {};
-        for (let i = 0; i < n; i++){
-          const r = await fetch(path);
+        trafficMode = mode;
+        trafficSample = [];
+        trafficLatency = [];
+        renderTrafficBars();
+        if (trafficLogEl) trafficLogEl.textContent = "";
+        if (trafficFill) trafficFill.style.width = "0%";
+        setTrafficStatus("", `Sampling…`);
+        if (trafficRunEl) trafficRunEl.textContent = `${mode} · N=${n} · ${path}`;
+
+        for (let i = 1; i <= n; i++){
+          const t0 = performance.now();
+          const r = await fetch(path, { cache: "no-store" });
           const t = (await r.text()).trim();
+          const ms = Math.round(performance.now() - t0);
           counts[t] = (counts[t] || 0) + 1;
+          trafficSample.push(t);
+          trafficLatency.push(ms);
+          renderTrafficBars();
+          if (trafficFill) trafficFill.style.width = Math.round((i / n) * 100) + "%";
+
+          if (trafficLogEl && (i <= 5 || i === n || i % 10 === 0)){
+            appendTo(trafficLogEl, `[${now()}] ${mode} ${i}/${n}: ${t} (${ms}ms)`, "muted");
+          }
         }
+        setTrafficStatus("good", "Done");
         return counts;
       }
 
       async function sampleAB(n){
-        append(`[${now()}] sampling A/B: ${n} requests`, "muted");
-        const c = await sample("/ab", n);
+        append(`[${now()}] sampling A/B: ${n} requests -> /ab`, "muted");
+        if (legendPrimaryEl) legendPrimaryEl.textContent = "A";
+        if (legendSecondaryEl) legendSecondaryEl.textContent = "B";
+        const c = await sample("/ab", n, "ab");
         const a = c["A"] || 0;
         const b = c["B"] || 0;
-        abKpiEl.textContent = `A=${a} B=${b}`;
-        for (let i = 0; i < a; i++) trafficSample.push("A");
-        for (let i = 0; i < b; i++) trafficSample.push("B");
-        renderTrafficBars();
+        if (trafficSplitEl) trafficSplitEl.textContent = `A=${a} (${fmtPct(a,n)}) · B=${b} (${fmtPct(b,n)}) · expected 50/50`;
+        if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
       async function sampleCanary(n){
-        append(`[${now()}] sampling canary: ${n} requests`, "muted");
-        const c = await sample("/canary", n);
+        append(`[${now()}] sampling canary: ${n} requests -> /canary`, "muted");
+        if (legendPrimaryEl) legendPrimaryEl.textContent = "v1";
+        if (legendSecondaryEl) legendSecondaryEl.textContent = "v2";
+        const c = await sample("/canary", n, "canary");
         const v1 = c["v1"] || 0;
         const v2 = c["v2"] || 0;
-        canaryKpiEl.textContent = `v1=${v1} v2=${v2}`;
-        for (let i = 0; i < v1; i++) trafficSample.push("v1");
-        for (let i = 0; i < v2; i++) trafficSample.push("v2");
-        renderTrafficBars();
+        if (trafficSplitEl) trafficSplitEl.textContent = `v1=${v1} (${fmtPct(v1,n)}) · v2=${v2} (${fmtPct(v2,n)}) · expected 90/10`;
+        if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
       async function callExternal(){
