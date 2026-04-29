@@ -16,6 +16,7 @@ resources:
   - resources/50-api-keys.yaml
   - resources/60-route-authpolicy.yaml
   - resources/62-ui-authpolicy.yaml
+  - resources/63-ab-authpolicy.yaml
   - resources/70-route-ratelimitpolicy.yaml
   - resources/80-route-passthrough.yaml
 
