@@ -1,0 +1,68 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-client-bootstrap
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: keycloak-client-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: bootstrap
+          image: registry.redhat.io/rhbk/keycloak-rhel9:26.4
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-initial-admin
+                  key: username
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-initial-admin
+                  key: password
+          command:
+            - /bin/bash
+            - -lc
+            - |
+              set -euo pipefail
+              SERVER="http://keycloak-service:8080/auth"
+              echo "[bootstrap] waiting for Keycloak..."
+              for i in {1..60}; do
+                if curl -fsS "${SERVER}/realms/master" >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 2
+              done
+              echo "[bootstrap] configuring kcadm"
+              /opt/keycloak/bin/kcadm.sh config credentials \
+                --server "${SERVER}" \
+                --realm master \
+                --user "${KC_BOOTSTRAP_ADMIN_USERNAME}" \
+                --password "${KC_BOOTSTRAP_ADMIN_PASSWORD}"
+
+              echo "[bootstrap] locating client rhcl-ui"
+              CID=$(/opt/keycloak/bin/kcadm.sh get clients -r rhcl -q clientId=rhcl-ui | sed -n 's/.*\"id\"[[:space:]]*:[[:space:]]*\"\\([^\"]\\+\\)\".*/\\1/p' | head -n1 || true)
+              if [ -z "${CID}" ]; then
+                echo "[bootstrap] ERROR: client rhcl-ui not found in realm rhcl"
+                exit 1
+              fi
+
+              echo "[bootstrap] enabling standard flow for rhcl-ui (${CID})"
+              /opt/keycloak/bin/kcadm.sh update "clients/${CID}" -r rhcl \
+                -s standardFlowEnabled=true \
+                -s directAccessGrantsEnabled=true \
+                -s publicClient=true
+
+              echo "[bootstrap] done"
+

@@ -16,7 +16,7 @@ spec:
     issuerURL: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl
     authorizationEndpoint: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/auth
     tokenEndpoint: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/token
-    redirectURI: https://REPLACE_ME_DEMO_HOSTNAME/
+    redirectURI: https://REPLACE_ME_DEMO_HOSTNAME/secure-ui
   auth:
     tokenSource:
       cookie:
