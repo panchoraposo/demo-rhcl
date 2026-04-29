@@ -32,6 +32,8 @@
           radial-gradient(1200px 700px at 15% 10%, rgba(124,92,255,.28), transparent 55%),
           radial-gradient(1000px 700px at 85% 30%, rgba(56,189,248,.18), transparent 60%),
           linear-gradient(180deg, var(--bg0), var(--bg1));
+        background-repeat:no-repeat;
+        background-attachment:fixed;
       }
 
       .shell{
@@ -219,6 +221,22 @@
       }
       .kpi .label{color:var(--muted); font-size:12px}
       .kpi .value{font-size:18px; margin-top:6px}
+      .kpi .box.wide{flex: 2 1 360px;}
+      .kpi .value.mono{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size:12px;
+        font-weight:650;
+        letter-spacing:0;
+        white-space:pre-wrap;
+        word-break:break-word;
+        line-height:1.35;
+      }
+      .kpi .tools{
+        margin-top:10px;
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+      }
       .pill{
         display:inline-flex; align-items:center; gap:8px;
         border-radius:999px;
@@ -500,18 +518,12 @@
   <body>
     <div class="shell">
       <aside class="side">
-        <div class="brand">
-          <div class="h">Red Hat Connectivity Link</div>
-        </div>
         <div class="nav">
           <button class="primary active" data-module="policies">AuthPolicy + RateLimitPolicy</button>
           <button data-module="roles">Role separation</button>
           <button data-module="traffic">A/B + canary</button>
           <button data-module="external">External API (ESPN)</button>
           <button data-module="oidc">OIDC / Keycloak</button>
-        </div>
-        <div class="row" style="margin-top:auto">
-          <span class="tag" id="jsTag"><b>JS</b> booting…</span>
         </div>
       </aside>
 
@@ -722,6 +734,12 @@
                 </div>
                 <div class="chart" style="margin-top:12px">
                   <div class="sub" style="margin-bottom:10px">Games (final + live + upcoming)</div>
+                  <div class="row" style="margin-bottom:10px; gap:8px; flex-wrap:wrap">
+                    <button id="extTabFinal" class="primary" onclick="setExternalTab('final')">Final</button>
+                    <button id="extTabLive" onclick="setExternalTab('live')">Live</button>
+                    <button id="extTabUpcoming" onclick="setExternalTab('upcoming')">Upcoming</button>
+                    <span class="pill" style="margin-left:auto"><span class="dot"></span> <span id="externalTabMeta">—</span></span>
+                  </div>
                   <div class="board" id="externalBoard"></div>
                 </div>
                 <div class="chart" style="margin-top:12px">
@@ -735,13 +753,20 @@
                     </div>
                   </div>
                   <div class="kpi" style="margin-top:10px">
-                    <div class="box">
+                    <div class="box wide">
                       <div class="label">Request</div>
-                      <div class="value" id="externalReq">—</div>
+                      <div class="value mono" id="externalReq">—</div>
+                      <div class="tools">
+                        <button onclick="copyExternalRequest()">Copy URL</button>
+                        <button onclick="openExternalRequest()">Open</button>
+                      </div>
                     </div>
                     <div class="box">
                       <div class="label">Upstream</div>
-                      <div class="value" id="externalUp">—</div>
+                      <div class="value mono" id="externalUp">—</div>
+                      <div class="tools">
+                        <button onclick="copyExternalUpstream()">Copy</button>
+                      </div>
                     </div>
                     <div class="box">
                       <div class="label">Result</div>
@@ -767,7 +792,10 @@
                     <div class="results" id="externalResults"></div>
                   </div>
                 </div>
-                <div class="log" id="externalLog" style="height:180px; margin-top:10px"></div>
+                <details style="margin-top:10px">
+                  <summary class="pill" style="cursor:pointer; user-select:none">Request log</summary>
+                  <div class="log" id="externalLog" style="height:140px; margin-top:10px"></div>
+                </details>
               </div>
             </div>
           </section>
@@ -877,6 +905,10 @@
       const externalResultsEl = el("externalResults");
       const externalRawDlg = el("externalRawDlg");
       const externalRawPreEl = el("externalRawPre");
+      const extTabFinalEl = el("extTabFinal");
+      const extTabLiveEl = el("extTabLive");
+      const extTabUpcomingEl = el("extTabUpcoming");
+      const externalTabMetaEl = el("externalTabMeta");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -889,6 +921,10 @@
       let externalLastPreset = "nba";
       let externalLastJsonText = "";
       let externalLastJsonObj = null;
+      let externalTab = "final";
+      let externalLastEvents = [];
+      let externalLastRequestUrl = "";
+      let externalLastUpstream = "";
       const externalNodeIndex = new Map(); // path -> details element
 
       function now() {
@@ -1183,6 +1219,55 @@
         setTimeout(() => URL.revokeObjectURL(url), 1500);
       }
 
+      async function copyText(txt){
+        if (!txt) return;
+        try{
+          await navigator.clipboard.writeText(txt);
+          return true;
+        } catch {
+          try{
+            const ta = document.createElement("textarea");
+            ta.value = txt;
+            ta.setAttribute("readonly", "");
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            ta.remove();
+            return true;
+          } catch {
+            return false;
+          }
+        }
+      }
+
+      async function copyExternalRequest(){
+        if (!externalLastRequestUrl) return;
+        const ok = await copyText(externalLastRequestUrl);
+        appendTo(externalLogEl, ok ? `[${now()}] copied request URL` : `[${now()}] copy failed`, ok ? "muted" : "bad");
+      }
+
+      function openExternalRequest(){
+        if (!externalLastRequestUrl) return;
+        window.open(externalLastRequestUrl, "_blank", "noopener,noreferrer");
+      }
+
+      async function copyExternalUpstream(){
+        if (!externalLastUpstream) return;
+        const ok = await copyText(externalLastUpstream);
+        appendTo(externalLogEl, ok ? `[${now()}] copied upstream` : `[${now()}] copy failed`, ok ? "muted" : "bad");
+      }
+
+      function setExternalTab(tab){
+        const t = (tab || "final").toLowerCase();
+        externalTab = (t === "live" || t === "upcoming" || t === "final") ? t : "final";
+        if (extTabFinalEl) extTabFinalEl.classList.toggle("primary", externalTab === "final");
+        if (extTabLiveEl) extTabLiveEl.classList.toggle("primary", externalTab === "live");
+        if (extTabUpcomingEl) extTabUpcomingEl.classList.toggle("primary", externalTab === "upcoming");
+        renderExternalScoreboard(externalLastEvents || []);
+      }
+
       function classifyExternalEvent(ev){
         const comp = (ev.competitions && ev.competitions[0]) || null;
         const stType = (comp && comp.status && comp.status.type) || (ev.status && ev.status.type) || {};
@@ -1216,11 +1301,14 @@
         live.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
         upcoming.sort((a,b)=> (new Date(a.date)) - (new Date(b.date)));
 
-        const sections = [
-          { title:"FINAL (recent)", items: finals.slice(0, 9) },
-          { title:"LIVE", items: live.slice(0, 9) },
-          { title:"UPCOMING", items: upcoming.slice(0, 18) },
-        ];
+        if (externalTabMetaEl){
+          externalTabMetaEl.textContent = `final=${finals.length} · live=${live.length} · upcoming=${upcoming.length}`;
+        }
+
+        const pick = (externalTab === "live") ? live : (externalTab === "upcoming" ? upcoming : finals);
+        const title = (externalTab === "live") ? "LIVE" : (externalTab === "upcoming" ? "UPCOMING" : "FINAL (recent)");
+        const limit = (externalTab === "upcoming") ? 18 : 12;
+        const sections = [{ title, items: pick.slice(0, limit) }];
 
         for (const sec of sections){
           if (sec.items.length === 0) continue;
@@ -1249,6 +1337,7 @@
                 const t = c2.team || {};
                 const logo = httpsFix(
                   (t.logos && t.logos[0] && t.logos[0].href) ||
+                  (typeof t.logo === "string" ? t.logo : "") ||
                   (t.logo && t.logo.href) ||
                   ""
                 );
@@ -1265,7 +1354,7 @@
 
             const eventName = (ev.shortName || ev.name || "").trim();
             const when = fmtWhen(ev.date || (comp && comp.date) || "");
-            const venue = (comp && comp.venue && (comp.venue.fullName || (comp.venue.address && comp.venue.address.city))) ? (comp.venue.fullName || comp.venue.address.city) : "";
+            const venue = fmtVenue(comp && comp.venue);
             const right = isFinal2 ? when : (isLive2 ? (detail || when) : when);
             const topRight = right || "TBD";
 
@@ -1321,14 +1410,18 @@
           laliga: "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard",
         };
         const upstream = upstreamMap[p] || "https://site.api.espn.com/";
-        if (externalReqEl) externalReqEl.textContent = `GET ${path.replace(/&_=[0-9]+$/, "")}`;
-        if (externalUpEl) externalUpEl.textContent = upstream.replace("https://", "");
+        const cleanPath = path.replace(/&_=[0-9]+$/, "");
+        externalLastRequestUrl = location.origin + cleanPath;
+        externalLastUpstream = upstream;
+        if (externalReqEl) externalReqEl.textContent = `GET ${cleanPath}`;
+        if (externalUpEl) externalUpEl.textContent = upstream.replace(/^https?:\\/\\//, "");
         if (externalStatEl) externalStatEl.textContent = "—";
         if (externalEventsEl) externalEventsEl.textContent = "—";
         if (externalBreakdownEl) externalBreakdownEl.textContent = `range=${dates}`;
         if (externalBytesEl) externalBytesEl.textContent = "—";
         externalLastJsonText = "";
         externalLastJsonObj = null;
+        externalLastEvents = [];
         if (externalTreeEl) externalTreeEl.textContent = "";
         if (externalResultsEl) externalResultsEl.textContent = "";
         appendTo(externalLogEl, `[${now()}] GET ${path}`, "muted");
@@ -1354,6 +1447,7 @@
         externalLastJsonObj = data;
         renderExternalTree(data);
         const events = (data && data.events) ? data.events : [];
+        externalLastEvents = events;
         if (externalEventsEl) externalEventsEl.textContent = String(events.length);
         const league = (data && data.leagues && data.leagues[0]) ? data.leagues[0] : null;
         const leagueName = (league && (league.name || league.abbreviation)) ? (league.name || league.abbreviation) : "—";
@@ -1594,7 +1688,18 @@
         if (!dateStr) return "";
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return "";
-        return d.toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+        return d.toLocaleString([], { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", timeZoneName:"short" });
+      }
+
+      function fmtVenue(v){
+        if (!v) return "";
+        const full = (v.fullName || "").trim();
+        const addr = v.address || {};
+        const city = (addr.city || "").trim();
+        const state = (addr.state || "").trim();
+        const cityState = [city, state].filter(Boolean).join(", ");
+        if (full && cityState) return `${full} · ${cityState}`;
+        return full || cityState;
       }
 
       function teamLogoBox(team){
@@ -1605,7 +1710,7 @@
           return `<span class="logoBox"><span class="ph" style="display:block">${safeAb}</span></span>`;
         }
         const safeUrl = escAttr(url);
-        return `<span class="logoBox"><img alt="" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous" src="${safeUrl}" onerror="this.remove(); const ph=this.parentElement && this.parentElement.querySelector('.ph'); if(ph) ph.style.display='block';"/><span class="ph">${safeAb}</span></span>`;
+        return `<span class="logoBox"><img alt="" loading="lazy" src="${safeUrl}" onerror="this.remove(); const ph=this.parentElement && this.parentElement.querySelector('.ph'); if(ph) ph.style.display='block';"/><span class="ph">${safeAb}</span></span>`;
       }
 
       function initials(name){
@@ -1702,6 +1807,7 @@
       renderTrafficBars();
       initNav();
       initExternalTreeUi();
+      setExternalTab("final");
       installJsDiagnostics();
       setTimeout(() => { selfTest(); }, 250);
     </script>
