@@ -598,7 +598,7 @@
           return;
         }
         oidcTokenEl.value = data.access_token || "";
-        appendTo(oidcLogEl, `token received (len=${(data.access_token || \"\").length})`, "ok");
+        appendTo(oidcLogEl, `token received (len=${(data.access_token || "").length})`, "ok");
       }
 
       async function callSecure(){
