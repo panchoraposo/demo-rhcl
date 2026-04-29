@@ -36,6 +36,7 @@ public class ChatResource {
 
       String answer;
       String toolNote = "";
+      String llmError = "";
 
       if (looksLikeScoreboardQuestion(userText)) {
         String dates = extractDatesRange(userText);
@@ -44,13 +45,19 @@ public class ChatResource {
         toolNote = "tool=espn_nba_scoreboard";
 
         if (llm.enabled()) {
-          ArrayNode prompt = json.mapper().createArrayNode();
-          prompt.add(obj("system", "You are a helpful sports assistant for a workshop demo. Use the provided NBA scoreboard summary to answer the user question. Be concise."));
-          prompt.add(obj("user", "User question: " + safe(userText) + "\n\nNBA scoreboard summary:\n" + summary));
-          JsonNode llmRes = llm.chat(prompt);
-          answer = llmRes.at("/choices/0/message/content").asText("");
-          if (answer.isBlank()) {
-            answer = "I could not generate an answer from the LLM response. Here is the scoreboard summary:\n" + summary;
+          try {
+            ArrayNode prompt = json.mapper().createArrayNode();
+            prompt.add(obj("system", "You are a helpful sports assistant for a workshop demo. Use the provided NBA scoreboard summary to answer the user question. Be concise."));
+            prompt.add(obj("user", "User question: " + safe(userText) + "\n\nNBA scoreboard summary:\n" + summary));
+            JsonNode llmRes = llm.chat(prompt);
+            answer = llmRes.at("/choices/0/message/content").asText("");
+            if (answer.isBlank()) {
+              answer = summary;
+              llmError = "LLM returned an empty answer";
+            }
+          } catch (Exception e) {
+            answer = summary;
+            llmError = String.valueOf(e.getMessage());
           }
         } else {
           answer = summary;
@@ -88,6 +95,9 @@ public class ChatResource {
       ObjectNode meta = json.obj();
       meta.put("tool", toolNote);
       meta.put("llm_enabled", llm.enabled());
+      if (!llmError.isBlank()) {
+        meta.put("llm_error", llmError);
+      }
       out.set("rhcl_meta", meta);
 
       return Response.ok(out).build();
