@@ -204,6 +204,7 @@
           <span class="tag"><b>Gateway API</b> (openshift-default)</span>
           <span class="tag"><b>AuthPolicy</b> APIKEY</span>
           <span class="tag"><b>RateLimitPolicy</b> per user</span>
+          <span class="tag" id="jsTag"><b>JS</b> booting…</span>
         </div>
       </header>
 
@@ -364,6 +365,7 @@
       const kpiLatency = el("kpiLatency");
       const kpiUser = el("kpiUser");
       const bars = el("bars");
+      const jsTag = el("jsTag");
       const rolesLogEl = el("rolesLog");
       const abKpiEl = el("abKpi");
       const canaryKpiEl = el("canaryKpi");
@@ -390,15 +392,19 @@
       function append(line, cls){
         const span = document.createElement("span");
         if (cls) span.className = cls;
+        span.style.display = "block";
         span.textContent = line + "\n";
-        logEl.prepend(span);
+        if (logEl.prepend) logEl.prepend(span);
+        else logEl.insertBefore(span, logEl.firstChild);
       }
 
       function appendTo(elm, line, cls){
         const span = document.createElement("span");
         if (cls) span.className = cls;
+        span.style.display = "block";
         span.textContent = line + "\n";
-        elm.prepend(span);
+        if (elm.prepend) elm.prepend(span);
+        else elm.insertBefore(span, elm.firstChild);
       }
 
       function clearLog(){
@@ -485,6 +491,8 @@
       }
 
       function installJsDiagnostics(){
+        if (jsTag) jsTag.innerHTML = "<b>JS</b> active";
+        append(`[${now()}] js: active`, "muted");
         window.addEventListener("error", (e) => {
           append(`[${now()}] js error: ${e.message}`, "bad");
         });
