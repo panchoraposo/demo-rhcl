@@ -60,13 +60,6 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            # Optional: enable real LLM calls (OpenAI-compatible)
-            - name: OPENAI_BASE_URL
-              value: ""
-            - name: OPENAI_API_KEY
-              value: ""
-            - name: OPENAI_MODEL
-              value: gpt-4o-mini
             # Tool calls go through the existing in-cluster ESPN proxy
             - name: ESPN_BASE_URL
               value: http://external-proxy.demo.svc.cluster.local
