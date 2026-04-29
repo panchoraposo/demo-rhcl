@@ -1290,6 +1290,19 @@ spec:
   rules:
     - matches:
         - method: GET
+          path: { type: PathPrefix, value: /portal-login }
+        - method: HEAD
+          path: { type: PathPrefix, value: /portal-login }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: { type: ReplacePrefixMatch, replacePrefixMatch: / }
+      backendRefs:
+        - kind: Service
+          name: rhcl-oidc-ui
+          port: 80
+    - matches:
+        - method: GET
           path: { type: PathPrefix, value: /secure }
       filters:
         - type: URLRewrite
@@ -1379,14 +1392,13 @@ spec:
           { name: "DNSPolicy (Route53 record)", yaml: `apiVersion: kuadrant.io/v1
 kind: DNSPolicy
 metadata:
-  name: rhcl-gw-dns
-  namespace: openshift-ingress
+  name: oidc-portal-dns
+  namespace: demo
 spec:
   targetRef:
     group: gateway.networking.k8s.io
-    kind: Gateway
-    name: rhcl-gw
-    sectionName: https
+    kind: HTTPRoute
+    name: oidc-portal
   providerRefs:
     - name: route53-credentials
 ` },
@@ -1421,7 +1433,7 @@ spec:
           { name: "TLSPolicy (Gateway)", yaml: `apiVersion: kuadrant.io/v1\nkind: TLSPolicy\nmetadata:\n  name: rhcl-gw-tls\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n    sectionName: https\n  issuerRef:\n    group: cert-manager.io\n    kind: ClusterIssuer\n    name: REPLACE_ME_CLUSTER_ISSUER\n` },
           { name: "OpenShift Route (main host)", yaml: `apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: rhcl-gw\n  namespace: openshift-ingress\nspec:\n  host: REPLACE_ME_DEMO_HOSTNAME\n  tls:\n    termination: passthrough\n` },
           { name: "OpenShift Route (OIDC portal host)", yaml: `apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: rhcl-gw-oidc\n  namespace: openshift-ingress\nspec:\n  host: REPLACE_ME_OIDC_HOSTNAME\n  tls:\n    termination: passthrough\n` },
-          { name: "DNSPolicy (Route53)", yaml: `apiVersion: kuadrant.io/v1\nkind: DNSPolicy\nmetadata:\n  name: rhcl-gw-dns\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n    sectionName: https\n  providerRefs:\n    - name: route53-credentials\n` },
+          { name: "DNSPolicy (Route53)", yaml: `apiVersion: kuadrant.io/v1\nkind: DNSPolicy\nmetadata:\n  name: oidc-portal-dns\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: oidc-portal\n  providerRefs:\n    - name: route53-credentials\n` },
         ],
         "roles-platform": [
           { name: "Gateway AuthPolicy (deny-all)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: rhcl-gw-auth\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n  defaults:\n    rules:\n      authorization:\n        deny-all:\n          opa:\n            rego: \"allow = false\"\n` },

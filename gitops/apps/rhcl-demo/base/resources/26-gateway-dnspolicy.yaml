@@ -1,17 +1,16 @@
 apiVersion: kuadrant.io/v1
 kind: DNSPolicy
 metadata:
-  name: rhcl-gw-dns
-  namespace: openshift-ingress
+  name: oidc-portal-dns
+  namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "22"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   targetRef:
     group: gateway.networking.k8s.io
-    kind: Gateway
-    name: rhcl-gw
-    sectionName: https
+    kind: HTTPRoute
+    name: oidc-portal
   providerRefs:
     - name: route53-credentials
 

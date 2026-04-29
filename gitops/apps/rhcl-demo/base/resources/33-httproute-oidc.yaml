@@ -47,6 +47,27 @@ spec:
         - method: GET
           path:
             type: PathPrefix
+            value: /portal-login
+        - method: HEAD
+          path:
+            type: PathPrefix
+            value: /portal-login
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: rhcl-oidc-ui
+          port: 80
+          weight: 1
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
             value: /secure
       filters:
         - type: URLRewrite
