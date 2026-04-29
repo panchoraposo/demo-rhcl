@@ -523,6 +523,17 @@
         font-size:12px;
         line-height:1.45;
       }
+      .yamlTabs{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        margin-bottom:10px;
+      }
+      .yamlTabs button{
+        padding:8px 10px;
+        border-radius:12px;
+        font-size:12px;
+      }
 
       .footer{margin-top:14px; color:var(--muted); font-size:12px}
     </style>
@@ -560,6 +571,9 @@
               <div class="k">Module</div>
               <div class="t"><b>Policies playground</b> — AuthPolicy + RateLimitPolicy</div>
               <div class="d">Use API keys to demonstrate identity + rate limiting (429). The live log is your “audience screen”.</div>
+              <div class="row" style="margin-top:10px">
+                <button onclick="openYamlSet('policies')">View policy YAML</button>
+              </div>
             </div>
 
             <div class="grid">
@@ -628,18 +642,65 @@
               <div class="k">Module</div>
               <div class="t"><b>Role separation</b> — infra owner vs platform vs developer</div>
               <div class="d">One click prints checks that map outcomes to responsibilities. Great to explain “who owns what” in policy lifecycle.</div>
+              <div class="row" style="margin-top:10px">
+                <button onclick="openYamlSet('roles')">View zero-trust YAML</button>
+              </div>
             </div>
             <div class="grid">
               <div class="card" style="grid-column: 1 / -1;">
-                <h2>Role separation (high-level)</h2>
+                <h2>Zero-trust by default</h2>
                 <div class="sub">
-                  This module illustrates how responsibilities split across <b>Infrastructure Owner</b>, <b>Platform Engineer</b>, and <b>Developer</b>.
-                  Click "Run checks" to validate the current state and see which layer is responsible.
+                  The Gateway is <b>deny-all</b> by default. Each role applies policies at a different layer to progressively allow <i>only</i> what is needed.
+                </div>
+              </div>
+
+              <div class="card">
+                <h2>Infrastructure owner</h2>
+                <div class="sub">Owns the entrypoint and transport security.</div>
+                <div class="row" style="margin-top:10px">
+                  <span class="pill"><span class="dot"></span> Gateway + listener</span>
+                  <span class="pill"><span class="dot"></span> TLSPolicy + cert-manager</span>
+                  <span class="pill"><span class="dot"></span> OpenShift Route passthrough</span>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <button onclick="openYamlSet('roles-infra')">View YAML</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <h2>Platform engineer</h2>
+                <div class="sub">Owns global guardrails and safe defaults.</div>
+                <div class="row" style="margin-top:10px">
+                  <span class="pill"><span class="dot bad"></span> Gateway AuthPolicy (deny-all)</span>
+                  <span class="pill"><span class="dot good"></span> UI allow override</span>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <button onclick="openYamlSet('roles-platform')">View YAML</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <h2>Developer</h2>
+                <div class="sub">Owns route-level protection for the app and APIs.</div>
+                <div class="row" style="margin-top:10px">
+                  <span class="pill"><span class="dot"></span> API key AuthPolicy</span>
+                  <span class="pill"><span class="dot"></span> RateLimitPolicy</span>
+                  <span class="pill"><span class="dot"></span> OIDCPolicy + JWT AuthPolicy</span>
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <button onclick="openYamlSet('roles-dev')">View YAML</button>
+                </div>
+              </div>
+
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>Role separation (runtime checks)</h2>
+                <div class="sub">
+                  Click "Run checks" to validate the current state and narrate who would fix what if a step fails.
                 </div>
                 <div class="row" style="margin-top:10px">
                   <button class="primary" onclick="runRoleChecks()">Run checks</button>
                 </div>
-                <div class="log" id="rolesLog" style="height:260px; margin-top:10px"></div>
+                <div class="log" id="rolesLog" style="height:240px; margin-top:10px"></div>
               </div>
             </div>
           </section>
@@ -649,6 +710,9 @@
               <div class="k">Module</div>
               <div class="t"><b>Traffic shaping</b> — A/B testing and canary rollout</div>
               <div class="d">The UI samples a route and visualizes observed split vs expected weights, with a progress bar and per-request log.</div>
+              <div class="row" style="margin-top:10px">
+                <button onclick="openYamlSet('traffic')">View route YAML</button>
+              </div>
             </div>
             <div class="grid">
               <div class="card" style="grid-column: 1 / -1;">
@@ -658,14 +722,14 @@
                 </h2>
                 <div class="sub" id="trafficMeta">
                   The UI sends <b>N</b> requests to a route and counts which backend responds.
-                  A/B uses <code>/ab</code> (expected <b>50/50</b>). Canary uses <code>/canary</code> (expected <b>90/10</b>).
+                  A/B uses <code>/ab</code> (expected <b>80/20</b>). Canary uses <code>/canary</code> (expected <b>90/10</b>).
                 </div>
 
                 <div class="row" style="margin-top:10px">
                   <button class="primary" onclick="sampleAB(60)">Sample A/B (60)</button>
                   <button class="primary" onclick="sampleCanary(80)">Sample canary (80)</button>
                   <button onclick="clearTraffic()">Clear</button>
-                  <span class="pill"><span class="dot good"></span><span id="trafficExpected">expected: A/B 50/50 · canary 90/10</span></span>
+                  <span class="pill"><span class="dot good"></span><span id="trafficExpected">expected: A/B 80/20 · canary 90/10</span></span>
                 </div>
 
                 <div class="row" style="margin-top:10px">
@@ -698,7 +762,7 @@
 
                 <div class="log" id="trafficLog" style="height:180px; margin-top:10px"></div>
                 <div class="footer">
-                  What you see: each bar is one request. Green = primary, blue = secondary. The log prints progress and a few sample lines.
+                  What you see: each bar is one request. Green = primary, blue = secondary. The observed split is probabilistic (sampling noise), so it can differ slightly from the configured weights.
                 </div>
               </div>
             </div>
@@ -709,6 +773,9 @@
               <div class="k">Module</div>
               <div class="t"><b>External API</b> — same-origin proxy to ESPN JSON</div>
               <div class="d">Visually explain what happens: browser calls <code>/external/&lt;preset&gt;</code>, cluster proxies to ESPN, UI renders a scoreboard with official team logos.</div>
+              <div class="row" style="margin-top:10px">
+                <button onclick="openYamlSet('external')">View policy YAML</button>
+              </div>
             </div>
             <div class="grid">
               <div class="card" style="grid-column: 1 / -1;">
@@ -814,16 +881,20 @@
             <div class="moduleHero">
               <div class="k">Module</div>
               <div class="t"><b>OIDC</b> — Keycloak + protected route</div>
-              <div class="d">Get an access token from Keycloak (<code>/auth</code>) and call a JWT-protected endpoint (<code>/secure</code>).</div>
+              <div class="d">Discover OIDC config (<code>/auth</code>), get a token, inspect claims, then call a protected API (<code>/secure</code>).</div>
+              <div class="row" style="margin-top:10px">
+                <button onclick="openYamlSet('oidc')">View policy YAML</button>
+              </div>
             </div>
             <div class="grid">
               <div class="card" style="grid-column: 1 / -1;">
                 <h2>OIDC: Keycloak + protected route</h2>
                 <div class="sub">
-                  Get an access token from Keycloak (<code>/auth</code>) and call a JWT-protected endpoint (<code>/secure</code>).
+                  Steps: fetch OIDC discovery, get a token (password grant), decode JWT claims, then call the protected API (<code>/secure/headers</code>).
                 </div>
                 <div class="row" style="margin-top:10px">
                   <button class="primary" onclick="openKeycloak()">Open Keycloak</button>
+                  <button onclick="oidcDiscovery()">OIDC discovery</button>
                 </div>
                 <div class="row" style="margin-top:10px">
                   <div class="input" style="flex:1 1 230px; min-width: 230px;">
@@ -837,7 +908,8 @@
                 </div>
                 <div class="row">
                   <button class="good" onclick="getToken()">Get token</button>
-                  <button class="good" onclick="callSecure()">GET /secure</button>
+                  <button onclick="showTokenClaims()">Show token claims</button>
+                  <button class="good" onclick="callSecure()">GET /secure/headers</button>
                 </div>
                 <div class="row" style="margin-top:10px">
                   <div class="input" style="flex:1 1 100%; min-width: 300px;">
@@ -867,6 +939,23 @@
       </div>
       <div class="dlgBody">
         <pre id="externalRawPre" class="dlgPre"></pre>
+      </div>
+    </dialog>
+
+    <dialog id="yamlDlg">
+      <div class="dlgHead">
+        <div class="row" style="gap:10px; align-items:center">
+          <span class="pill"><span class="dot"></span> Policy YAML</span>
+          <span class="pill"><span class="dot"></span> <span id="yamlTitle">—</span></span>
+        </div>
+        <div class="row" style="gap:8px">
+          <button onclick="copyYaml()">Copy</button>
+          <button class="warn" onclick="document.getElementById('yamlDlg').close()">Close</button>
+        </div>
+      </div>
+      <div class="dlgBody">
+        <div class="yamlTabs" id="yamlTabs"></div>
+        <pre id="yamlPre" class="dlgPre"></pre>
       </div>
     </dialog>
 
@@ -919,6 +1008,10 @@
       const extTabLiveEl = el("extTabLive");
       const extTabUpcomingEl = el("extTabUpcoming");
       const externalTabMetaEl = el("externalTabMeta");
+      const yamlDlg = el("yamlDlg");
+      const yamlTitleEl = el("yamlTitle");
+      const yamlTabsEl = el("yamlTabs");
+      const yamlPreEl = el("yamlPre");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -936,6 +1029,350 @@
       let externalLastRequestUrl = "";
       let externalLastUpstream = "";
       const externalNodeIndex = new Map(); // path -> details element
+      let yamlActiveText = "";
+
+      const YAML_SETS = {
+        "policies": [
+          { name: "Gateway AuthPolicy (deny-all)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: rhcl-gw-auth
+  namespace: openshift-ingress
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-gw
+  defaults:
+    when:
+      - predicate: "request.path != '/health'"
+    rules:
+      authorization:
+        deny-all:
+          opa:
+            rego: "allow = false"
+` },
+          { name: "UI AuthPolicy (allow)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: rhcl-ui-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: rhcl-ui
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
+          { name: "API AuthPolicy (API keys)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: demo-api-auth
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: demo-api
+  defaults:
+    when:
+      - predicate: "request.path != '/health'"
+    rules:
+      authentication:
+        api-key-users:
+          apiKey:
+            allNamespaces: true
+            selector:
+              matchLabels:
+                app: demo-api
+          credentials:
+            authorizationHeader:
+              prefix: APIKEY
+` },
+          { name: "RateLimitPolicy (per identity)", yaml: `apiVersion: kuadrant.io/v1
+kind: RateLimitPolicy
+metadata:
+  name: demo-api-rlp
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: demo-api
+  limits:
+    general-user:
+      rates:
+        - limit: 5
+          window: 10s
+      counters:
+        - expression: auth.identity.userid
+      when:
+        - predicate: "auth.identity.userid != 'bob'"
+    bob-limit:
+      rates:
+        - limit: 2
+          window: 10s
+      when:
+        - predicate: "auth.identity.userid == 'bob'"
+` },
+        ],
+        "traffic": [
+          { name: "HTTPRoute (A/B 80/20 + canary 90/10)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ab-demo
+  namespace: demo
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-gw
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /ab
+      backendRefs:
+        - kind: Service
+          name: ab-a
+          port: 80
+          weight: 80
+        - kind: Service
+          name: ab-b
+          port: 80
+          weight: 20
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /canary
+      backendRefs:
+        - kind: Service
+          name: canary-v1
+          port: 80
+          weight: 90
+        - kind: Service
+          name: canary-v2
+          port: 80
+          weight: 10
+` },
+          { name: "AuthPolicy (allow route)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: ab-demo-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ab-demo
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
+        ],
+        "external": [
+          { name: "HTTPRoute (/external)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ab-demo
+  namespace: demo
+spec:
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /external
+      backendRefs:
+        - kind: Service
+          name: external-proxy
+          port: 80
+          weight: 1
+` },
+          { name: "external-proxy (NGINX upstream)", yaml: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-proxy-nginx
+  namespace: demo
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      location ^~ /external/nba {
+        rewrite ^/external/nba/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
+        proxy_set_header Host site.api.espn.com;
+        proxy_pass https://site.api.espn.com;
+      }
+      location ^~ /external/epl {
+        rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
+        proxy_set_header Host site.api.espn.com;
+        proxy_pass https://site.api.espn.com;
+      }
+      location ^~ /external/laliga {
+        rewrite ^/external/laliga/?$ /apis/site/v2/sports/soccer/esp.1/scoreboard break;
+        proxy_set_header Host site.api.espn.com;
+        proxy_pass https://site.api.espn.com;
+      }
+    }
+` },
+        ],
+        "oidc": [
+          { name: "HTTPRoute (/auth + /secure)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: keycloak
+  namespace: demo
+spec:
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /auth }
+      backendRefs:
+        - kind: Service
+          name: keycloak
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: secure-demo
+  namespace: demo
+spec:
+  rules:
+    - matches:
+        - method: GET
+          path: { type: PathPrefix, value: /secure }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - kind: Service
+          name: secure-api
+          port: 80
+` },
+          { name: "AuthPolicy (allow Keycloak)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: keycloak-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: keycloak
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
+          { name: "OIDCPolicy (provider)", yaml: `apiVersion: extensions.kuadrant.io/v1alpha1
+kind: OIDCPolicy
+metadata:
+  name: secure-demo-oidc
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: secure-demo
+  provider:
+    clientID: rhcl-ui
+    issuerURL: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl
+` },
+          { name: "AuthPolicy (JWT verify)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: secure-demo-jwt
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: secure-demo
+  defaults:
+    rules:
+      authentication:
+        jwt:
+          jwt:
+            issuerUrl: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl
+          credentials:
+            authorizationHeader:
+              prefix: "Bearer"
+` },
+        ],
+        "roles-infra": [
+          { name: "TLSPolicy (Gateway)", yaml: `apiVersion: kuadrant.io/v1\nkind: TLSPolicy\nmetadata:\n  name: rhcl-gw-tls\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n    sectionName: https\n  issuerRef:\n    group: cert-manager.io\n    kind: ClusterIssuer\n    name: REPLACE_ME_CLUSTER_ISSUER\n` },
+          { name: "OpenShift Route (passthrough)", yaml: `apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: rhcl-gw\n  namespace: openshift-ingress\nspec:\n  host: REPLACE_ME_DEMO_HOSTNAME\n  tls:\n    termination: passthrough\n` },
+        ],
+        "roles-platform": [
+          { name: "Gateway AuthPolicy (deny-all)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: rhcl-gw-auth\n  namespace: openshift-ingress\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: Gateway\n    name: rhcl-gw\n  defaults:\n    rules:\n      authorization:\n        deny-all:\n          opa:\n            rego: \"allow = false\"\n` },
+          { name: "UI allow override", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: rhcl-ui-allow\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: rhcl-ui\n  defaults:\n    rules:\n      authorization:\n        allow-all:\n          opa:\n            rego: \"allow = true\"\n` },
+        ],
+        "roles-dev": [
+          { name: "API AuthPolicy (API keys)", yaml: `apiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: demo-api-auth\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: demo-api\n  defaults:\n    rules:\n      authentication:\n        api-key-users:\n          apiKey:\n            selector:\n              matchLabels:\n                app: demo-api\n` },
+          { name: "RateLimitPolicy (per identity)", yaml: `apiVersion: kuadrant.io/v1\nkind: RateLimitPolicy\nmetadata:\n  name: demo-api-rlp\n  namespace: demo\nspec:\n  targetRef:\n    group: gateway.networking.k8s.io\n    kind: HTTPRoute\n    name: demo-api\n  limits:\n    general-user:\n      rates:\n        - limit: 5\n          window: 10s\n      counters:\n        - expression: auth.identity.userid\n` },
+          { name: "OIDCPolicy + JWT AuthPolicy", yaml: `apiVersion: extensions.kuadrant.io/v1alpha1\nkind: OIDCPolicy\nmetadata:\n  name: secure-demo-oidc\n  namespace: demo\nspec:\n  provider:\n    issuerURL: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl\n---\napiVersion: kuadrant.io/v1\nkind: AuthPolicy\nmetadata:\n  name: secure-demo-jwt\n  namespace: demo\nspec:\n  defaults:\n    rules:\n      authentication:\n        jwt:\n          jwt:\n            issuerUrl: https://REPLACE_ME_DEMO_HOSTNAME/auth/realms/rhcl\n` },
+        ],
+      };
+
+      // Fill roles set with useful stack (after YAML_SETS init)
+      YAML_SETS["roles"] = [
+        { name: "Infra: TLSPolicy + Route", yaml: YAML_SETS["roles-infra"].map(x => x.yaml).join("\n---\n") },
+        { name: "Platform: deny-all + UI allow", yaml: YAML_SETS["roles-platform"].map(x => x.yaml).join("\n---\n") },
+        { name: "Dev: API auth + rate limit + OIDC", yaml: YAML_SETS["roles-dev"].map(x => x.yaml).join("\n---\n") },
+      ];
+
+      function openYamlSet(key){
+        if (!yamlDlg || !yamlTabsEl || !yamlPreEl || !yamlTitleEl) return;
+        const k = String(key || "").toLowerCase();
+        const items = YAML_SETS[k] || [];
+        yamlTabsEl.textContent = "";
+        yamlPreEl.textContent = "";
+        yamlActiveText = "";
+        yamlTitleEl.textContent = k || "policies";
+        if (items.length === 0){
+          yamlPreEl.textContent = "(no YAML available for this section)";
+          yamlDlg.showModal();
+          return;
+        }
+        for (let i = 0; i < items.length; i++){
+          const it = items[i];
+          const b = document.createElement("button");
+          b.textContent = it.name;
+          b.className = i === 0 ? "primary" : "";
+          b.addEventListener("click", () => {
+            for (const bb of Array.from(yamlTabsEl.querySelectorAll("button"))) bb.classList.remove("primary");
+            b.classList.add("primary");
+            yamlActiveText = String(it.yaml || "");
+            yamlPreEl.textContent = yamlActiveText;
+          });
+          yamlTabsEl.appendChild(b);
+        }
+        yamlActiveText = String(items[0].yaml || "");
+        yamlPreEl.textContent = yamlActiveText;
+        yamlDlg.showModal();
+      }
+
+      async function copyYaml(){
+        if (!yamlActiveText) return;
+        const ok = await copyText(yamlActiveText);
+        if (ok) return;
+      }
 
       function now() {
         const d = new Date();
@@ -1108,7 +1545,9 @@
 
       function fmtPct(n, total){
         if (!total) return "0%";
-        return Math.round((n / total) * 100) + "%";
+        const pct = (n / total) * 100;
+        // Show 1 decimal for small samples to reduce “text mismatch” confusion
+        return (total < 200 ? (Math.round(pct * 10) / 10).toFixed(1) : Math.round(pct).toFixed(0)) + "%";
       }
 
       function avg(arr){
@@ -1178,7 +1617,7 @@
         const c = await sample("/ab", n, "ab");
         const a = c["A"] || 0;
         const b = c["B"] || 0;
-        if (trafficSplitEl) trafficSplitEl.textContent = `A=${a} (${fmtPct(a,n)}) · B=${b} (${fmtPct(b,n)}) · expected 50/50`;
+        if (trafficSplitEl) trafficSplitEl.textContent = `A=${a} (${fmtPct(a,n)}) · B=${b} (${fmtPct(b,n)}) · expected 80/20`;
         if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
@@ -1764,6 +2203,26 @@
         window.open("/auth", "_blank", "noopener,noreferrer");
       }
 
+      async function oidcDiscovery(){
+        oidcLogEl.textContent = "";
+        appendTo(oidcLogEl, `[${now()}] GET /auth/realms/rhcl/.well-known/openid-configuration`, "muted");
+        const r = await fetch("/auth/realms/rhcl/.well-known/openid-configuration", { cache: "no-store" });
+        const txt = await r.text();
+        appendTo(oidcLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
+        try{
+          const obj = JSON.parse(txt);
+          const pick = {
+            issuer: obj.issuer,
+            authorization_endpoint: obj.authorization_endpoint,
+            token_endpoint: obj.token_endpoint,
+            jwks_uri: obj.jwks_uri,
+          };
+          appendTo(oidcLogEl, JSON.stringify(pick, null, 2));
+        } catch {
+          appendTo(oidcLogEl, txt.slice(0, 800), r.status === 200 ? "muted" : "bad");
+        }
+      }
+
       async function getToken(){
         oidcLogEl.textContent = "";
         appendTo(oidcLogEl, `[${now()}] POST /auth/.../token (password grant)`, "muted");
@@ -1794,14 +2253,43 @@
         appendTo(oidcLogEl, `token received (len=${(data.access_token || "").length})`, "ok");
       }
 
+      function showTokenClaims(){
+        oidcLogEl.textContent = "";
+        const t = (oidcTokenEl.value || "").trim();
+        if (!t){
+          appendTo(oidcLogEl, `[${now()}] no token yet (click Get token)`, "warn");
+          return;
+        }
+        const parts = t.split(".");
+        if (parts.length < 2){
+          appendTo(oidcLogEl, `[${now()}] token is not a JWT`, "bad");
+          return;
+        }
+        const dec = (s) => {
+          const pad = "=".repeat((4 - (s.length % 4)) % 4);
+          const b64 = (s + pad).replace(/-/g, "+").replace(/_/g, "/");
+          return decodeURIComponent(Array.from(atob(b64)).map(c => "%" + c.charCodeAt(0).toString(16).padStart(2,"0")).join(""));
+        };
+        try{
+          const header = JSON.parse(dec(parts[0]));
+          const payload = JSON.parse(dec(parts[1]));
+          appendTo(oidcLogEl, `[${now()}] JWT header`, "muted");
+          appendTo(oidcLogEl, JSON.stringify(header, null, 2));
+          appendTo(oidcLogEl, `\n[${now()}] JWT claims`, "muted");
+          appendTo(oidcLogEl, JSON.stringify(payload, null, 2));
+        } catch (e){
+          appendTo(oidcLogEl, `[${now()}] decode failed: ${String(e)}`, "bad");
+        }
+      }
+
       async function callSecure(){
         oidcLogEl.textContent = "";
         const t = (oidcTokenEl.value || "").trim();
-        appendTo(oidcLogEl, `[${now()}] GET /secure (Bearer token)`, "muted");
-        const r = await fetch("/secure", { headers: { Authorization: `Bearer ${t}` } });
+        appendTo(oidcLogEl, `[${now()}] GET /secure/headers (Bearer token)`, "muted");
+        const r = await fetch("/secure/headers", { headers: { Authorization: `Bearer ${t}` }, cache: "no-store" });
         const txt = await r.text();
         appendTo(oidcLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
-        appendTo(oidcLogEl, txt.slice(0, 800));
+        appendTo(oidcLogEl, txt.slice(0, 2000));
       }
 
       async function runRoleChecks(){
