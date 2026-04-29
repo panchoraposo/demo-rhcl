@@ -321,13 +321,34 @@
           <div class="log" id="externalLog" style="height:220px; margin-top:10px"></div>
         </div>
         <div class="card">
-          <h2>Notes</h2>
+          <h2>OIDC: Keycloak + protected route</h2>
           <div class="sub">
-            Upcoming module: OIDC with Keycloak + OIDCPolicy (JWT-based access to a protected route).
+            Get an access token from Keycloak (<code>/auth</code>) and call a JWT-protected endpoint (<code>/secure</code>).
           </div>
-          <div class="footer" style="margin-top:12px">
-            Keep this demo simple: every call is same-origin, so browser CORS does not get in the way.
+          <div class="row" style="margin-top:10px">
+            <button class="primary" onclick="openKeycloak()">Open Keycloak</button>
           </div>
+          <div class="row" style="margin-top:10px">
+            <div class="input" style="flex:1 1 230px; min-width: 230px;">
+              <label>User</label>
+              <input id="oidcUser" value="demo" spellcheck="false" />
+            </div>
+            <div class="input" style="flex:1 1 230px; min-width: 230px;">
+              <label>Password</label>
+              <input id="oidcPass" value="demo" spellcheck="false" />
+            </div>
+          </div>
+          <div class="row">
+            <button class="good" onclick="getToken()">Get token</button>
+            <button class="good" onclick="callSecure()">GET /secure</button>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div class="input" style="flex:1 1 100%; min-width: 300px;">
+              <label>Access token</label>
+              <input id="oidcToken" value="" spellcheck="false" placeholder="(click Get token)" />
+            </div>
+          </div>
+          <div class="log" id="oidcLog" style="height:160px; margin-top:10px"></div>
         </div>
       </div>
     </div>
@@ -348,6 +369,10 @@
       const canaryKpiEl = el("canaryKpi");
       const trafficBarsEl = el("trafficBars");
       const externalLogEl = el("externalLog");
+      const oidcLogEl = el("oidcLog");
+      const oidcUserEl = el("oidcUser");
+      const oidcPassEl = el("oidcPass");
+      const oidcTokenEl = el("oidcToken");
 
       let lastBurst = [];
       let trafficSample = [];
@@ -392,6 +417,8 @@
         canaryKpiEl.textContent = "—";
         rolesLogEl.textContent = "";
         externalLogEl.textContent = "";
+        oidcLogEl.textContent = "";
+        oidcTokenEl.value = "";
       }
 
       function setKey(v){
@@ -516,6 +543,50 @@
         const txt = await r.text();
         appendTo(externalLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
         appendTo(externalLogEl, txt.slice(0, 1000));
+      }
+
+      function openKeycloak(){
+        window.open("/auth", "_blank", "noopener,noreferrer");
+      }
+
+      async function getToken(){
+        oidcLogEl.textContent = "";
+        appendTo(oidcLogEl, `[${now()}] POST /auth/.../token (password grant)`, "muted");
+
+        const body = new URLSearchParams({
+          grant_type: "password",
+          client_id: "rhcl-ui",
+          username: (oidcUserEl.value || "").trim(),
+          password: oidcPassEl.value || "",
+          scope: "openid",
+        });
+
+        const r = await fetch("/auth/realms/rhcl/protocol/openid-connect/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body,
+        });
+
+        let data = null;
+        try { data = await r.json(); } catch (e) { /* ignore */ }
+
+        appendTo(oidcLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
+        if (r.status !== 200){
+          appendTo(oidcLogEl, (data && data.error_description) ? data.error_description : (data ? JSON.stringify(data) : "token request failed"), "bad");
+          return;
+        }
+        oidcTokenEl.value = data.access_token || "";
+        appendTo(oidcLogEl, `token received (len=${(data.access_token || \"\").length})`, "ok");
+      }
+
+      async function callSecure(){
+        oidcLogEl.textContent = "";
+        const t = (oidcTokenEl.value || "").trim();
+        appendTo(oidcLogEl, `[${now()}] GET /secure (Bearer token)`, "muted");
+        const r = await fetch("/secure", { headers: { Authorization: `Bearer ${t}` } });
+        const txt = await r.text();
+        appendTo(oidcLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
+        appendTo(oidcLogEl, txt.slice(0, 800));
       }
 
       async function runRoleChecks(){

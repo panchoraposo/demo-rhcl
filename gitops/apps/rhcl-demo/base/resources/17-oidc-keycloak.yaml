@@ -1,0 +1,194 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  rhcl-realm.json: |
+    {
+      "realm": "rhcl",
+      "enabled": true,
+      "clients": [
+        {
+          "clientId": "rhcl-ui",
+          "enabled": true,
+          "publicClient": true,
+          "directAccessGrantsEnabled": true,
+          "standardFlowEnabled": false,
+          "redirectUris": [
+            "*"
+          ],
+          "webOrigins": [
+            "*"
+          ]
+        }
+      ],
+      "users": [
+        {
+          "username": "demo",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [
+            {
+              "type": "password",
+              "value": "demo",
+              "temporary": false
+            }
+          ]
+        }
+      ]
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: demo
+  labels:
+    app: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:latest
+          args:
+            - start-dev
+            - --import-realm
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: admin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: admin
+            - name: KC_HTTP_RELATIVE_PATH
+              value: /auth
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /auth/realms/rhcl/.well-known/openid-configuration
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /auth/
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: realm
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+      volumes:
+        - name: realm
+          configMap:
+            name: keycloak-realm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: secure-echo-nginx
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      location / {
+        add_header content-type application/json;
+        return 200 "{\"secure\":true,\"message\":\"hello from secure backend\"}\n";
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-echo
+  namespace: demo
+  labels:
+    app: secure-echo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-echo
+  template:
+    metadata:
+      labels:
+        app: secure-echo
+    spec:
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.27-alpine
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: cfg
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+      volumes:
+        - name: cfg
+          configMap:
+            name: secure-echo-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-echo
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: secure-echo
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+

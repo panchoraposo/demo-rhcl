@@ -6,17 +6,22 @@ resources:
   - resources/10-demo-api.yaml
   - resources/15-ui.yaml
   - resources/16-ab-canary-external.yaml
+  - resources/17-oidc-keycloak.yaml
   - resources/20-gateway.yaml
   - resources/24-gateway-certificate.yaml
   - resources/25-gateway-tlspolicy.yaml
   - resources/30-httproute-api.yaml
   - resources/31-httproute-ui.yaml
   - resources/32-httproute-ab-canary-external.yaml
+  - resources/33-httproute-oidc.yaml
   - resources/40-gateway-authpolicy.yaml
   - resources/50-api-keys.yaml
   - resources/60-route-authpolicy.yaml
   - resources/62-ui-authpolicy.yaml
   - resources/63-ab-authpolicy.yaml
+  - resources/64-keycloak-authpolicy.yaml
+  - resources/65-secure-jwt-authpolicy.yaml
+  - resources/66-secure-oidcpolicy.yaml
   - resources/70-route-ratelimitpolicy.yaml
   - resources/80-route-passthrough.yaml
 
