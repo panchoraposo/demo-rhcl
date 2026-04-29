@@ -9,7 +9,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "30"
 spec:
   parentRefs:
-    - name: rhcl-gw
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-gw
       namespace: openshift-ingress
   rules:
     - matches:
@@ -22,6 +24,9 @@ spec:
             type: PathPrefix
             value: /health
       backendRefs:
-        - name: demo-api
+        - group: ""
+          kind: Service
+          name: demo-api
           port: 80
+          weight: 1
 
