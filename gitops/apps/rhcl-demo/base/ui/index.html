@@ -353,12 +353,38 @@
 
       <div class="grid" style="margin-top:14px">
         <div class="card">
-          <h2>External API (public) via in-cluster proxy</h2>
+          <h2>External API (ESPN) via in-cluster proxy</h2>
           <div class="sub">
-            The UI calls <code>/external</code> on the same host; the service proxies a public endpoint and returns JSON.
+            The UI calls <code>/external/&lt;preset&gt;</code> on the same host. The in-cluster proxy fetches ESPN JSON and returns it same-origin.
           </div>
           <div class="row" style="margin-top:10px">
-            <button class="primary" onclick="callExternal()">GET /external</button>
+            <button class="primary" onclick="callExternal('nfl')">NFL scoreboard</button>
+            <button class="primary" onclick="callExternal('nba')">NBA scoreboard</button>
+            <button class="primary" onclick="callExternal('epl')">EPL scoreboard</button>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <span class="pill"><span class="dot good"></span> browser</span>
+            <span class="pill"><span class="dot"></span> <code>/external/&lt;preset&gt;</code></span>
+            <span class="pill"><span class="dot"></span> proxy (cluster)</span>
+            <span class="pill"><span class="dot"></span> ESPN JSON (<code>site.api.espn.com</code>)</span>
+          </div>
+          <div class="kpi" style="margin-top:12px">
+            <div class="box">
+              <div class="label">Request</div>
+              <div class="value" id="externalReq">—</div>
+            </div>
+            <div class="box">
+              <div class="label">Status / latency</div>
+              <div class="value" id="externalStat">—</div>
+            </div>
+            <div class="box">
+              <div class="label">Events</div>
+              <div class="value" id="externalEvents">—</div>
+            </div>
+          </div>
+          <div class="chart" style="margin-top:12px">
+            <div class="sub" style="margin-bottom:10px">Preview (first events)</div>
+            <div class="kpi" id="externalCards"></div>
           </div>
           <div class="log" id="externalLog" style="height:220px; margin-top:10px"></div>
         </div>
@@ -424,6 +450,10 @@
       const legendPrimaryEl = el("legendPrimary");
       const legendSecondaryEl = el("legendSecondary");
       const externalLogEl = el("externalLog");
+      const externalReqEl = el("externalReq");
+      const externalStatEl = el("externalStat");
+      const externalEventsEl = el("externalEvents");
+      const externalCardsEl = el("externalCards");
       const oidcLogEl = el("oidcLog");
       const oidcUserEl = el("oidcUser");
       const oidcPassEl = el("oidcPass");
@@ -658,13 +688,78 @@
         if (trafficAvgEl) trafficAvgEl.textContent = String(avg(trafficLatency));
       }
 
-      async function callExternal(){
+      function renderExternalCards(events){
+        if (!externalCardsEl) return;
+        externalCardsEl.innerHTML = "";
+        const show = (events || []).slice(0, 3);
+        if (show.length === 0){
+          const box = document.createElement("div");
+          box.className = "box";
+          box.innerHTML = `<div class="label">No events right now</div><div class="value">Try another preset</div>`;
+          externalCardsEl.appendChild(box);
+          return;
+        }
+        for (const ev of show){
+          const comp = (ev.competitions && ev.competitions[0]) || null;
+          const st = ((comp && comp.status && comp.status.type && comp.status.type.shortDetail) || (ev.status && ev.status.type && ev.status.type.shortDetail) || "").trim();
+          const name = (ev.shortName || ev.name || "").trim();
+          let line = name;
+          if (comp && Array.isArray(comp.competitors)){
+            const byHomeAway = {};
+            for (const c of comp.competitors){
+              const ha = (c.homeAway || "").toLowerCase();
+              const team = (c.team && (c.team.displayName || c.team.shortDisplayName || c.team.name)) || ha || "team";
+              const score = (c.score != null ? String(c.score) : "");
+              byHomeAway[ha] = { team, score };
+            }
+            const home = byHomeAway.home || null;
+            const away = byHomeAway.away || null;
+            if (home && away){
+              line = `${away.team} ${away.score}  —  ${home.team} ${home.score}`;
+            }
+          }
+          const box = document.createElement("div");
+          box.className = "box";
+          box.innerHTML = `<div class="label">${st || "event"}</div><div class="value" style="font-size:14px">${line}</div>`;
+          externalCardsEl.appendChild(box);
+        }
+      }
+
+      async function callExternal(preset){
         externalLogEl.textContent = "";
-        appendTo(externalLogEl, `[${now()}] GET /external`, "muted");
-        const r = await fetch("/external");
+        if (externalCardsEl) externalCardsEl.innerHTML = "";
+        const path = `/external/${preset || "nfl"}`;
+        if (externalReqEl) externalReqEl.textContent = path;
+        if (externalStatEl) externalStatEl.textContent = "—";
+        if (externalEventsEl) externalEventsEl.textContent = "—";
+        appendTo(externalLogEl, `[${now()}] GET ${path}`, "muted");
+
+        const t0 = performance.now();
+        const r = await fetch(path, { cache: "no-store" });
+        const ms = Math.round(performance.now() - t0);
         const txt = await r.text();
-        appendTo(externalLogEl, `status=${r.status}`, r.status === 200 ? "ok" : "bad");
-        appendTo(externalLogEl, txt.slice(0, 1000));
+
+        if (externalStatEl) externalStatEl.textContent = `${r.status} · ${ms}ms`;
+        appendTo(externalLogEl, `status=${r.status} latency=${ms}ms`, r.status === 200 ? "ok" : "bad");
+        if (r.status !== 200){
+          appendTo(externalLogEl, txt.slice(0, 1000), "bad");
+          return;
+        }
+
+        let data = null;
+        try { data = JSON.parse(txt); } catch (e) { /* ignore */ }
+        const events = (data && data.events) ? data.events : [];
+        if (externalEventsEl) externalEventsEl.textContent = String(events.length);
+        renderExternalCards(events);
+
+        // Show a compact JSON preview for the talk
+        const preview = {
+          leagues: (data && data.leagues && data.leagues[0] && data.leagues[0].name) || undefined,
+          season: (data && data.season && data.season.year) || undefined,
+          week: (data && data.week && data.week.number) || undefined,
+          events: events.slice(0, 3).map(e => ({ id: e.id, name: e.shortName || e.name })),
+        };
+        appendTo(externalLogEl, JSON.stringify(preview, null, 2).slice(0, 1200));
       }
 
       function openKeycloak(){
