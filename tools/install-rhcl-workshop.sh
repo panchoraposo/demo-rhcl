@@ -79,6 +79,53 @@ spec:
     kustomize:
       patches:
         - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: Gateway
+            name: rhcl-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: rhcl-gw
+              namespace: openshift-ingress
+            spec:
+              listeners:
+                - name: http
+                  port: 80
+                  protocol: HTTP
+                  allowedRoutes:
+                    namespaces:
+                      from: All
+                - name: https-main
+                  port: 443
+                  protocol: HTTPS
+                  hostname: ${DEMO_HOSTNAME}
+                  tls:
+                    mode: Terminate
+                    certificateRefs:
+                      - group: ""
+                        kind: Secret
+                        name: rhcl-gw-tls
+                  allowedRoutes:
+                    namespaces:
+                      from: All
+                - name: https-oidc
+                  port: 443
+                  protocol: HTTPS
+                  hostname: ${OIDC_HOSTNAME}
+                  tls:
+                    mode: Terminate
+                    certificateRefs:
+                      - group: ""
+                        kind: Secret
+                        name: rhcl-gw-tls
+                  allowedRoutes:
+                    namespaces:
+                      from: All
+
+        - target:
             group: route.openshift.io
             version: v1
             kind: Route
