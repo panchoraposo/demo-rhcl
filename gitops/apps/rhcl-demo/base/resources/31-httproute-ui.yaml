@@ -23,6 +23,14 @@ spec:
           path:
             type: PathPrefix
             value: /
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /logout
+        - method: HEAD
+          path:
+            type: PathPrefix
+            value: /logout
       backendRefs:
         - group: ""
           kind: Service
