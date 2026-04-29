@@ -52,12 +52,6 @@ spec:
           path:
             type: PathPrefix
             value: /portal-login
-      filters:
-        - type: URLRewrite
-          urlRewrite:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /
       backendRefs:
         - group: ""
           kind: Service
