@@ -27,6 +27,10 @@ public class EspnTool {
     this.json = json;
   }
 
+  @ToolDefinition(
+      name = "espn_nba_scoreboard",
+      description = "Fetch ESPN NBA scoreboard JSON (via in-cluster proxy)"
+  )
   public JsonNode nbaScoreboard(String datesRange) throws Exception {
     // Dates range example: 20260420-20260502
     String qs = (datesRange == null || datesRange.isBlank()) ? "" : ("?dates=" + encode(datesRange));
