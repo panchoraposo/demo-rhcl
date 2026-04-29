@@ -17,11 +17,11 @@ spec:
     - matches:
         - method: GET
           path:
-            type: Exact
+            type: PathPrefix
             value: /
         - method: HEAD
           path:
-            type: Exact
+            type: PathPrefix
             value: /
       backendRefs:
         - group: ""
