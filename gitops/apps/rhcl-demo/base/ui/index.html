@@ -3005,17 +3005,49 @@ spec:
         aiStatusEl.textContent = text || "—";
       }
 
+      function aiGatewayHost(){
+        const stored = String(localStorage.getItem("rhcl_ai_host") || "").trim();
+        if (stored) return stored.replace(/^https?:\/\//i,"").replace(/\/+$/g,"");
+        const h = (location && location.host) ? String(location.host) : "example.com";
+        if (h.startsWith("ai-")) return h;
+        const configured = "REPLACE_ME_AI_HOSTNAME";
+        if (configured && !configured.includes("REPLACE_ME")) return configured;
+        return `ai-${h}`;
+      }
+
+      function aiBaseUrl(){
+        return `https://${aiGatewayHost()}`.replace(/\/+$/g,"");
+      }
+
       async function aiPing(){
-        aiSetStatus("Pinging…");
+        aiSetStatus("Pinging MCP…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          const r = await fetch("/mcp", { method: "GET", cache: "no-store" });
+          const init = {
+            jsonrpc: "2.0",
+            id: 1,
+            method: "initialize",
+            params: {
+              protocolVersion: "2024-11-05",
+              capabilities: {},
+              clientInfo: { name: "rhcl-ui", version: "1" },
+            },
+          };
+          const r = await fetch("/mcp/streamable", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "accept": "application/json, text/event-stream",
+            },
+            body: JSON.stringify(init),
+            cache: "no-store",
+          });
           const ct = r.headers.get("content-type") || "—";
-          aiSetStatus(`HTTP ${r.status}`);
-          appendTo(aiLogEl, `[${now()}] GET /mcp -> ${r.status} · content-type=${ct}`, r.ok ? "good" : "bad");
-          if (r.ok){
-            appendTo(aiLogEl, `Tip: use MCP Inspector against /mcp (streamable) or /mcp/sse (legacy SSE transport) to call tools/list and tools/call.`, "muted");
-          }
+          const sid = r.headers.get("mcp-session-id") || "";
+          if (sid) try{ localStorage.setItem("rhcl_mcp_session_id", sid); } catch {}
+          aiSetStatus(`HTTP ${r.status}${sid ? " · session" : ""}`);
+          appendTo(aiLogEl, `[${now()}] POST /mcp/streamable (initialize) -> ${r.status} · content-type=${ct}${sid ? " · session=" + sid : ""}`, r.ok ? "good" : "bad");
+          appendTo(aiLogEl, `Tip: use MCP Inspector against /mcp/streamable or /mcp/sse to call tools/list and tools/call.`, "muted");
         } catch (e){
           aiSetStatus("Error");
           appendTo(aiLogEl, `[${now()}] /mcp error: ${String(e)}`, "bad");
@@ -3455,7 +3487,8 @@ spec:
         aiSetStatus("Sending…");
         if (aiTokensEl) aiTokensEl.textContent = "tokens: —";
         if (aiHttpEl) aiHttpEl.textContent = "HTTP: —";
-        appendTo(aiLogEl, `[${now()}] POST /ai/v1/chat/completions`, "muted");
+        const base = aiBaseUrl();
+        appendTo(aiLogEl, `[${now()}] POST ${base}/ai/v1/chat/completions`, "muted");
 
         const body = {
           model: "rhcl-ai-bot",
@@ -3466,7 +3499,7 @@ spec:
         let r = null;
         let txt = "";
         try{
-          r = await fetch("/ai/v1/chat/completions", {
+          r = await fetch(`${base}/ai/v1/chat/completions`, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(body),
