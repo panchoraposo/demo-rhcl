@@ -11,7 +11,7 @@ spec:
     matchLabels:
       app: rhcl-gateway-metrics
   endpoints:
-    - port: metrics
+    - port: envoy-prom
       path: /stats/prometheus
       scheme: http
       interval: 30s
