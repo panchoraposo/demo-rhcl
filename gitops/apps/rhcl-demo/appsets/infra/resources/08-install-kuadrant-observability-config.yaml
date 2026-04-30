@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-kuadrant-observability-config
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "92"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              echo "Applying Kuadrant observability configuration (ServiceMonitors/PodMonitors templates)…"
+              oc apply -k "https://github.com/Kuadrant/kuadrant-operator/config/install/configure/observability?ref=v1.2.0"
+              echo "Ensuring Grafana Operator install plan is auto-approved…"
+              oc -n openshift-operators patch subscription grafana-operator --type=merge -p '{"spec":{"installPlanApproval":"Automatic"}}' || true
+              ip="$(oc -n openshift-operators get subscription grafana-operator -o jsonpath='{.status.installPlanRef.name}' 2>/dev/null || true)"
+              if [ -n "${ip:-}" ]; then
+                oc -n openshift-operators patch installplan "$ip" --type=merge -p '{"spec":{"approved":true}}' || true
+              fi
+              echo "OK"
+

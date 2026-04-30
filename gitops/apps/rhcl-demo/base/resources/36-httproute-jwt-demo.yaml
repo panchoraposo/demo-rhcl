@@ -1,12 +1,12 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: demo-api
+  name: jwt-demo
   namespace: demo
   labels:
-    app: demo-api
-    service: demo-api
-    deployment: demo-api
+    app: jwt-demo
+    service: external-proxy
+    deployment: external-proxy
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:
@@ -19,18 +19,19 @@ spec:
       namespace: openshift-ingress
   rules:
     - matches:
-        - method: GET
-          path:
+        - path:
             type: PathPrefix
-            value: /hello
-        - method: GET
-          path:
-            type: PathPrefix
-            value: /health
+            value: /jwt/secure
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /external
       backendRefs:
         - group: ""
           kind: Service
-          name: demo-api
+          name: external-proxy
           port: 80
           weight: 1
 

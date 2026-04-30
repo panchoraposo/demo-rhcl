@@ -1,0 +1,36 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: rhcl-thanos
+  namespace: monitoring
+  labels:
+    app: rhcl-grafana
+  annotations:
+    argocd.argoproj.io/sync-wave: "97"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  valuesFrom:
+    - targetPath: "url"
+      valueFrom:
+        secretKeyRef:
+          name: rhcl-grafana-thanos
+          key: THANOS_URL
+    - targetPath: "secureJsonData.httpHeaderValue1"
+      valueFrom:
+        secretKeyRef:
+          name: rhcl-grafana-thanos
+          key: PROMETHEUS_TOKEN
+  datasource:
+    name: rhcl-thanos
+    type: prometheus
+    access: proxy
+    isDefault: true
+    url: "${THANOS_URL}"
+    jsonData:
+      tlsSkipVerify: true
+      httpHeaderName1: "Authorization"
+    secureJsonData:
+      httpHeaderValue1: "Bearer ${PROMETHEUS_TOKEN}"
+

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: demo
+  name: rhcl-oidc-portal
   annotations:
     argocd.argoproj.io/sync-wave: "10"
   labels:

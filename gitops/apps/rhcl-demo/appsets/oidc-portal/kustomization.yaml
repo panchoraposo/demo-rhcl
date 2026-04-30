@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base/resources/00-namespace-oidc-portal.yaml
+  - ../../base/resources/15-oidc-ui.yaml
+  - ../../base/resources/33-httproute-oidc-portal.yaml
+  - ../../base/resources/38-oidc-referencegrant-external-proxy.yaml
+  - ../../base/resources/65-secure-jwt-authpolicy.yaml
+  - ../../base/resources/66-secure-oidcpolicy.yaml
+  - ../../base/resources/67-oidc-portal-authpolicy.yaml
+
+configMapGenerator:
+  - name: rhcl-oidc-ui
+    namespace: rhcl-oidc-portal
+    files:
+      - index.html=../../base/oidc-ui/index.html
+
+generatorOptions:
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+

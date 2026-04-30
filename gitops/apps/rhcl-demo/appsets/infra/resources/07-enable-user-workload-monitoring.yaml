@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhcl-observability-bootstrap
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhcl-observability-bootstrap
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
+subjects:
+  - kind: ServiceAccount
+    name: rhcl-observability-bootstrap
+    namespace: openshift-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: enable-user-workload-monitoring
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "91"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              echo "Enabling OpenShift User Workload Monitoring (UWM)…"
+              oc -n openshift-monitoring create configmap cluster-monitoring-config \
+                --from-literal=config.yaml=$'enableUserWorkload: true\n' \
+                --dry-run=client -o yaml | oc apply -f -
+              echo "OK"
+

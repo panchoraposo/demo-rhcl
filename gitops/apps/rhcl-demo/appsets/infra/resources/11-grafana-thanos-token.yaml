@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhcl-grafana-thanos-token
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "95"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              echo "Creating/updating Grafana token secret for Thanos…"
+              oc -n monitoring get sa rhcl-grafana >/dev/null
+              TOKEN="$(oc -n monitoring create token rhcl-grafana --duration=168h)"
+              URL="$(oc -n openshift-monitoring get route thanos-querier -o jsonpath='https://{.status.ingress[].host}' 2>/dev/null || true)"
+              if [ -z "${URL:-}" ]; then
+                URL="https://thanos-querier.openshift-monitoring.svc:9091"
+              fi
+              oc -n monitoring create secret generic rhcl-grafana-thanos \
+                --from-literal=PROMETHEUS_TOKEN="$TOKEN" \
+                --from-literal=THANOS_URL="$URL" \
+                --dry-run=client -o yaml | oc apply -f -
+              echo "OK"
+

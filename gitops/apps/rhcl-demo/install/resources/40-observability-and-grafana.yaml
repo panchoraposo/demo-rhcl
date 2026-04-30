@@ -1,0 +1,304 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhcl-observability-bootstrap
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhcl-observability-bootstrap
+  annotations:
+    argocd.argoproj.io/sync-wave: "90"
+subjects:
+  - kind: ServiceAccount
+    name: rhcl-observability-bootstrap
+    namespace: openshift-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: enable-user-workload-monitoring
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "91"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              oc -n openshift-monitoring create configmap cluster-monitoring-config \
+                --from-literal=config.yaml=$'enableUserWorkload: true\n' \
+                --dry-run=client -o yaml | oc apply -f -
+              echo "OK: user workload monitoring enabled"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-kuadrant-observability-config
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "92"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              oc apply -k "https://github.com/Kuadrant/kuadrant-operator/config/install/configure/observability?ref=v1.2.0"
+              oc -n openshift-operators patch subscription grafana-operator --type=merge -p '{"spec":{"installPlanApproval":"Automatic"}}' || true
+              ip="$(oc -n openshift-operators get subscription grafana-operator -o jsonpath='{.status.installPlanRef.name}' 2>/dev/null || true)"
+              if [ -n "${ip:-}" ]; then
+                oc -n openshift-operators patch installplan "$ip" --type=merge -p '{"spec":{"approved":true}}' || true
+              fi
+              echo "OK: observability bundle applied"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-kuadrant-example-dashboards
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "93"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              oc -n monitoring apply -k "https://github.com/Kuadrant/kuadrant-operator/examples/dashboards?ref=v1.3.0"
+              echo "OK: dashboard configmaps applied"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rhcl-grafana
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "94"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhcl-grafana-cluster-monitoring-view
+  annotations:
+    argocd.argoproj.io/sync-wave: "94"
+subjects:
+  - kind: ServiceAccount
+    name: rhcl-grafana
+    namespace: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhcl-grafana-thanos-token
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "95"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              TOKEN="$(oc -n monitoring create token rhcl-grafana --duration=168h)"
+              URL="$(oc -n openshift-monitoring get route thanos-querier -o jsonpath='https://{.status.ingress[].host}' 2>/dev/null || true)"
+              if [ -z "${URL:-}" ]; then
+                URL="https://thanos-querier.openshift-monitoring.svc:9091"
+              fi
+              oc -n monitoring create secret generic rhcl-grafana-thanos \
+                --from-literal=PROMETHEUS_TOKEN="$TOKEN" \
+                --from-literal=THANOS_URL="$URL" \
+                --dry-run=client -o yaml | oc apply -f -
+              echo "OK: grafana datasource secret updated"
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: rhcl-grafana
+  namespace: monitoring
+  labels:
+    app: rhcl-grafana
+  annotations:
+    argocd.argoproj.io/sync-wave: "96"
+spec:
+  config:
+    auth:
+      disable_login_form: "true"
+    auth.anonymous:
+      enabled: "true"
+      org_role: Viewer
+    log:
+      mode: console
+  route:
+    spec:
+      host: REPLACE_ME_GRAFANA_HOSTNAME
+      tls:
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: rhcl-thanos
+  namespace: monitoring
+  labels:
+    app: rhcl-grafana
+  annotations:
+    argocd.argoproj.io/sync-wave: "97"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  valuesFrom:
+    - targetPath: "url"
+      valueFrom:
+        secretKeyRef:
+          name: rhcl-grafana-thanos
+          key: THANOS_URL
+    - targetPath: "secureJsonData.httpHeaderValue1"
+      valueFrom:
+        secretKeyRef:
+          name: rhcl-grafana-thanos
+          key: PROMETHEUS_TOKEN
+  datasource:
+    name: rhcl-thanos
+    type: prometheus
+    access: proxy
+    isDefault: true
+    url: "${THANOS_URL}"
+    jsonData:
+      tlsSkipVerify: true
+      httpHeaderName1: "Authorization"
+    secureJsonData:
+      httpHeaderValue1: "Bearer ${PROMETHEUS_TOKEN}"
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-app-developer
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-app-dev
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-app-developer
+    key: app_developer.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-platform-engineer
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-platform
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-platform-engineer
+    key: platform_engineer.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-business-user
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-business
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-business-user
+    key: business_user.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-dns-operator
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-dns
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-dns-operator
+    key: dns-operator.json
+

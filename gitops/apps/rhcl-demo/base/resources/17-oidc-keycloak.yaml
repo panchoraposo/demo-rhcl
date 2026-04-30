@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: keycloak-db-secret
-  namespace: demo
+  namespace: rhcl-keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 type: Opaque
@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: keycloak-db
-  namespace: demo
+  namespace: rhcl-keycloak
   labels:
     app: keycloak-db
   annotations:
@@ -69,7 +69,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: keycloak-db
-  namespace: demo
+  namespace: rhcl-keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
@@ -85,7 +85,7 @@ apiVersion: k8s.keycloak.org/v2alpha1
 kind: Keycloak
 metadata:
   name: keycloak
-  namespace: demo
+  namespace: rhcl-keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "13"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
@@ -124,6 +124,10 @@ spec:
                   path: rhcl/login/theme.properties
                 - key: rhcl.css
                   path: rhcl/login/resources/css/rhcl.css
+                - key: account.theme.properties
+                  path: rhcl/account/theme.properties
+                - key: rhcl-account.css
+                  path: rhcl/account/resources/css/rhcl.css
         containers:
           - name: keycloak
             volumeMounts:
@@ -135,7 +139,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: keycloak-theme-rhcl
-  namespace: demo
+  namespace: rhcl-keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 data:
@@ -210,7 +214,7 @@ data:
 
     /* Subtle RHCL mark on header */
     .pf-v5-c-login__header::after{
-      content: "RHCL Workshop";
+      content: "OIDC Provider";
       display:block;
       margin-top:8px;
       font-size:12px;
@@ -218,12 +222,48 @@ data:
       text-transform: uppercase;
       color: rgba(234,241,255,.72);
     }
+  account.theme.properties: |
+    parent=keycloak.v2
+    import=common/keycloak
+    styles=css/rhcl.css
+  rhcl-account.css: |
+    :root{
+      --rhcl-bg0:#070a12;
+      --rhcl-bg1:#0b1020;
+      --rhcl-card: rgba(15,22,48,.72);
+      --rhcl-line: rgba(255,255,255,.10);
+      --rhcl-text:#eaf1ff;
+      --rhcl-muted:#a7b3d4;
+      --rhcl-accent:#7c5cff;
+      --rhcl-accent2:#38bdf8;
+      --rhcl-good:#22c55e;
+    }
+
+    body{
+      background:
+        radial-gradient(1200px 700px at 18% 12%, rgba(124,92,255,.32), transparent 55%),
+        radial-gradient(1000px 700px at 84% 30%, rgba(56,189,248,.22), transparent 60%),
+        linear-gradient(180deg, var(--rhcl-bg0), var(--rhcl-bg1));
+      color: var(--rhcl-text);
+    }
+
+    .pf-v5-c-page{
+      background: transparent !important;
+    }
+
+    .pf-v5-c-page__main-section{
+      border:1px solid var(--rhcl-line);
+      border-radius:18px;
+      background: var(--rhcl-card);
+      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+    }
 ---
 apiVersion: k8s.keycloak.org/v2alpha1
 kind: KeycloakRealmImport
 metadata:
   name: rhcl-realm
-  namespace: demo
+  namespace: rhcl-keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "14"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
@@ -232,6 +272,7 @@ spec:
   realm:
     realm: rhcl
     enabled: true
+    displayName: "OIDC Provider"
     loginTheme: rhcl
     accountTheme: rhcl
     clients:
