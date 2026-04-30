@@ -689,6 +689,7 @@
           <button data-module="keycloakjwt">AuthPolicy (Keycloak JWT)</button>
           <button data-module="oidc">OIDC portal</button>
           <button data-module="mesh">Service Mesh</button>
+          <button data-module="lightspeed">OpenShift Lightspeed</button>
           <button data-module="observability">Observability</button>
         </div>
       </aside>
@@ -1168,6 +1169,9 @@
               <div class="d">
                 Use Kiali to visualize how traffic goes through the Gateway and reaches your services. This complements the policy demos with an easy “flow” story.
               </div>
+              <div class="footer" style="margin-top:10px">
+                Bonus: this workshop also wires Kiali into <b>OpenShift Lightspeed</b> via MCP, so you can ask the Console assistant to analyze Kiali data for you.
+              </div>
             </div>
             <div class="grid">
               <div class="card">
@@ -1249,6 +1253,67 @@
                   <li><b>Monitors exist</b>: <span class="mono">oc get servicemonitor,podmonitor -A -l kuadrant.io/observability=true</span></li>
                   <li><b>Generate traffic</b> using the demo modules (API keys, A/B, canary, external, AI, JWT) before opening dashboards.</li>
                   <li><b>Most useful metric</b> for the live demo: <span class="mono">istio_requests_total</span> (requests, errors, splits).</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <section class="module" id="lightspeed" data-module="lightspeed">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>OpenShift Lightspeed</b> — ask your cluster (Connectivity Link + Kiali)</div>
+              <div class="d">
+                Lightspeed runs in the OpenShift Console and can call MCP tools to answer questions with real cluster context.
+                Use this module as a guided entrypoint and a prompt cookbook.
+              </div>
+            </div>
+
+            <div class="grid">
+              <div class="card">
+                <h2>Open Lightspeed (in Console)</h2>
+                <div class="sub">
+                  This demo UI can’t embed the Console plugin UI. Open the Console in a new tab and use the Lightspeed button/popover there.
+                </div>
+                <div class="btnGrid" style="margin-top:10px">
+                  <a class="btnLink primary" id="olsConsoleHome" target="_blank" rel="noreferrer">Open OpenShift Console</a>
+                  <button onclick="setConsoleUrl()">Change console URL</button>
+                </div>
+                <div class="footer">
+                  Tip: after opening the Console, look for the <b>Lightspeed</b> icon/button (it opens as a popover).
+                </div>
+              </div>
+
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>Copy/paste prompts (Connectivity Link)</h2>
+                <div class="sub">These prompts are designed to be demoable against the policies and resources in this workshop.</div>
+                <div class="btnGrid" style="margin-top:10px">
+                  <button class="primary" onclick="olsCopyPrompt('Debug why RateLimitPolicy enforcement is not working for my demo endpoints. Focus on Gateway rhcl-gw in namespace openshift-ingress and routes in namespace demo. Give a short checklist of what to verify and likely root causes.')">Copy: Rate limits not enforced</button>
+                  <button class="primary" onclick="olsCopyPrompt('Explain the AuthPolicy rhcl-ai-gw-auth in namespace openshift-ingress. What does it block by default, and what is the smallest safe way to allow only the ai-bot HTTPRoute?')">Copy: AI gateway deny-all</button>
+                  <button onclick="olsCopyPrompt('Check for policy conflicts (defaults vs overrides) affecting demo namespace routes. If you find conflicts, propose the minimal change to make behavior deterministic.')">Copy: policy conflicts</button>
+                  <button onclick="olsCopyPrompt('I am getting 429s during the AI demo. Explain whether this is request rate limiting or token-based rate limiting, and which policy controls it. Provide a practical way to demonstrate the difference live.')">Copy: 429 during AI demo</button>
+                </div>
+                <div class="log" id="olsPromptLog" style="height:110px; margin-top:10px"></div>
+              </div>
+
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>Copy/paste prompts (Kiali via MCP)</h2>
+                <div class="sub">Use these after generating some traffic (API keys, A/B, canary, AI).</div>
+                <div class="btnGrid" style="margin-top:10px">
+                  <button class="primary" onclick="olsCopyPrompt('Using Kiali, analyze the traffic topology for namespace demo. Which workloads receive traffic from the Gateway and are there any error spikes? Summarize in 5 bullets.')">Copy: topology + errors</button>
+                  <button onclick="olsCopyPrompt('Using Kiali, compare traffic between canary-v1 and canary-v2 in namespace demo. Do the observed percentages match the intended weights?')">Copy: canary split check</button>
+                  <button onclick="olsCopyPrompt('Using Kiali, identify the top callers of the demo-api service and whether any path shows elevated 4xx/5xx.')">Copy: top callers</button>
+                </div>
+                <div class="footer">
+                  You can also open Kiali directly from the <b>Service Mesh</b> module above.
+                </div>
+              </div>
+
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>Quick checks (optional)</h2>
+                <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
+                  <li><b>OLS installed</b>: namespace <span class="mono">openshift-lightspeed</span> (Subscription/CSV) + <span class="mono">OLSConfig/cluster</span></li>
+                  <li><b>Kuadrant MCP</b>: namespace <span class="mono">mcp-system</span> running <span class="mono">kuadrant-mcp-server</span></li>
+                  <li><b>Kiali MCP</b>: namespace <span class="mono">istio-system</span> running <span class="mono">kubernetes-mcp-server</span></li>
                 </ul>
               </div>
             </div>
@@ -3218,6 +3283,29 @@ spec:
         consoleUrlPillEl.textContent = u ? `console: ${u.replace(/^https?:\/\//i,"")}` : "console: (unknown)";
       }
 
+      function refreshLightspeedLinks(){
+        const base = consoleBaseUrl();
+        const el = document.getElementById("olsConsoleHome");
+        if (!el) return;
+        if (!base){
+          el.setAttribute("href", "#");
+          el.style.opacity = "0.55";
+          el.style.pointerEvents = "none";
+          return;
+        }
+        el.setAttribute("href", base + "/");
+        el.style.opacity = "";
+        el.style.pointerEvents = "";
+      }
+
+      async function olsCopyPrompt(txt){
+        const ok = await copyText(String(txt || "").trim());
+        const el = document.getElementById("olsPromptLog");
+        if (el) appendTo(el, ok ? `[${now()}] copied prompt` : `[${now()}] copy failed`, ok ? "muted" : "bad");
+        if (!ok) return toast("Copy failed");
+        toast("Prompt copied. Paste it into Lightspeed in the Console.");
+      }
+
       function buildOcQueryUrl(promql){
         const base = consoleBaseUrl();
         if (!base) return "";
@@ -3249,6 +3337,9 @@ spec:
         }
       }
 
+      // Initial link refresh
+      refreshLightspeedLinks();
+
       function setConsoleUrl(){
         const v = prompt("OpenShift console base URL (example: https://console-openshift-console.apps.<cluster>)", consoleBaseUrl());
         if (v === null) return;
@@ -3257,6 +3348,7 @@ spec:
         else localStorage.removeItem("rhcl_console_url");
         refreshConsoleUrlPill();
         refreshOcLinks();
+        refreshLightspeedLinks();
         toast(`Console URL set to: ${consoleBaseUrl() || "(unknown)"}`);
       }
 
