@@ -1116,7 +1116,7 @@
                 For OIDC, we intentionally use a <b>separate frontend</b> on a <b>different hostname</b> to make the browser login flow obvious and visually distinct.
               </div>
               <div class="row" style="margin-top:10px; align-items:center">
-                <a class="btnLink primary" id="oidcPortalLink" target="_blank" rel="noreferrer" onclick="return openOidcPortalNewTab(event)">Open OIDC portal</a>
+                <button class="primary" type="button" onclick="openOidcPortalNewTab(event)">Open OIDC portal</button>
                 <button onclick="openYamlSet('oidc')">View policy YAML</button>
                 <span class="pill" title="OIDC portal hostname"><span class="dot"></span> <code id="oidcPortalPill">—</code></span>
               </div>
@@ -2915,8 +2915,6 @@ spec:
         if (!oidcPortalPillEl) return;
         const host = oidcPortalHost();
         oidcPortalPillEl.textContent = host;
-        const link = el("oidcPortalLink");
-        if (link) link.setAttribute("href", `https://${host}/`);
       }
 
       function refreshKeycloakJwtHostPill(){
@@ -2927,7 +2925,6 @@ spec:
       // Opening the OIDC portal uses a normal <a target="_blank"> link to avoid popup blockers
       // and to ensure we never navigate away from the workshop UI tab.
       function openOidcPortalNewTab(ev){
-        try{ if (ev && ev.preventDefault) ev.preventDefault(); } catch {}
         const url = oidcPortalUrl();
         const w = window.open(url, "_blank", "noopener,noreferrer");
         if (w) return false;
