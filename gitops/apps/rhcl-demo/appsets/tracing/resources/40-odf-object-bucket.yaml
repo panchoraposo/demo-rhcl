@@ -85,7 +85,8 @@ spec:
               bucket="$(oc -n "${ns}" get configmap "${obc}" -o jsonpath='{.data.BUCKET_NAME}')"
 
               # NooBaa S3 service endpoint (ODF/MCG).
-              endpoint="https://s3.openshift-storage.svc:443"
+              # Tempo's S3 client expects a host:port endpoint and uses HTTP by default.
+              endpoint="s3.openshift-storage.svc:80"
 
               cat <<EOF | oc -n "${ns}" apply -f -
               apiVersion: v1

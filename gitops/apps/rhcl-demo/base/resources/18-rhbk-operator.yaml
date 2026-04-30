@@ -14,7 +14,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "4"
 spec:
   targetNamespaces:
+    - rhbk-operator
     - demo
+    - rhcl-keycloak
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
