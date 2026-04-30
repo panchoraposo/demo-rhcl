@@ -8,10 +8,10 @@ metadata:
 spec:
   secretName: rhcl-gw-tls
   dnsNames:
-    - REPLACE_ME_DEMO_HOSTNAME
-    - REPLACE_ME_OIDC_HOSTNAME
+    - rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+    - oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: REPLACE_ME_CLUSTER_ISSUER
+    name: letsencrypt-production-ec2
 

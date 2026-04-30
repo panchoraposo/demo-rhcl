@@ -14,5 +14,5 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: REPLACE_ME_CLUSTER_ISSUER
+    name: letsencrypt-production-ec2
 

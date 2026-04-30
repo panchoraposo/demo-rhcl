@@ -19,7 +19,7 @@ spec:
     - name: https-main
       port: 443
       protocol: HTTPS
-      hostname: REPLACE_ME_DEMO_HOSTNAME
+      hostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
       tls:
         mode: Terminate
         certificateRefs:
@@ -32,7 +32,7 @@ spec:
     - name: https-oidc
       port: 443
       protocol: HTTPS
-      hostname: REPLACE_ME_OIDC_HOSTNAME
+      hostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
       tls:
         mode: Terminate
         certificateRefs:

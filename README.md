@@ -21,9 +21,17 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 - **Objects**: `HTTPRoute` to an in-cluster proxy
 - **Benefit**: the Gateway becomes the **single policy enforcement point** even when your app consumes third-party APIs.
 
-### Service Mesh (ambient) + Kiali (observability)
-- **Objects**: OpenShift Service Mesh (ambient), Kiali
-- **Benefit**: show **east-west visibility** and **zero-trust transport (mTLS)** without sidecars, complementing RHCL's north-south governance.
+### Observability (Grafana + OpenShift Console graphs)
+- **Objects**: OpenShift **User Workload Monitoring**, Kuadrant `ServiceMonitor`/`PodMonitor`, **Grafana** (anonymous), preloaded dashboards
+- **Benefit**: show **usage, errors, and latency** for the *same endpoints* you demo in the UI:
+  - **Developer**: requests by HTTP code (200/401/403/404/429/5xx) + latency percentiles (P90/P95/P99)
+  - **Platform**: top services, requests-by-code, latency (simple “SRE view”)
+  - **Business**: traffic summary + total requests over a selected time range
+- The main UI also includes **one-click OpenShift Query Browser links** (PromQL prefilled).
+
+### Service Mesh (Kiali)
+- **Objects**: Kiali (installed via `kiali-ossm` Operator, anonymous auth)
+- **Benefit**: show an easy **topology/flow** story (Gateway → services), complementing policy enforcement with a visual request graph.
 
 ### AI chatbot (ESPN tool + token budget)
 - **Policies**: `TokenRateLimitPolicy`
@@ -69,10 +77,12 @@ Run:
 Defaults:
 - **main demo host**: `rhcl-workshop.<appsDomain>`
 - **OIDC portal host**: `oidc-rhcl-workshop.<appsDomain>`
+- **Grafana host**: `grafana-<DEMO_HOSTNAME>` (anonymous)
 
 Useful overrides:
 - **`DEMO_HOSTNAME`**: set the main hostname
 - **`OIDC_HOSTNAME`**: set the OIDC portal hostname
+- **`GRAFANA_HOSTNAME`**: set the Grafana hostname (optional)
 - **`CLUSTER_ISSUER`**: set the cert-manager `ClusterIssuer` name
 - **`REPO_URL` / `REVISION` / `APP_PATH`**: point Argo CD to a fork/branch/path
 
@@ -92,7 +102,9 @@ Then rerun the installer; it will create/update `Secret/route53-credentials` (ty
 
 The Connectivity Link operator installs the OpenShift console dynamic plugin, but it can be disabled by default.
 
-### UI steps
+This workshop includes a GitOps job that **enables** `kuadrant-console-plugin` automatically during sync.
+
+### If you need to enable it manually
 - OpenShift console → **Administrator** → **Home → Overview**
 - **Dynamic Plugins → View all**
 - Enable **`kuadrant-console-plugin`**
@@ -124,6 +136,8 @@ oc -n demo set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KEY'
 
 - Main UI: `https://<DEMO_HOSTNAME>/`
 - OIDC portal: `https://<OIDC_HOSTNAME>/`
+- Grafana (anonymous): `https://<GRAFANA_HOSTNAME>/`
+- Kiali: `https://kiali-istio-system.<appsDomain>/`
 
 ## Suggested live-demo flow (5–8 minutes)
 
@@ -150,16 +164,14 @@ oc -n demo set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KEY'
 - Ask a question → show `usage.total_tokens`
 - Run “Hit 429” → show `429` enforced by `TokenRateLimitPolicy`
 
-### Bonus module: RHCL + Service Mesh together (Ambient + Kiali)
-- Open Kiali (typically `https://kiali-istio-system.<appsDomain>`) and view the `demo` namespace graph
-- Generate traffic to:
-  - `GET /hello` (with API key) and
-  - `GET /external` (ESPN proxy)
-- Optional (L7): enable the waypoint for `demo`:
+### 6) Observability (fast, audience-friendly)
+- In the main UI → **Observability**:
+  - Click **Generate sample traffic** (creates a short burst so graphs move immediately)
+  - Open **Developer / Platform / Business** dashboards and refresh
+- Optional: open the **OpenShift Query Browser** links (PromQL prefilled) for a “native console” view.
 
-```bash
-oc label namespace demo istio.io/use-waypoint=demo-waypoint --overwrite
-```
+### 7) Service Mesh (Kiali)
+- In the main UI → **Service Mesh** → open Kiali and focus on namespace `demo` to show Gateway → services request flow.
 
 ## GitOps layout
 
@@ -172,8 +184,14 @@ oc label namespace demo istio.io/use-waypoint=demo-waypoint --overwrite
   - Creates 4 apps: `infra`, `demo`, `keycloak`, `oidc-portal`
   - Useful to show **clear ownership boundaries** (platform vs app vs identity vs portal)
 
+## Notes (why the dashboards work)
+
+- **Metrics source**: dashboards use Prometheus (OpenShift monitoring + user workload monitoring) and Istio request metrics like `istio_requests_total`.
+- **No tracing required**: Tempo/OpenTelemetry are optional (only needed if you want distributed traces). Metrics and dashboards work without them.
+
 ## References
 
 - Red Hat Connectivity Link install: [Installing Connectivity Link on OpenShift](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html-single/installing_on_openshift_container_platform/index)
 - Policies: [Configuring and deploying Gateway policies](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html-single/configuring_and_deploying_gateway_policies/configuring_and_deploying_gateway_policies)
+- Observability: [Observability and Troubleshooting](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html/observability_and_troubleshooting/index)
 
