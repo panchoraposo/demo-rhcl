@@ -7,7 +7,6 @@ resources:
   - ../../base/resources/05-console-banner.yaml
   - ../../base/resources/20-gateway.yaml
   - ../../base/resources/24-gateway-certificate.yaml
-  - ../../base/resources/25-gateway-tlspolicy.yaml
   - ../../base/resources/26-gateway-dnspolicy.yaml
   - ../../base/resources/40-gateway-authpolicy.yaml
   - resources/06-enable-kuadrant-console-plugin.yaml
