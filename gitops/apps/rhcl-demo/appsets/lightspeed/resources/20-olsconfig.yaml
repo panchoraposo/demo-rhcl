@@ -26,31 +26,28 @@ spec:
   mcpServers:
     # Kuadrant MCP server (Connectivity Link policy help)
     - name: kuadrant
-      streamableHTTP:
-        url: http://kuadrant-mcp-server.mcp-system.svc.cluster.local:8080/mcp
-        timeout: 30
-        headers:
-          - name: Authorization
-            valueFrom:
-              type: kubernetes
+      url: http://kuadrant-mcp-server.mcp-system.svc.cluster.local:8080/mcp
+      timeout: 30
+      headers:
+        - name: Authorization
+          valueFrom:
+            type: kubernetes
 
     # Kiali MCP server (Kubernetes MCP server configured for Kiali)
     - name: kiali
-      streamableHTTP:
-        url: http://kubernetes-mcp-server.istio-system.svc.cluster.local:8080/mcp
-        timeout: 30
-        headers:
-          - name: Authorization
-            valueFrom:
-              type: kubernetes
+      url: http://kubernetes-mcp-server.istio-system.svc.cluster.local:8080/mcp
+      timeout: 30
+      headers:
+        - name: Authorization
+          valueFrom:
+            type: kubernetes
 
     # Existing demo bot MCP endpoint (ESPN tool)
     - name: rhcl-ai-bot
-      streamableHTTP:
-        url: http://rhcl-ai-bot.rhcl-ai-bot.svc.cluster.local:80/mcp
-        timeout: 30
-        headers:
-          - name: Authorization
-            valueFrom:
-              type: kubernetes
+      url: http://rhcl-ai-bot.rhcl-ai-bot.svc.cluster.local:80/mcp
+      timeout: 30
+      headers:
+        - name: Authorization
+          valueFrom:
+            type: kubernetes
 
