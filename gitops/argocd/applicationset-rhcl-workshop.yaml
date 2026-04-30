@@ -74,12 +74,6 @@ spec:
           - CreateNamespace=true
           - ServerSideApply=true
       ignoreDifferences:
-        - group: ""
-          kind: ConfigMap
-          name: rhcl-ui
-          namespace: demo
-          jsonPointers:
-            - /data/index.html
         - group: apps
           kind: Deployment
           name: rhcl-ai-bot
