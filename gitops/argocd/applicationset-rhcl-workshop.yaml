@@ -350,6 +350,7 @@ spec:
                   namespace: rhcl-keycloak
                 spec:
                   hostnames:
+                    - {{.demoHostname}}
                     - {{.oidcHostname}}
           {{- end }}
           {{- if eq .name "bot" }}
