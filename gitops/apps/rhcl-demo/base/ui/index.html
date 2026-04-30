@@ -649,8 +649,11 @@
         border:1px solid rgba(255,255,255,.10);
         background:rgba(255,255,255,.05);
         overflow:hidden;
-        text-overflow:ellipsis;
-        white-space:nowrap;
+        white-space:normal;
+        word-break:break-all;
+        display:-webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2; /* keep it tidy but use width */
       }
 
       .btnGrid{
@@ -1145,7 +1148,7 @@
               </div>
               <div class="row" style="margin-top:10px; align-items:center">
                 <button onclick="openYamlSet('keycloakjwt')">View policy YAML</button>
-                <button onclick="openKeycloak()">Open Keycloak</button>
+                <span class="pill" title="Enforced by Authorino (Kuadrant's policy engine)"><span class="dot"></span> Authorino</span>
                 <span class="pill" title="Public URL exposed by OpenShift (Route/LB), routed and enforced by the Gateway (rhcl-gw)"><span class="dot"></span> Gateway endpoint: <code id="jwtApiPill">—</code></span>
               </div>
             </div>
@@ -1353,6 +1356,7 @@
         <div class="row" style="gap:10px; align-items:center">
           <span class="pill"><span class="dot"></span> Policy YAML</span>
           <span class="pill"><span class="dot"></span> <span id="yamlTitle">—</span></span>
+          <span class="pill" id="yamlEnforcerPill" style="display:none" title="Enforced by Authorino (Kuadrant's policy engine)"><span class="dot"></span> Authorino</span>
           <span class="pill"><span class="dot good"></span> highlights</span>
         </div>
         <div class="row" style="gap:8px">
@@ -3145,7 +3149,7 @@ spec:
         const t = String(tok || "").trim();
         if (!t) return "(no token)";
         if (t.length <= 42) return t;
-        return `${t.slice(0, 18)}…${t.slice(-18)}`;
+        return `${t.slice(0, 64)}…${t.slice(-64)}`;
       }
 
       function openJson(title, text){
