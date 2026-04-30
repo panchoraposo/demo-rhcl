@@ -12,6 +12,6 @@ data:
 
     [toolset_configs.kiali]
     # Use the in-cluster service to avoid needing the external Route hostname.
-    url = "http://kiali.istio-system.svc.cluster.local:20001"
+    url = "https://kiali.istio-system.svc.cluster.local:20001"
     insecure = true
 
