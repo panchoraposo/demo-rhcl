@@ -11,39 +11,39 @@ spec:
         elements:
           - name: storage
             path: gitops/apps/rhcl-demo/appsets/storage
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            clusterIssuer: letsencrypt-production-ec2
           - name: infra
             path: gitops/apps/rhcl-demo/appsets/infra
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            clusterIssuer: letsencrypt-production-ec2
           - name: demo
             path: gitops/apps/rhcl-demo/appsets/demo
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            clusterIssuer: letsencrypt-production-ec2
           - name: bot
             path: gitops/apps/rhcl-demo/appsets/bot
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            clusterIssuer: letsencrypt-production-ec2
           - name: keycloak
             path: gitops/apps/rhcl-demo/appsets/keycloak
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            clusterIssuer: letsencrypt-production-ec2
           - name: oidc-portal
             path: gitops/apps/rhcl-demo/appsets/oidc-portal
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            clusterIssuer: letsencrypt-production-ec2
           - name: tracing
             path: gitops/apps/rhcl-demo/appsets/tracing
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+            clusterIssuer: letsencrypt-production-ec2
   template:
     metadata:
       name: rhcl-workshop-{{.name}}
