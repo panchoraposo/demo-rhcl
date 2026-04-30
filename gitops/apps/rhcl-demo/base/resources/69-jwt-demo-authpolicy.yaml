@@ -16,7 +16,7 @@ spec:
       authentication:
         jwt:
           jwt:
-            issuerUrl: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl
+            issuerUrl: https://oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com/auth/realms/rhcl
           credentials:
             authorizationHeader:
               prefix: "Bearer"
