@@ -1162,6 +1162,7 @@
                   <button onclick="jwtCopyToken()">Copy token</button>
                   <button onclick="jwtShowDecoded()">Decode token</button>
                   <span class="pill"><span class="dot"></span> <span id="jwtStatus">—</span></span>
+                  <span class="pill"><span class="dot"></span> <span id="jwtTokenHttp">HTTP (token): —</span></span>
                 </div>
                 <div class="row" style="margin-top:10px">
                   <div class="tokenMini" style="flex:1">
@@ -1203,15 +1204,22 @@
               <div class="card">
                 <h2>Kiali</h2>
                 <div class="sub">
-                  Open Kiali to explore Graph, Workloads and Applications for <span class="mono">demo</span>.
+                  Open pre-filtered graphs that show <b>cross-namespace</b> traffic between workshop components.
                 </div>
                 <div class="btnGrid">
-                  <a class="btnLink primary" id="kialiLinkHome" target="_blank" rel="noreferrer">Open Kiali</a>
-                  <a class="btnLink" id="kialiLinkGraph" target="_blank" rel="noreferrer">Graph (demo)</a>
-                  <a class="btnLink" id="kialiLinkWorkloads" target="_blank" rel="noreferrer">Workloads (demo)</a>
-                  <a class="btnLink" id="kialiLinkApps" target="_blank" rel="noreferrer">Applications (demo)</a>
+                  <a class="btnLink primary" id="kialiLinkHome" target="_blank" rel="noreferrer">Graph (workshop)</a>
+                  <a class="btnLink" id="kialiLinkGraph" target="_blank" rel="noreferrer">Graph (gateway → apps)</a>
+                  <a class="btnLink" id="kialiLinkWorkloads" target="_blank" rel="noreferrer">Graph (traffic shaping)</a>
+                  <a class="btnLink" id="kialiLinkApps" target="_blank" rel="noreferrer">Graph (auth flows)</a>
+                  <button class="wide" id="meshTrafficBtn" onclick="meshGenerateTraffic()">Generate traffic (60s)</button>
                   <button class="wide" onclick="setKialiUrl()">Change Kiali URL</button>
                 </div>
+                <div class="toolRow" style="margin-top:10px">
+                  <div class="left">
+                    <span class="pill"><span class="dot"></span> <span id="meshTrafficStatus">traffic: idle</span></span>
+                  </div>
+                </div>
+                <div class="log" id="meshTrafficLog" style="height:120px; margin-top:10px"></div>
                 <div class="footer">
                   Default guess: <span class="mono">https://kiali-istio-system.&lt;appsDomain&gt;</span>
                 </div>
@@ -1452,6 +1460,7 @@
       const aiMetaEl = el("aiMeta");
       const jwtApiPillEl = el("jwtApiPill");
       const jwtStatusEl = el("jwtStatus");
+      const jwtTokenHttpEl = el("jwtTokenHttp");
       const jwtTokenEl = el("jwtToken");
       const jwtTokenPreviewEl = el("jwtTokenPreview");
       const jwtLogEl = el("jwtLog");
@@ -1463,6 +1472,9 @@
       const consoleUrlPillEl = el("consoleUrlPill");
       const obsTrafficStatusEl = el("obsTrafficStatus");
       const obsTrafficLogEl = el("obsTrafficLog");
+      const meshTrafficStatusEl = el("meshTrafficStatus");
+      const meshTrafficLogEl = el("meshTrafficLog");
+      const meshTrafficBtnEl = el("meshTrafficBtn");
       const ocLinkRpsEl = el("ocLinkRps");
       const ocLinkErrEl = el("ocLinkErr");
       const ocLinkP95El = el("ocLinkP95");
@@ -3111,6 +3123,11 @@ spec:
         jwtStatusEl.textContent = text || "—";
       }
 
+      function jwtSetTokenHttp(text){
+        if (!jwtTokenHttpEl) return;
+        jwtTokenHttpEl.textContent = text || "HTTP (token): —";
+      }
+
       function jwtSetHttp(text){
         if (!jwtHttpEl) return;
         jwtHttpEl.textContent = text || "HTTP: —";
@@ -3224,6 +3241,7 @@ spec:
 
       async function jwtFetchToken(){
         jwtSetStatus("Fetching token…");
+        jwtSetTokenHttp("HTTP (token): —");
         const form = new URLSearchParams();
         form.set("grant_type","password");
         form.set("client_id","rhcl-ui");
@@ -3239,9 +3257,11 @@ spec:
             body: form.toString(),
             cache: "no-store",
           });
+          jwtSetTokenHttp(`HTTP (token): ${r.status}`);
           txt = await r.text();
         } catch (e){
           jwtSetStatus("Error");
+          jwtSetTokenHttp("HTTP (token): error");
           appendTo(jwtLogEl, `[${now()}] token request failed: ${String(e)}`, "bad");
           return;
         }
