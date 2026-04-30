@@ -10,8 +10,6 @@ resources:
   - ../../base/resources/25-gateway-tlspolicy.yaml
   - ../../base/resources/26-gateway-dnspolicy.yaml
   - ../../base/resources/40-gateway-authpolicy.yaml
-  - ../../base/resources/80-route-passthrough.yaml
-  - ../../base/resources/81-route-oidc-passthrough.yaml
   - resources/06-enable-kuadrant-console-plugin.yaml
   - resources/07-enable-user-workload-monitoring.yaml
   - resources/08-install-kuadrant-observability-config.yaml
