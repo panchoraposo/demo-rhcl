@@ -357,6 +357,23 @@ spec:
                           jwt:
                             issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
           {{- end }}
+          {{- if eq .name "keycloak" }}
+            - target:
+                group: gateway.networking.k8s.io
+                version: v1
+                kind: HTTPRoute
+                name: keycloak
+                namespace: rhcl-keycloak
+              patch: |-
+                apiVersion: gateway.networking.k8s.io/v1
+                kind: HTTPRoute
+                metadata:
+                  name: keycloak
+                  namespace: rhcl-keycloak
+                spec:
+                  hostnames:
+                    - {{.oidcHostname}}
+          {{- end }}
           {{- if eq .name "bot" }}
             - target:
                 group: gateway.networking.k8s.io
