@@ -1526,23 +1526,6 @@ spec:
           opa:
             rego: "allow = false"
 ` },
-          { name: "UI AuthPolicy (allow)", yaml: `apiVersion: kuadrant.io/v1
-kind: AuthPolicy
-metadata:
-  name: rhcl-ui-allow
-  namespace: demo
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: rhcl-ui
-  defaults:
-    rules:
-      authorization:
-        allow-all:
-          opa:
-            rego: "allow = true"
-` },
           { name: "API AuthPolicy (API keys)", yaml: `apiVersion: kuadrant.io/v1
 kind: AuthPolicy
 metadata:
@@ -1650,23 +1633,6 @@ spec:
           port: 80
           weight: 10
 ` },
-          { name: "AuthPolicy (allow route)", yaml: `apiVersion: kuadrant.io/v1
-kind: AuthPolicy
-metadata:
-  name: ab-demo-allow
-  namespace: demo
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: ab-demo
-  defaults:
-    rules:
-      authorization:
-        allow-all:
-          opa:
-            rego: "allow = true"
-` },
         ],
         "external": [
           { name: "HTTPRoute (/external)", yaml: `apiVersion: gateway.networking.k8s.io/v1
@@ -1701,16 +1667,6 @@ data:
         proxy_set_header Host site.api.espn.com;
         proxy_pass https://site.api.espn.com;
       }
-      location ^~ /external/epl {
-        rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
-        proxy_set_header Host site.api.espn.com;
-        proxy_pass https://site.api.espn.com;
-      }
-      location ^~ /external/laliga {
-        rewrite ^/external/laliga/?$ /apis/site/v2/sports/soccer/esp.1/scoreboard break;
-        proxy_set_header Host site.api.espn.com;
-        proxy_pass https://site.api.espn.com;
-      }
     }
 ` },
         ],
@@ -1735,23 +1691,6 @@ spec:
         - kind: Service
           name: rhcl-ai-bot
           port: 80
-` },
-          { name: "AuthPolicy (allow)", yaml: `apiVersion: kuadrant.io/v1
-kind: AuthPolicy
-metadata:
-  name: ai-bot-allow
-  namespace: demo
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: ai-bot
-  defaults:
-    rules:
-      authorization:
-        allow-all:
-          opa:
-            rego: "allow = true"
 ` },
           { name: "TokenRateLimitPolicy (tokens/min)", yaml: `apiVersion: kuadrant.io/v1alpha1
 kind: TokenRateLimitPolicy
