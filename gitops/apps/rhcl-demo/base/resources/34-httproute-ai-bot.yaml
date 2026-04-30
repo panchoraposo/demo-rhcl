@@ -40,7 +40,7 @@ spec:
       filters:
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: access-control-allow-origin
                 value: "*"
               - name: access-control-allow-methods
