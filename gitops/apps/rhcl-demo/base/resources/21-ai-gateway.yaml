@@ -19,7 +19,7 @@ spec:
         certificateRefs:
           - group: ""
             kind: Secret
-            name: rhcl-ai-gw-tls
+            name: rhcl-gw-tls
       allowedRoutes:
         namespaces:
           from: Selector

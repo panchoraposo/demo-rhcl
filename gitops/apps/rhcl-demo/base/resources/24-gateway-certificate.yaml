@@ -10,6 +10,7 @@ spec:
   dnsNames:
     - rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
     - oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+    - ai-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
