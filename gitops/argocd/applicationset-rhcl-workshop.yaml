@@ -74,6 +74,12 @@ spec:
           - CreateNamespace=true
           - ServerSideApply=true
       ignoreDifferences:
+        - group: ""
+          kind: ConfigMap
+          name: rhcl-ui
+          namespace: demo
+          jsonPointers:
+            - /data/index.html
         - group: apps
           kind: Deployment
           name: rhcl-ai-bot
@@ -237,6 +243,32 @@ spec:
                       allowedRoutes:
                         namespaces:
                           from: All
+                    - name: https-main-public
+                      port: 443
+                      protocol: HTTPS
+                      hostname: rhcl-workshop.sandbox1529.opentlc.com
+                      tls:
+                        mode: Terminate
+                        certificateRefs:
+                          - group: ""
+                            kind: Secret
+                            name: rhcl-gw-public-tls
+                      allowedRoutes:
+                        namespaces:
+                          from: All
+                    - name: https-oidc-public
+                      port: 443
+                      protocol: HTTPS
+                      hostname: oidc-rhcl-workshop.sandbox1529.opentlc.com
+                      tls:
+                        mode: Terminate
+                        certificateRefs:
+                          - group: ""
+                            kind: Secret
+                            name: rhcl-gw-public-tls
+                      allowedRoutes:
+                        namespaces:
+                          from: All
             - target:
                 group: grafana.integreatly.org
                 version: v1beta1
@@ -270,6 +302,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
+                    - rhcl-workshop.sandbox1529.opentlc.com
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -285,6 +318,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
+                    - rhcl-workshop.sandbox1529.opentlc.com
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -300,6 +334,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
+                    - rhcl-workshop.sandbox1529.opentlc.com
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -315,6 +350,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
+                    - rhcl-workshop.sandbox1529.opentlc.com
             - target:
                 group: kuadrant.io
                 version: v1
@@ -352,6 +388,8 @@ spec:
                   hostnames:
                     - {{.demoHostname}}
                     - {{.oidcHostname}}
+                    - rhcl-workshop.sandbox1529.opentlc.com
+                    - oidc-rhcl-workshop.sandbox1529.opentlc.com
           {{- end }}
           {{- if eq .name "bot" }}
             - target:
@@ -386,6 +424,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.oidcHostname}}
+                    - oidc-rhcl-workshop.sandbox1529.opentlc.com
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -401,6 +440,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.oidcHostname}}
+                    - oidc-rhcl-workshop.sandbox1529.opentlc.com
             - target:
                 group: extensions.kuadrant.io
                 version: v1alpha1
@@ -415,10 +455,10 @@ spec:
                   namespace: rhcl-oidc-portal
                 spec:
                   provider:
-                    issuerURL: https://{{.oidcHostname}}/auth/realms/rhcl
-                    authorizationEndpoint: https://{{.oidcHostname}}/auth/realms/rhcl/protocol/openid-connect/auth
-                    tokenEndpoint: https://{{.oidcHostname}}/auth/realms/rhcl/protocol/openid-connect/token
-                    redirectURI: https://{{.oidcHostname}}/auth/callback
+                    issuerURL: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl
+                    authorizationEndpoint: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl/protocol/openid-connect/auth
+                    tokenEndpoint: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl/protocol/openid-connect/token
+                    redirectURI: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/callback
             - target:
                 group: kuadrant.io
                 version: v1
@@ -437,6 +477,6 @@ spec:
                       authentication:
                         jwt:
                           jwt:
-                            issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
+                            issuerUrl: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl
           {{- end }}
 

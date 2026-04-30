@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rhcl-gw-public-tls
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "21"
+spec:
+  secretName: rhcl-gw-public-tls
+  dnsNames:
+    - rhcl-workshop.sandbox1529.opentlc.com
+    - oidc-rhcl-workshop.sandbox1529.opentlc.com
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt-route53-sandbox1529
+
