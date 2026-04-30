@@ -7,6 +7,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
 spec:
   upgradeStrategy: Default
+  # Lightspeed Operator (v1.0.x) supports OwnNamespace install mode only.
+  targetNamespaces:
+    - openshift-lightspeed
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
