@@ -150,9 +150,11 @@ spec:
                   name: rhcl-gw-tls
                   namespace: openshift-ingress
                 spec:
+                  secretName: rhcl-gw-tls
                   dnsNames:
                     - {{.demoHostname}}
                     - {{.oidcHostname}}
+                    - {{ printf "ai-%s" .demoHostname }}
                   issuerRef:
                     group: cert-manager.io
                     kind: ClusterIssuer
