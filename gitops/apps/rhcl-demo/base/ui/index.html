@@ -2999,7 +2999,8 @@ spec:
       }
 
       function aiBaseUrl(){
-        return `https://${aiGatewayHost()}`.replace(/\/+$/g,"");
+        // Prefer same-origin to avoid browser CORS issues. This is routed by Gateway to the bot.
+        return (location && location.origin) ? String(location.origin).replace(/\/+$/g,"") : "";
       }
 
       async function aiPing(){

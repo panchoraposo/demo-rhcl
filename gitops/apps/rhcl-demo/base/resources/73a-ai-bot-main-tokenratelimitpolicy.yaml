@@ -1,0 +1,22 @@
+apiVersion: kuadrant.io/v1alpha1
+kind: TokenRateLimitPolicy
+metadata:
+  name: ai-bot-main-token-rl
+  namespace: rhcl-ai-bot
+  annotations:
+    argocd.argoproj.io/sync-wave: "72"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ai-bot-main
+  defaults:
+    when:
+      - predicate: request.path.startsWith("/ai/v1/chat/completions")
+    limits:
+      global:
+        rates:
+          - limit: 400
+            window: 15s
+
