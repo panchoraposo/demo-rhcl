@@ -1,0 +1,103 @@
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: tempo-traces
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  generateBucketName: tempo-traces
+  storageClassName: openshift-storage.noobaa.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tempo-storage-secret-sync
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "21"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tempo-storage-secret-sync
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "21"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tempo-storage-secret-sync
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "21"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tempo-storage-secret-sync
+subjects:
+  - kind: ServiceAccount
+    name: tempo-storage-secret-sync
+    namespace: rhcl-observability
+---
+# Translates the ObjectBucketClaim Secret/ConfigMap into the Secret format expected by TempoStack.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tempo-odf-secret-sync
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "22"
+spec:
+  backoffLimit: 8
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: tempo-storage-secret-sync
+      containers:
+        - name: sync
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command:
+            - /bin/bash
+            - -lc
+            - |
+              set -euo pipefail
+
+              ns="rhcl-observability"
+              obc="tempo-traces"
+              out="tempo-storage"
+
+              echo "Waiting for OBC secret/configmap ${obc} in ${ns}..."
+              for i in $(seq 1 120); do
+                if oc -n "${ns}" get secret "${obc}" >/dev/null 2>&1 && oc -n "${ns}" get configmap "${obc}" >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 2
+              done
+
+              access_key_id="$(oc -n "${ns}" get secret "${obc}" -o jsonpath='{.data.AWS_ACCESS_KEY_ID}' | base64 -d)"
+              access_key_secret="$(oc -n "${ns}" get secret "${obc}" -o jsonpath='{.data.AWS_SECRET_ACCESS_KEY}' | base64 -d)"
+              bucket="$(oc -n "${ns}" get configmap "${obc}" -o jsonpath='{.data.BUCKET_NAME}')"
+
+              # NooBaa S3 service endpoint (ODF/MCG).
+              endpoint="https://s3.openshift-storage.svc:443"
+
+              cat <<EOF | oc -n "${ns}" apply -f -
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: ${out}
+                namespace: ${ns}
+              type: Opaque
+              stringData:
+                endpoint: ${endpoint}
+                bucket: ${bucket}
+                access_key_id: ${access_key_id}
+                access_key_secret: ${access_key_secret}
+              EOF
+

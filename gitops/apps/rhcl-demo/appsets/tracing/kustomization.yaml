@@ -9,7 +9,7 @@ resources:
   - resources/10-tempo-operator.yaml
   - resources/20-opentelemetry-operator.yaml
   - resources/30-cluster-observability-operator.yaml
-  - resources/40-minio.yaml
+  - resources/40-odf-object-bucket.yaml
   - resources/50-tempostack.yaml
   - resources/60-tempo-tenant-rbac.yaml
   - resources/70-otel-collector.yaml
