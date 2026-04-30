@@ -1116,7 +1116,7 @@
                 For OIDC, we intentionally use a <b>separate frontend</b> on a <b>different hostname</b> to make the browser login flow obvious and visually distinct.
               </div>
               <div class="row" style="margin-top:10px; align-items:center">
-                <a class="btnLink primary" id="oidcPortalLink" target="_blank" rel="noreferrer">Open OIDC portal</a>
+                <a class="btnLink primary" id="oidcPortalLink" target="_blank" rel="noreferrer" onclick="return openOidcPortalNewTab(event)">Open OIDC portal</a>
                 <button onclick="openYamlSet('oidc')">View policy YAML</button>
                 <span class="pill" title="OIDC portal hostname"><span class="dot"></span> <code id="oidcPortalPill">—</code></span>
               </div>
@@ -2926,6 +2926,15 @@ spec:
 
       // Opening the OIDC portal uses a normal <a target="_blank"> link to avoid popup blockers
       // and to ensure we never navigate away from the workshop UI tab.
+      function openOidcPortalNewTab(ev){
+        try{ if (ev && ev.preventDefault) ev.preventDefault(); } catch {}
+        const url = oidcPortalUrl();
+        const w = window.open(url, "_blank", "noopener,noreferrer");
+        if (w) return false;
+        // If popups are blocked, keep the current tab and show the URL in a copyable popup.
+        openJson("OIDC portal URL (popups blocked)", url);
+        return false;
+      }
 
       // (copy URL removed for OIDC portal to keep UI clean)
 
@@ -3289,7 +3298,8 @@ spec:
         }
         const traffic = "ambient%2CambientTotal%2Cgrpc%2CgrpcRequest%2Ctcp%2CtcpSent";
         // Kiali expects duration with a unit suffix (e.g. 10m, 600s). Numeric durations can break graphs.
-        const common = `traffic=${traffic}&graphType=versionedApp&duration=10m&refresh=60000&layout=dagre&animation=true`;
+        // Use 10 minutes + fast refresh so the UI opens with “Last 10m / Every 10s”.
+        const common = `traffic=${traffic}&graphType=versionedApp&duration=600s&refresh=10000&layout=dagre&animation=true`;
         const g = (namespaces) => base + `/console/graph/namespaces?${common}&namespaces=${encodeURIComponent(namespaces)}`;
 
         // Multi-namespace workshop views.
