@@ -2933,8 +2933,7 @@ spec:
         const url = oidcPortalUrl();
         const w = window.open(url, "_blank", "noopener,noreferrer");
         if (w) return false;
-        // If popups are blocked, keep the current tab and show the URL in a copyable popup.
-        openJson("OIDC portal URL (popups blocked)", url);
+        // If popups are blocked, keep the current tab unchanged.
         return false;
       }
 
