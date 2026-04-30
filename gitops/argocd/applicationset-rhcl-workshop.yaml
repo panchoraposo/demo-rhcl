@@ -48,8 +48,6 @@ spec:
         repoURL: https://github.com/panchoraposo/demo-rhcl.git
         targetRevision: main
         path: "{{.path}}"
-        kustomize:
-          buildOptions: "--load-restrictor LoadRestrictionsNone"
       destination:
         server: https://kubernetes.default.svc
         namespace: demo
