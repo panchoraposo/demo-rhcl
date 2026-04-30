@@ -1116,7 +1116,7 @@
                 For OIDC, we intentionally use a <b>separate frontend</b> on a <b>different hostname</b> to make the browser login flow obvious and visually distinct.
               </div>
               <div class="row" style="margin-top:10px; align-items:center">
-                <button class="primary" onclick="openOidcPortal()">Open OIDC portal</button>
+                <a class="btnLink primary" id="oidcPortalLink" target="_blank" rel="noreferrer">Open OIDC portal</a>
                 <button onclick="openYamlSet('oidc')">View policy YAML</button>
                 <span class="pill" title="OIDC portal hostname"><span class="dot"></span> <code id="oidcPortalPill">—</code></span>
               </div>
@@ -2889,7 +2889,16 @@ spec:
 
       function oidcPortalHost(){
         const stored = String(localStorage.getItem("rhcl_oidc_host") || "").trim();
-        if (stored) return stored.replace(/^https?:\/\//i,"").replace(/\/+$/g,"");
+        if (stored){
+          const s = stored.replace(/^https?:\/\//i,"").replace(/\/+$/g,"");
+          const h0 = (location && location.host) ? String(location.host) : "";
+          // If the user stored a "base domain" host but we're on an apps.* cluster hostname, prefer the deterministic oidc-<host>.
+          if (h0.includes(".apps.") && !s.includes(".apps.")) {
+            // ignore stored
+          } else {
+            return s;
+          }
+        }
         const h = (location && location.host) ? String(location.host) : "example.com";
         if (h.startsWith("oidc-")) return h;
         const configured = "REPLACE_ME_OIDC_HOSTNAME";
@@ -2904,7 +2913,10 @@ spec:
 
       function refreshOidcPortalPill(){
         if (!oidcPortalPillEl) return;
-        oidcPortalPillEl.textContent = oidcPortalHost();
+        const host = oidcPortalHost();
+        oidcPortalPillEl.textContent = host;
+        const link = el("oidcPortalLink");
+        if (link) link.setAttribute("href", `https://${host}/`);
       }
 
       function refreshKeycloakJwtHostPill(){
@@ -2912,11 +2924,8 @@ spec:
         jwtApiPillEl.textContent = `${location.origin}/jwt/secure/nba`;
       }
 
-      function openOidcPortal(){
-        const url = oidcPortalUrl();
-        const w = window.open(url, "_blank", "noopener,noreferrer");
-        if (!w) location.href = url;
-      }
+      // Opening the OIDC portal uses a normal <a target="_blank"> link to avoid popup blockers
+      // and to ensure we never navigate away from the workshop UI tab.
 
       // (copy URL removed for OIDC portal to keep UI clean)
 
@@ -3279,7 +3288,8 @@ spec:
           return;
         }
         const traffic = "ambient%2CambientTotal%2Cgrpc%2CgrpcRequest%2Ctcp%2CtcpSent";
-        const common = `traffic=${traffic}&graphType=versionedApp&duration=300&refresh=10000&layout=dagre&animation=true`;
+        // Kiali expects duration with a unit suffix (e.g. 10m, 600s). Numeric durations can break graphs.
+        const common = `traffic=${traffic}&graphType=versionedApp&duration=10m&refresh=60000&layout=dagre&animation=true`;
         const g = (namespaces) => base + `/console/graph/namespaces?${common}&namespaces=${encodeURIComponent(namespaces)}`;
 
         // Multi-namespace workshop views.
