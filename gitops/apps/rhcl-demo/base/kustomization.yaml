@@ -3,13 +3,16 @@ kind: Kustomization
 
 resources:
   - resources/00-namespace.yaml
+  - resources/00-namespace-demo-ab.yaml
+  - resources/00-namespace-demo-jwt.yaml
   - resources/00-namespace-keycloak.yaml
   - resources/00-namespace-oidc-portal.yaml
   - resources/05-console-banner.yaml
   - resources/10-demo-api.yaml
   - resources/15-ui.yaml
   - resources/15-oidc-ui.yaml
-  - resources/16-ab-canary-external.yaml
+  - resources/16-ab-canary.yaml
+  - resources/17-external-proxy.yaml
   - resources/17-oidc-keycloak.yaml
   - resources/18-rhbk-operator.yaml
   - resources/20-gateway.yaml
@@ -25,6 +28,8 @@ resources:
   - resources/35-ai-bot.yaml
   - resources/36-httproute-jwt-demo.yaml
   - resources/38-oidc-referencegrant-external-proxy.yaml
+  - resources/39-httproute-external-proxy.yaml
+  - resources/41-referencegrant-jwt-to-external-proxy.yaml
   - resources/40-gateway-authpolicy.yaml
   - resources/50-api-keys.yaml
   - resources/60-route-authpolicy.yaml
@@ -37,6 +42,7 @@ resources:
   - resources/68-ai-bot-authpolicy.yaml
   - resources/69-jwt-demo-authpolicy.yaml
   - resources/70-route-ratelimitpolicy.yaml
+  - resources/71-external-proxy-authpolicy.yaml
   - resources/73-ai-bot-tokenratelimitpolicy.yaml
   - resources/80-route-passthrough.yaml
   - resources/81-route-oidc-passthrough.yaml

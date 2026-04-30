@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ab-a
-  namespace: demo
+  namespace: demo-ab
   labels:
     app: ab-a
   annotations:
@@ -36,7 +36,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ab-a-nginx
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
@@ -53,7 +53,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ab-a
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
@@ -69,7 +69,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ab-b
-  namespace: demo
+  namespace: demo-ab
   labels:
     app: ab-b
   annotations:
@@ -103,7 +103,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ab-b-nginx
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
@@ -120,7 +120,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ab-b
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
@@ -136,7 +136,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: canary-v1
-  namespace: demo
+  namespace: demo-ab
   labels:
     app: canary-v1
   annotations:
@@ -170,7 +170,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: canary-v1-nginx
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
@@ -187,7 +187,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: canary-v1
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
@@ -203,7 +203,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: canary-v2
-  namespace: demo
+  namespace: demo-ab
   labels:
     app: canary-v2
   annotations:
@@ -237,7 +237,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: canary-v2-nginx
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
@@ -254,117 +254,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: canary-v2
-  namespace: demo
+  namespace: demo-ab
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   selector:
     app: canary-v2
-  ports:
-    - name: http
-      port: 80
-      protocol: TCP
-      targetPort: 8080
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: external-proxy
-  namespace: demo
-  labels:
-    app: external-proxy
-  annotations:
-    argocd.argoproj.io/sync-wave: "12"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: external-proxy
-  template:
-    metadata:
-      labels:
-        app: external-proxy
-      annotations:
-        rhcl-demo/external-proxy-config: "espn-v2"
-    spec:
-      containers:
-        - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
-          ports:
-            - containerPort: 8080
-              name: http
-          volumeMounts:
-            - name: cfg
-              mountPath: /etc/nginx/conf.d
-              readOnly: true
-      volumes:
-        - name: cfg
-          configMap:
-            name: external-proxy-nginx
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: external-proxy-nginx
-  namespace: demo
-  annotations:
-    argocd.argoproj.io/sync-wave: "11"
-data:
-  default.conf: |
-    resolver 172.30.0.10 valid=30s ipv6=off;
-    server {
-      listen 8080;
-      # External API demo (ESPN public JSON endpoints)
-      # - UI calls same-origin (/external/*)
-      # - This service proxies to upstream JSON (no browser CORS problems)
-      location ^~ /external {
-        # Default to NBA for the workshop
-        rewrite ^/external/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
-
-      location ^~ /external/nba {
-        rewrite ^/external/nba/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
-
-      location ^~ /external/epl {
-        rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
-
-      location ^~ /external/laliga {
-        rewrite ^/external/laliga/?$ /apis/site/v2/sports/soccer/esp.1/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
-    }
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: external-proxy
-  namespace: demo
-  annotations:
-    argocd.argoproj.io/sync-wave: "12"
-spec:
-  selector:
-    app: external-proxy
   ports:
     - name: http
       port: 80
