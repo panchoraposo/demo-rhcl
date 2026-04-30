@@ -5,6 +5,8 @@ metadata:
   namespace: demo
   labels:
     app: rhcl-ai-bot
+    service: rhcl-ai-bot
+    deployment: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:

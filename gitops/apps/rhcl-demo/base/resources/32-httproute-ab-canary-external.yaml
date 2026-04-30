@@ -37,6 +37,20 @@ spec:
           path:
             type: PathPrefix
             value: /canary
+          headers:
+            - name: x-rhcl-canary
+              value: always
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: canary-v2
+          port: 80
+          weight: 1
+    - matches:
+        - method: GET
+          path:
+            type: PathPrefix
+            value: /canary
       backendRefs:
         - group: ""
           kind: Service

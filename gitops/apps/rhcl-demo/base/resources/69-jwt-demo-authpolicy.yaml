@@ -1,8 +1,8 @@
 apiVersion: kuadrant.io/v1
 kind: AuthPolicy
 metadata:
-  name: oidc-portal-allow
-  namespace: rhcl-oidc-portal
+  name: jwt-demo-jwt
+  namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "32"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
@@ -10,9 +10,16 @@ spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: HTTPRoute
-    name: oidc-portal
+    name: jwt-demo
   defaults:
     rules:
+      authentication:
+        jwt:
+          jwt:
+            issuerUrl: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl
+          credentials:
+            authorizationHeader:
+              prefix: "Bearer"
       authorization:
         allow-all:
           opa:

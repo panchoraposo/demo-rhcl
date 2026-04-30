@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base/resources/00-namespace.yaml
+  - ../../base/resources/10-demo-api.yaml
+  - ../../base/resources/15-ui.yaml
+  - ../../base/resources/16-ab-canary-external.yaml
+  - ../../base/resources/30-httproute-api.yaml
+  - ../../base/resources/31-httproute-ui.yaml
+  - ../../base/resources/32-httproute-ab-canary-external.yaml
+  - ../../base/resources/34-httproute-ai-bot.yaml
+  - ../../base/resources/35-ai-bot.yaml
+  - ../../base/resources/36-httproute-jwt-demo.yaml
+  - ../../base/resources/50-api-keys.yaml
+  - ../../base/resources/60-route-authpolicy.yaml
+  - ../../base/resources/62-ui-authpolicy.yaml
+  - ../../base/resources/63-ab-authpolicy.yaml
+  - ../../base/resources/68-ai-bot-authpolicy.yaml
+  - ../../base/resources/69-jwt-demo-authpolicy.yaml
+  - ../../base/resources/70-route-ratelimitpolicy.yaml
+  - ../../base/resources/73-ai-bot-tokenratelimitpolicy.yaml
+
+configMapGenerator:
+  - name: rhcl-ui
+    namespace: demo
+    files:
+      - index.html=../../base/ui/index.html
+
+generatorOptions:
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+

@@ -2,7 +2,7 @@ apiVersion: kuadrant.io/v1
 kind: AuthPolicy
 metadata:
   name: keycloak-allow
-  namespace: demo
+  namespace: rhcl-keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "32"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true

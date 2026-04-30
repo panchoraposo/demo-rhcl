@@ -5,6 +5,8 @@ metadata:
   namespace: demo
   labels:
     app: rhcl-ui
+    service: rhcl-ui
+    deployment: rhcl-ui
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:

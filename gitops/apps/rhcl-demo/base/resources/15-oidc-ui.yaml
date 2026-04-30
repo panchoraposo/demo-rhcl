@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rhcl-oidc-ui
-  namespace: demo
+  namespace: rhcl-oidc-portal
   labels:
     app: rhcl-oidc-ui
   annotations:
@@ -42,7 +42,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: rhcl-oidc-ui-nginx
-  namespace: demo
+  namespace: rhcl-oidc-portal
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
@@ -71,7 +71,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: rhcl-oidc-ui
-  namespace: demo
+  namespace: rhcl-oidc-portal
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:

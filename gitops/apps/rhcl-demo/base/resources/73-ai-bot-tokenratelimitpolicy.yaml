@@ -17,7 +17,7 @@ spec:
     limits:
       global:
         rates:
-          # Intentionally small for a live demo: you can hit it quickly by asking for a longer summary.
-          - limit: 2500
-            window: 1m
+          # Intentionally small for a live demo: "Make it longer" should hit 429 quickly.
+          - limit: 400
+            window: 15s
 

@@ -1,0 +1,140 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: patch-kuadrant-dashboards-promql
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "99"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              echo "Patching Kuadrant example dashboards PromQL to match Istio metrics labels…"
+              python3 - <<'PY'
+              import json, re, subprocess
+
+              def oc(*args, input_text=None):
+                p = subprocess.run(
+                  ["oc", *args],
+                  input=input_text,
+                  universal_newlines=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+                )
+                if p.returncode != 0:
+                  raise RuntimeError(f"oc {' '.join(args)} failed: {p.stderr.strip()}")
+                return p.stdout
+
+              CMS = [
+                ("grafana-app-developer", "app_developer.json"),
+                ("grafana-platform-engineer", "platform_engineer.json"),
+                ("grafana-business-user", "business_user.json"),
+              ]
+
+              def ensure_ns(expr: str) -> str:
+                for metric in ("istio_requests_total", "istio_request_duration_milliseconds_bucket"):
+                  expr = expr.replace(f"{metric}{{}}", f'{metric}{{destination_service_namespace="demo"}}')
+                  pat = re.compile(rf"{metric}\{{([^}}]*)\}}")
+                  def repl(m):
+                    inner = m.group(1)
+                    if "destination_service_namespace=" in inner:
+                      return m.group(0)
+                    inner = inner.strip()
+                    if inner:
+                      return f'{metric}{{destination_service_namespace="demo",{inner}}}'
+                    return f'{metric}{{destination_service_namespace="demo"}}'
+                  expr = pat.sub(repl, expr)
+                return expr
+
+              def simplify(expr: str) -> str:
+                e = str(expr or "")
+                if "label_replace(gatewayapi_httproute_labels" in e and ("istio_requests_total" in e or "istio_request_duration_milliseconds_bucket" in e):
+                  # dashboards shipped upstream join Istio metrics with Gateway API state using a 'service' label.
+                  # On some clusters, gatewayapi_httproute_labels does not include that label, so the join yields no data.
+                  e = e.split("* on(")[0].strip()
+                e = ensure_ns(e)
+                return e
+
+              def add_service_filter(expr: str) -> str:
+                e = str(expr or "")
+                if "istio_requests_total" in e:
+                  e = re.sub(r"istio_requests_total\{([^}]*)\}", lambda m: _ensure_label(m, "destination_service_name=~\"$api\""), e)
+                if "istio_request_duration_milliseconds_bucket" in e:
+                  e = re.sub(r"istio_request_duration_milliseconds_bucket\{([^}]*)\}", lambda m: _ensure_label(m, "destination_service_name=~\"$api\""), e)
+                return e
+
+              def _ensure_label(match, label_kv: str) -> str:
+                inner = match.group(1)
+                key = label_kv.split("=")[0].strip()
+                # Avoid substring collisions (e.g. destination_service_name vs destination_service_namespace)
+                if re.search(r"(^|,)\\s*%s\\s*=" % (re.escape(key),), inner):
+                  return match.group(0)
+                inner = inner.strip()
+                if inner:
+                  return match.group(0).replace("{"+inner+"}", "{"+inner+","+label_kv+"}")
+                return match.group(0).replace("{}", "{"+label_kv+"}")
+
+              def patch_templating(j):
+                # Replace upstream "api" variable (Gateway API names) with service names from Istio metrics
+                t = (j.get("templating") or {}).get("list") or []
+                for v in t:
+                  if v.get("name") == "api" and v.get("type") == "query":
+                    q = v.get("query")
+                    if isinstance(q, dict):
+                      q["query"] = 'label_values(istio_requests_total{destination_service_namespace="demo"}, destination_service_name)'
+                      q["refId"] = q.get("refId") or "StandardVariableQuery"
+                      v["query"] = q
+                    v["includeAll"] = False
+                    v["multi"] = False
+                    v["current"] = {"selected": True, "text": "demo-api", "value": "demo-api"}
+                j.setdefault("templating", {})["list"] = t
+
+              def walk_panels(panels):
+                for p in panels or []:
+                  if "panels" in p:
+                    walk_panels(p.get("panels"))
+                  for t in (p.get("targets") or []):
+                    if "expr" in t and isinstance(t["expr"], str):
+                      e = simplify(t["expr"])
+                      # Make dashboards reflect the demo by default:
+                      # filter to demo namespace + selected destination service
+                      e = add_service_filter(e)
+                      t["expr"] = e
+
+              for cm, key in CMS:
+                cm_raw = oc("-n", "monitoring", "get", "cm", cm, "-o", "json")
+                cm_obj = json.loads(cm_raw)
+                raw = (cm_obj.get("data", {}) or {}).get(key, "")
+                if not raw:
+                  raise RuntimeError("ConfigMap %s missing key %s" % (cm, key))
+                j = json.loads(raw)
+                patch_templating(j)
+                walk_panels(j.get("panels"))
+                # write back
+                out = {
+                  "apiVersion": "v1",
+                  "kind": "ConfigMap",
+                  "metadata": {"name": cm, "namespace": "monitoring"},
+                  "data": {key: json.dumps(j)},
+                }
+                oc("apply", "-f", "-", input_text=json.dumps(out))
+                print(f"patched {cm}/{key}")
+
+              # Nudge Grafana to reload dashboards quickly
+              oc("-n", "monitoring", "rollout", "restart", "deployment/rhcl-grafana-deployment")
+              oc("-n", "monitoring", "rollout", "status", "deployment/rhcl-grafana-deployment", "--timeout=120s")
+              print("OK")
+              PY
+              echo "Done."
+

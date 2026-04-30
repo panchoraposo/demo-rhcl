@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/panchoraposo/demo-rhcl.git
     targetRevision: main
-    path: gitops/apps/rhcl-demo/overlays/ephemeral
+    path: gitops/apps/rhcl-demo/overlays/full-install
   destination:
     server: https://kubernetes.default.svc
     namespace: demo

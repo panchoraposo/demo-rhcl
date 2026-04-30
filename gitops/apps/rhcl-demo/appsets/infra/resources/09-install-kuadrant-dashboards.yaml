@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-kuadrant-example-dashboards
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "93"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              echo "Applying Kuadrant example Grafana dashboards and alerts…"
+              oc -n monitoring apply -k "https://github.com/Kuadrant/kuadrant-operator/examples/dashboards?ref=v1.3.0"
+              echo "OK"
+

@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - resources/04-namespace-gateway-system.yaml
+  - resources/05-namespace-monitoring.yaml
+  - ../../base/resources/05-console-banner.yaml
+  - ../../base/resources/18-rhbk-operator.yaml
+  - ../../base/resources/20-gateway.yaml
+  - ../../base/resources/24-gateway-certificate.yaml
+  - ../../base/resources/25-gateway-tlspolicy.yaml
+  - ../../base/resources/26-gateway-dnspolicy.yaml
+  - ../../base/resources/40-gateway-authpolicy.yaml
+  - ../../base/resources/80-route-passthrough.yaml
+  - ../../base/resources/81-route-oidc-passthrough.yaml
+  - resources/06-enable-kuadrant-console-plugin.yaml
+  - resources/07-enable-user-workload-monitoring.yaml
+  - resources/08-install-kuadrant-observability-config.yaml
+  - resources/09-install-kuadrant-dashboards.yaml
+  - resources/10-grafana-rbac.yaml
+  - resources/11-grafana-thanos-token.yaml
+  - resources/12-grafana.yaml
+  - resources/13-grafana-datasource-thanos.yaml
+  - resources/14-grafana-dashboards.yaml
+  - resources/09b-patch-kuadrant-dashboards-promql.yaml
+  - resources/15-kiali.yaml
+  - resources/16-ossm-ambient.yaml
+

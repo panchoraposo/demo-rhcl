@@ -23,6 +23,7 @@ fi
 
 DEMO_HOSTNAME="${DEMO_HOSTNAME:-rhcl-workshop.${APPS_DOMAIN}}"
 OIDC_HOSTNAME="${OIDC_HOSTNAME:-oidc-${DEMO_HOSTNAME}}"
+GRAFANA_HOSTNAME="${GRAFANA_HOSTNAME:-grafana-${DEMO_HOSTNAME}}"
 
 if [[ -z "${CLUSTER_ISSUER:-}" ]]; then
   CLUSTER_ISSUER="$(
@@ -38,6 +39,7 @@ fi
 echo "Installing RHCL Workshop with:"
 echo "- DEMO_HOSTNAME=${DEMO_HOSTNAME}"
 echo "- OIDC_HOSTNAME=${OIDC_HOSTNAME}"
+echo "- GRAFANA_HOSTNAME=${GRAFANA_HOSTNAME}"
 echo "- CLUSTER_ISSUER=${CLUSTER_ISSUER}"
 
 # Optional: configure Route53 credentials for Kuadrant DNSPolicy.
@@ -191,6 +193,23 @@ spec:
                 name: ${CLUSTER_ISSUER}
 
         - target:
+            group: grafana.integreatly.org
+            version: v1beta1
+            kind: Grafana
+            name: rhcl-grafana
+            namespace: monitoring
+          patch: |-
+            apiVersion: grafana.integreatly.org/v1beta1
+            kind: Grafana
+            metadata:
+              name: rhcl-grafana
+              namespace: monitoring
+            spec:
+              route:
+                spec:
+                  host: ${GRAFANA_HOSTNAME}
+
+        - target:
             group: gateway.networking.k8s.io
             version: v1
             kind: HTTPRoute
@@ -242,6 +261,22 @@ spec:
             group: gateway.networking.k8s.io
             version: v1
             kind: HTTPRoute
+            name: jwt-demo
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: jwt-demo
+              namespace: demo
+            spec:
+              hostnames:
+                - ${DEMO_HOSTNAME}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
             name: ab-demo
             namespace: demo
           patch: |-
@@ -259,13 +294,13 @@ spec:
             version: v1
             kind: HTTPRoute
             name: secure-demo
-            namespace: demo
+            namespace: rhcl-oidc-portal
           patch: |-
             apiVersion: gateway.networking.k8s.io/v1
             kind: HTTPRoute
             metadata:
               name: secure-demo
-              namespace: demo
+              namespace: rhcl-oidc-portal
             spec:
               hostnames:
                 - ${OIDC_HOSTNAME}
@@ -275,13 +310,13 @@ spec:
             version: v1
             kind: HTTPRoute
             name: oidc-portal
-            namespace: demo
+            namespace: rhcl-oidc-portal
           patch: |-
             apiVersion: gateway.networking.k8s.io/v1
             kind: HTTPRoute
             metadata:
               name: oidc-portal
-              namespace: demo
+              namespace: rhcl-oidc-portal
             spec:
               hostnames:
                 - ${OIDC_HOSTNAME}
@@ -291,13 +326,13 @@ spec:
             version: v1alpha1
             kind: OIDCPolicy
             name: secure-demo-oidc
-            namespace: demo
+            namespace: rhcl-oidc-portal
           patch: |-
             apiVersion: extensions.kuadrant.io/v1alpha1
             kind: OIDCPolicy
             metadata:
               name: secure-demo-oidc
-              namespace: demo
+              namespace: rhcl-oidc-portal
             spec:
               provider:
                 issuerURL: https://${OIDC_HOSTNAME}/auth/realms/rhcl
@@ -310,12 +345,32 @@ spec:
             version: v1
             kind: AuthPolicy
             name: secure-demo-jwt
-            namespace: demo
+            namespace: rhcl-oidc-portal
           patch: |-
             apiVersion: kuadrant.io/v1
             kind: AuthPolicy
             metadata:
               name: secure-demo-jwt
+              namespace: rhcl-oidc-portal
+            spec:
+              defaults:
+                rules:
+                  authentication:
+                    jwt:
+                      jwt:
+                        issuerUrl: https://${OIDC_HOSTNAME}/auth/realms/rhcl
+
+        - target:
+            group: kuadrant.io
+            version: v1
+            kind: AuthPolicy
+            name: jwt-demo-jwt
+            namespace: demo
+          patch: |-
+            apiVersion: kuadrant.io/v1
+            kind: AuthPolicy
+            metadata:
+              name: jwt-demo-jwt
               namespace: demo
             spec:
               defaults:

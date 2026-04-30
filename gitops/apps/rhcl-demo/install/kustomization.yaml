@@ -5,4 +5,8 @@ resources:
   - resources/00-kuadrant-namespace.yaml
   - resources/20-rhcl-operator.yaml
   - resources/30-kuadrant-cr.yaml
+  - resources/40-observability-and-grafana.yaml
+  - resources/41-patch-dashboards.yaml
+  - resources/41-ossm-ambient.yaml
+  - resources/42-kiali.yaml
 

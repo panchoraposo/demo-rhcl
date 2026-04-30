@@ -1,0 +1,68 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-app-developer
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-app-dev
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-app-developer
+    key: app_developer.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-platform-engineer
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-platform
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-platform-engineer
+    key: platform_engineer.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-business-user
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-business
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-business-user
+    key: business_user.json
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: rhcl-dns-operator
+  namespace: monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "98"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  uid: rhcl-dns
+  folder: RHCL Workshop
+  configMapRef:
+    name: grafana-dns-operator
+    key: dns-operator.json
+
