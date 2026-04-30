@@ -82,9 +82,9 @@ spec:
                   name: rhcl-ai-bot-llm
                   key: apiKey
                   optional: true
-            # Tool calls go through the existing in-cluster ESPN proxy
+            # Tool calls go through the Connectivity Link entrypoint (/external on the main gateway)
             - name: RHCL_AI_ESPN_BASE_URL
-              value: http://external-proxy.demo.svc.cluster.local
+              value: http://rhcl-gw-openshift-default.openshift-ingress.svc.cluster.local
             - name: RHCL_AI_TRACE_BASE_URL
               value: http://rhcl-trace-svc.demo.svc.cluster.local
           readinessProbe:

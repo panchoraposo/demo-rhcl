@@ -8,8 +8,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:
-  hostnames:
-    - rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
