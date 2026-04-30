@@ -489,7 +489,8 @@
         const host = String(location.host || "");
         document.cookie = `target=s://${host}/; Path=/; Max-Age=3600; SameSite=Lax`;
 
-        const redirectUri = encodeURIComponent(`https://${host}/auth/callback`);
+        // Keep the callback path outside /auth so it doesn't collide with the Keycloak /auth route.
+        const redirectUri = encodeURIComponent(`https://${host}/callback`);
         const url = `/auth/realms/rhcl/protocol/openid-connect/auth?client_id=rhcl-ui&redirect_uri=${redirectUri}&response_type=code&scope=openid`;
         location.href = url;
       }
