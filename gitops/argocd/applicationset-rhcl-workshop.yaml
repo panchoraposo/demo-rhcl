@@ -103,9 +103,6 @@ spec:
             - /status
 
   templatePatch: |
-    {{- $parts := splitList "." .demoHostname -}}
-    {{- $zone := join "." (slice $parts (sub (len $parts) 3) (len $parts)) -}}
-    {{- $oidcHostname := printf "oidc-%s.%s" (index $parts 0) $zone -}}
     spec:
       source:
         kustomize:
@@ -147,7 +144,7 @@ spec:
                     - name: https-oidc
                       port: 443
                       protocol: HTTPS
-                      hostname: {{$oidcHostname}}
+                      hostname: {{.oidcHostname}}
                       tls:
                         mode: Terminate
                         certificateRefs:
@@ -173,15 +170,13 @@ spec:
                   secretName: rhcl-gw-tls
                   dnsNames:
                     - {{.demoHostname}}
-                    - {{$oidcHostname}}
+                    - {{.oidcHostname}}
                     - {{ printf "ai-%s" .demoHostname }}
                   issuerRef:
                     group: cert-manager.io
                     kind: ClusterIssuer
                     name: {{.clusterIssuer}}
             - target:
-                group: kuadrant.io
-                version: v1
                 group: grafana.integreatly.org
                 version: v1beta1
                 kind: Grafana
@@ -264,20 +259,20 @@ spec:
                 version: v1
                 kind: AuthPolicy
                 name: jwt-demo-jwt
-                namespace: demo
+                namespace: demo-jwt
               patch: |-
                 apiVersion: kuadrant.io/v1
                 kind: AuthPolicy
                 metadata:
                   name: jwt-demo-jwt
-                  namespace: demo
+                  namespace: demo-jwt
                 spec:
                   defaults:
                     rules:
                       authentication:
                         jwt:
                           jwt:
-                            issuerUrl: https://{{$oidcHostname}}/auth/realms/rhcl
+                            issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
           {{- end }}
           {{- if eq .name "bot" }}
             - target:
@@ -311,7 +306,7 @@ spec:
                   namespace: rhcl-oidc-portal
                 spec:
                   hostnames:
-                    - {{$oidcHostname}}
+                    - {{.oidcHostname}}
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -326,7 +321,7 @@ spec:
                   namespace: rhcl-oidc-portal
                 spec:
                   hostnames:
-                    - {{$oidcHostname}}
+                    - {{.oidcHostname}}
             - target:
                 group: extensions.kuadrant.io
                 version: v1alpha1
@@ -341,10 +336,10 @@ spec:
                   namespace: rhcl-oidc-portal
                 spec:
                   provider:
-                    issuerURL: https://{{$oidcHostname}}/auth/realms/rhcl
-                    authorizationEndpoint: https://{{$oidcHostname}}/auth/realms/rhcl/protocol/openid-connect/auth
-                    tokenEndpoint: https://{{$oidcHostname}}/auth/realms/rhcl/protocol/openid-connect/token
-                    redirectURI: https://{{$oidcHostname}}/auth/callback
+                    issuerURL: https://{{.oidcHostname}}/auth/realms/rhcl
+                    authorizationEndpoint: https://{{.oidcHostname}}/auth/realms/rhcl/protocol/openid-connect/auth
+                    tokenEndpoint: https://{{.oidcHostname}}/auth/realms/rhcl/protocol/openid-connect/token
+                    redirectURI: https://{{.oidcHostname}}/auth/callback
             - target:
                 group: kuadrant.io
                 version: v1
@@ -363,6 +358,6 @@ spec:
                       authentication:
                         jwt:
                           jwt:
-                            issuerUrl: https://{{$oidcHostname}}/auth/realms/rhcl
+                            issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
           {{- end }}
 
