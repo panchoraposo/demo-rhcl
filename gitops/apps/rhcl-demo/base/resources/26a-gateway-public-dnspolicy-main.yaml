@@ -1,7 +1,7 @@
 apiVersion: kuadrant.io/v1
 kind: DNSPolicy
 metadata:
-  name: rhcl-oidc-public-dns
+  name: rhcl-main-public-dns
   namespace: openshift-ingress
   annotations:
     argocd.argoproj.io/sync-wave: "22"
@@ -11,7 +11,7 @@ spec:
     group: gateway.networking.k8s.io
     kind: Gateway
     name: rhcl-gw
-    sectionName: https-oidc-public
+    sectionName: https-main-public
   providerRefs:
     - name: route53-credentials
 

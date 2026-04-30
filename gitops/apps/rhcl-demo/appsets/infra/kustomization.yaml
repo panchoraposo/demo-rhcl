@@ -6,7 +6,9 @@ resources:
   - resources/05-namespace-monitoring.yaml
   - ../../base/resources/05-console-banner.yaml
   - ../../base/resources/20-gateway.yaml
+  - ../../base/resources/22-gateway-public-certificate.yaml
   - ../../base/resources/26-gateway-dnspolicy.yaml
+  - ../../base/resources/26a-gateway-public-dnspolicy-main.yaml
   - ../../base/resources/40-gateway-authpolicy.yaml
   - resources/06-enable-kuadrant-console-plugin.yaml
   - resources/07-enable-user-workload-monitoring.yaml

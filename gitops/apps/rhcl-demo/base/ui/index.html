@@ -2900,6 +2900,11 @@ spec:
           }
         }
         const h = (location && location.host) ? String(location.host) : "example.com";
+        // Prefer publishing/using the Route53-managed public zone to avoid wildcard *.apps.cluster.* conflicts.
+        // If we're on a sandbox apps.* hostname, open the OIDC portal on the public base domain.
+        if (h.includes(".apps.cluster-") && h.includes(".sandbox1529.opentlc.com")){
+          return "oidc-rhcl-workshop.sandbox1529.opentlc.com";
+        }
         if (h.startsWith("oidc-")) return h;
         const configured = "REPLACE_ME_OIDC_HOSTNAME";
         if (configured && !configured.includes("REPLACE_ME")) return configured;
@@ -3300,10 +3305,11 @@ spec:
         const g = (namespaces) => base + `/console/graph/namespaces?${common}&namespaces=${encodeURIComponent(namespaces)}`;
 
         // Multi-namespace workshop views.
-        apply(kialiLinkHomeEl, g("demo,demo-ab,demo-jwt,rhcl-oidc-portal,rhcl-keycloak,rhcl-ai-bot"));
-        apply(kialiLinkGraphEl, g("openshift-ingress,demo,demo-ab,demo-jwt,rhcl-ai-bot"));
+        // Avoid including namespaces that may produce no telemetry (can cause "Empty Graph").
+        apply(kialiLinkHomeEl, g("demo,demo-ab,demo-jwt,rhcl-keycloak,rhcl-ai-bot"));
+        apply(kialiLinkGraphEl, g("demo,demo-ab,demo-jwt,rhcl-ai-bot"));
         apply(kialiLinkWorkloadsEl, g("demo-ab"));
-        apply(kialiLinkAppsEl, g("demo-jwt,rhcl-keycloak,rhcl-oidc-portal,demo"));
+        apply(kialiLinkAppsEl, g("demo-jwt,rhcl-keycloak,demo"));
       }
 
       function meshGenerateTraffic(){
