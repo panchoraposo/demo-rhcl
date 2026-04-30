@@ -86,6 +86,13 @@ spec:
           namespace: demo
           jsonPointers:
             - /spec/template/spec/containers/0/image
+        - group: cert-manager.io
+          kind: Certificate
+          name: rhcl-gw-tls
+          namespace: openshift-ingress
+          jsonPointers:
+            - /metadata/annotations
+            - /status
         - group: tempo.grafana.com
           kind: TempoStack
           name: simplest
