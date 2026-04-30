@@ -13,47 +13,47 @@ spec:
             path: gitops/apps/rhcl-demo/appsets/storage
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: infra
             path: gitops/apps/rhcl-demo/appsets/infra
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: demo
             path: gitops/apps/rhcl-demo/appsets/demo
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: bot
             path: gitops/apps/rhcl-demo/appsets/bot
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: keycloak
             path: gitops/apps/rhcl-demo/appsets/keycloak
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: oidc-portal
             path: gitops/apps/rhcl-demo/appsets/oidc-portal
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: tracing
             path: gitops/apps/rhcl-demo/appsets/tracing
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: lightspeed
             path: gitops/apps/rhcl-demo/appsets/lightspeed
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
           - name: mcp
             path: gitops/apps/rhcl-demo/appsets/mcp
             demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
             oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-production-ec2
+            clusterIssuer: letsencrypt-route53-sandbox1529
   template:
     metadata:
       name: rhcl-workshop-{{.name}}
