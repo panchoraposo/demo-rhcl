@@ -1441,6 +1441,7 @@
       const yamlTitleEl = el("yamlTitle");
       const yamlTabsEl = el("yamlTabs");
       const yamlPreEl = el("yamlPre");
+      const yamlEnforcerPillEl = el("yamlEnforcerPill");
       const oidcPortalPillEl = el("oidcPortalPill");
       const aiStatusEl = el("aiStatus");
       const aiPromptEl = el("aiPrompt");
@@ -2069,8 +2070,11 @@ spec:
             { re: /\blimit:\s*400\b|\bwindow:\s*15s\b/i, cls: "hl2" },
           ],
           "keycloakjwt": [
-            { re: /\bissuerUrl:\b|\bcredentials:\b|\bauthorizationHeader:\b|\bprefix:\s*\"?Bearer\"?/i, cls: "hl" },
-            { re: /\bjwt:\b/i, cls: "hl2" },
+            { re: /^\s*authentication:\s*$/i, cls: "hl2" },
+            { re: /^\s*jw[t]?:\s*$/i, cls: "hl2" },
+            { re: /^\s*issuerUrl:\s*/i, cls: "hl2" },
+            { re: /^\s*credentials:\s*$/i, cls: "hl" },
+            { re: /\bauthorizationHeader:\b|\bprefix:\s*\"?Bearer\"?/i, cls: "hl" },
           ],
           "oidc": [
             { re: /\bOIDCPolicy\b|\bprovider:\b/i, cls: "hl" },
@@ -2092,7 +2096,8 @@ spec:
           ],
         };
 
-        return generic.concat(byKey[k] || []);
+        const specific = byKey[k] || [];
+        return specific.length ? specific.concat(generic) : generic;
       }
 
       function highlightYaml(txt, key){
@@ -2114,6 +2119,10 @@ spec:
         yamlActiveKey = String(key || "").toLowerCase();
         yamlActiveText = renderYaml(String((item && item.yaml) || ""));
         yamlPreEl.innerHTML = highlightYaml(yamlActiveText, yamlActiveKey);
+        if (yamlEnforcerPillEl){
+          const isPolicy = /\bkind:\s*(AuthPolicy|OIDCPolicy)\b/i.test(yamlActiveText);
+          yamlEnforcerPillEl.style.display = isPolicy ? "" : "none";
+        }
       }
 
       function openYamlSet(key){
@@ -3007,12 +3016,7 @@ spec:
         if (h.startsWith("oidc-")) return h;
         const configured = "REPLACE_ME_OIDC_HOSTNAME";
         if (configured && !configured.includes("REPLACE_ME")) return configured;
-        // Prefer the base hosted zone (last 3 labels) to avoid conflicts with *.apps.cluster.* A records.
-        const parts = h.split(".");
-        if (parts.length >= 3){
-          const zone = parts.slice(-3).join(".");
-          return `oidc-${parts[0]}.${zone}`;
-        }
+        // Default: same apps domain as the main demo hostname.
         return `oidc-${h}`;
       }
 
