@@ -75,11 +75,11 @@ spec:
           - ServerSideApply=true
       ignoreDifferences:
         - group: ""
-          kind: ConfigMap
-          name: rhcl-ui
-          namespace: demo
+          kind: Namespace
+          name: istio-system
           jsonPointers:
-            - /data/index.html
+            - /metadata/annotations
+            - /metadata/labels
         - group: apps
           kind: Deployment
           name: rhcl-ai-bot
