@@ -9,4 +9,5 @@ resources:
   - resources/41-patch-dashboards.yaml
   - resources/41-ossm-ambient.yaml
   - resources/42-kiali.yaml
+  - resources/43-kiali-monitoring-rbac.yaml
 

@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rhcl-openapi-demo
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/panchoraposo/demo-rhcl.git
+    targetRevision: main
+    path: gitops/apps/rhcl-openapi-demo/overlays/ephemeral
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openapi-demo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+

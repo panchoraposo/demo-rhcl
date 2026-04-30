@@ -25,4 +25,5 @@ resources:
   - resources/09b-patch-kuadrant-dashboards-promql.yaml
   - resources/15-kiali.yaml
   - resources/16-ossm-ambient.yaml
+  - resources/17-kiali-monitoring-rbac.yaml
 

@@ -1,0 +1,33 @@
+apiVersion: tempo.grafana.com/v1alpha1
+kind: TempoStack
+metadata:
+  name: simplest
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  storage:
+    secret:
+      name: minio
+      type: s3
+  storageSize: 200M
+  resources:
+    total:
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+  tenants:
+    mode: openshift
+    authentication:
+      - tenantName: dev
+        tenantId: "1610b0c3-c509-4592-a256-a1871353dbfb"
+  template:
+    gateway:
+      enabled: true
+      rbac:
+        enabled: true
+    queryFrontend:
+      jaegerQuery:
+        enabled: false
+

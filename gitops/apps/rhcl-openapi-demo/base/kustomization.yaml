@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - resources/00-namespace.yaml
+  - resources/10-openapi-demo-api.yaml
+  - resources/50-api-keys.yaml
+  - resources/generated/30-httproute.yaml
+  - resources/generated/60-authpolicy.yaml
+  - resources/generated/70-ratelimitpolicy.yaml
+

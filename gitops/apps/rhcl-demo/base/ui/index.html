@@ -642,6 +642,28 @@
         justify-content:center;
       }
       .btnGrid .wide{grid-column: 1 / -1;}
+      .btnGrid a.btnLink{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        width:100%;
+        padding:10px 12px;
+        border-radius:14px;
+        border:1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.06);
+        color: var(--text);
+        font-weight:600;
+        font-size:13px;
+        text-decoration:none;
+        cursor:pointer;
+        user-select:none;
+      }
+      .btnGrid a.btnLink:hover{background: rgba(255,255,255,.10)}
+      .btnGrid a.btnLink.primary{
+        background: linear-gradient(135deg, rgba(122,162,255,.26), rgba(167,139,250,.20));
+        border-color: rgba(122,162,255,.28);
+      }
+      .btnGrid a.btnLink.primary:hover{background: linear-gradient(135deg, rgba(122,162,255,.34), rgba(167,139,250,.26))}
       .toolRow{
         display:flex;
         gap:10px;
@@ -666,6 +688,7 @@
           <button data-module="ai">AI chatbot</button>
           <button data-module="keycloakjwt">AuthPolicy (Keycloak JWT)</button>
           <button data-module="oidc">OIDC portal</button>
+          <button data-module="mesh">Service Mesh</button>
           <button data-module="observability">Observability</button>
         </div>
       </aside>
@@ -1138,6 +1161,43 @@
             </div>
           </section>
 
+          <section class="module" id="mesh" data-module="mesh">
+            <div class="moduleHero">
+              <div class="k">Module</div>
+              <div class="t"><b>Service Mesh</b> — topology and request flows</div>
+              <div class="d">
+                Use Kiali to visualize how traffic goes through the Gateway and reaches your services. This complements the policy demos with an easy “flow” story.
+              </div>
+            </div>
+            <div class="grid">
+              <div class="card">
+                <h2>Kiali</h2>
+                <div class="sub">
+                  Open Kiali to explore Graph, Workloads and Applications for <span class="mono">demo</span>.
+                </div>
+                <div class="btnGrid">
+                  <a class="btnLink primary" id="kialiLinkHome" target="_blank" rel="noreferrer">Open Kiali</a>
+                  <a class="btnLink" id="kialiLinkGraph" target="_blank" rel="noreferrer">Graph (demo)</a>
+                  <a class="btnLink" id="kialiLinkWorkloads" target="_blank" rel="noreferrer">Workloads (demo)</a>
+                  <a class="btnLink" id="kialiLinkApps" target="_blank" rel="noreferrer">Applications (demo)</a>
+                  <button class="wide" onclick="setKialiUrl()">Change Kiali URL</button>
+                </div>
+                <div class="footer">
+                  Default guess: <span class="mono">https://kiali-istio-system.&lt;appsDomain&gt;</span>
+                </div>
+              </div>
+
+              <div class="card">
+                <h2>What to show (quick)</h2>
+                <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
+                  <li><b>Graph</b>: gateway → <span class="mono">demo-api</span>, <span class="mono">ab-a/ab-b</span>, <span class="mono">canary-v1/v2</span></li>
+                  <li><b>HTTP codes</b>: show spikes when you demo <span class="mono">401/403</span> (auth), <span class="mono">429</span> (rate limit)</li>
+                  <li><b>Namespace focus</b>: keep the view on <span class="mono">demo</span> for clarity</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
           <section class="module" id="observability" data-module="observability">
             <div class="moduleHero">
               <div class="k">Module</div>
@@ -1154,10 +1214,9 @@
                   <button class="primary" onclick="openGrafanaUid('rhcl-app-dev')">App developer</button>
                   <button class="primary" onclick="openGrafanaUid('rhcl-platform')">Platform engineer</button>
                   <button class="primary" onclick="openGrafanaUid('rhcl-business')">Business user</button>
-                  <button onclick="openGrafanaUid('rhcl-dns')">DNS operator</button>
                 </div>
                 <div class="footer">
-                  Default Grafana: <span class="mono">https://grafana-&lt;demo-host&gt;</span> (anonymous). Use Kiali for topology if installed.
+                  Default Grafana: <span class="mono">https://grafana-&lt;demo-host&gt;</span> (anonymous).
                 </div>
               </div>
 
@@ -1165,21 +1224,23 @@
                 <h2>OpenShift Console graphs (auto)</h2>
                 <div class="sub">Open <span class="mono">/monitoring/query-browser</span> with PromQL prefilled.</div>
                 <div class="btnGrid">
-                  <button class="primary" onclick="openOcQuery('sum(rate(istio_requests_total{destination_service_namespace=\"demo\"}[5m])) by (destination_service_name)')">RPS by service</button>
-                  <button onclick="openOcQuery('sum(rate(istio_requests_total{destination_service_namespace=\"demo\",response_code=~\"4..|5..\"}[5m])) by (destination_service_name)')">Errors (4xx+5xx) by service</button>
-                  <button onclick="openOcQuery('histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_namespace=\"demo\"}[5m])) by (le, destination_service_name))')">p95 latency (ms) by service</button>
-                  <button onclick="openOcQuery('sum(rate(istio_requests_total{destination_service_name=~\"ab-a|ab-b\"}[1m])) by (destination_service_name)')">A/B split</button>
-                  <button onclick="openOcQuery('sum(rate(istio_requests_total{destination_service_name=~\"canary-v1|canary-v2\"}[1m])) by (destination_service_name)')">Canary split</button>
+                  <a class="btnLink primary" id="ocLinkRps" target="_blank" rel="noreferrer">RPS by service</a>
+                  <a class="btnLink" id="ocLinkErr" target="_blank" rel="noreferrer">Errors (4xx+5xx) by service</a>
+                  <a class="btnLink" id="ocLinkP95" target="_blank" rel="noreferrer">p95 latency (ms) by service</a>
+                  <a class="btnLink" id="ocLinkAb" target="_blank" rel="noreferrer">A/B split</a>
+                  <a class="btnLink" id="ocLinkCanary" target="_blank" rel="noreferrer">Canary split</a>
                 </div>
                 <div class="toolRow">
                   <div class="left">
                     <span class="pill"><span class="dot"></span> <span class="mono" id="consoleUrlPill">console: auto</span></span>
+                    <span class="pill"><span class="dot"></span> <span id="obsTrafficStatus">traffic: idle</span></span>
                   </div>
                   <div class="right">
+                    <button onclick="obsGenerateTraffic()">Generate sample traffic</button>
                     <button onclick="setConsoleUrl()">Change console URL</button>
-                    <button class="primary" onclick="openKiali()">Open Kiali</button>
                   </div>
                 </div>
+                <div class="log" id="obsTrafficLog" style="height:140px; margin-top:10px"></div>
               </div>
 
               <div class="card" style="grid-column: 1 / -1;">
@@ -1301,6 +1362,17 @@
       const jwtLogEl = el("jwtLog");
       const jwtHttpEl = el("jwtHttp");
       const consoleUrlPillEl = el("consoleUrlPill");
+      const obsTrafficStatusEl = el("obsTrafficStatus");
+      const obsTrafficLogEl = el("obsTrafficLog");
+      const ocLinkRpsEl = el("ocLinkRps");
+      const ocLinkErrEl = el("ocLinkErr");
+      const ocLinkP95El = el("ocLinkP95");
+      const ocLinkAbEl = el("ocLinkAb");
+      const ocLinkCanaryEl = el("ocLinkCanary");
+      const kialiLinkHomeEl = el("kialiLinkHome");
+      const kialiLinkGraphEl = el("kialiLinkGraph");
+      const kialiLinkWorkloadsEl = el("kialiLinkWorkloads");
+      const kialiLinkAppsEl = el("kialiLinkApps");
 
       let lastBurst = [];
       let trafficSample = [];
@@ -2138,13 +2210,15 @@ spec:
           b.addEventListener("click", () => showModule(b.getAttribute("data-module")));
         }
         const fromHash = (location.hash || "").replace("#","").trim();
-        const allowed = new Set(["policies","traffic","external","ai","keycloakjwt","observability","oidc"]);
+        const allowed = new Set(["policies","traffic","external","ai","keycloakjwt","oidc","mesh","observability"]);
         showModule(allowed.has(fromHash) ? fromHash : "policies");
         window.addEventListener("hashchange", () => {
           const h = (location.hash || "").replace("#","").trim();
           showModule(allowed.has(h) ? h : "policies");
         });
         refreshConsoleUrlPill();
+        refreshOcLinks();
+        refreshKialiLinks();
       }
 
       function setTrafficStatus(kind, text){
@@ -3083,6 +3157,50 @@ spec:
         window.open(url, "_blank", "noopener,noreferrer");
       }
 
+      function kialiBaseUrl(){
+        let url = String(localStorage.getItem("rhcl_kiali_url") || "").trim();
+        if (!url) url = kialiGuessUrl();
+        if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
+        return url.replace(/\/+$/g, "");
+      }
+
+      function refreshKialiLinks(){
+        const base = kialiBaseUrl();
+        const apply = (el, url) => {
+          if (!el) return;
+          if (!url){
+            el.setAttribute("href", "#");
+            el.style.opacity = "0.55";
+            el.style.pointerEvents = "none";
+          }else{
+            el.setAttribute("href", url);
+            el.style.opacity = "";
+            el.style.pointerEvents = "";
+          }
+        };
+        if (!base){
+          apply(kialiLinkHomeEl, "");
+          apply(kialiLinkGraphEl, "");
+          apply(kialiLinkWorkloadsEl, "");
+          apply(kialiLinkAppsEl, "");
+          return;
+        }
+        apply(kialiLinkHomeEl, base + "/");
+        apply(kialiLinkGraphEl, base + "/?tab=graph&namespaces=demo");
+        apply(kialiLinkWorkloadsEl, base + "/?tab=workloads&namespaces=demo");
+        apply(kialiLinkAppsEl, base + "/?tab=applications&namespaces=demo");
+      }
+
+      function setKialiUrl(){
+        const v = prompt("Kiali base URL (example: https://kiali-istio-system.apps.<cluster>)", kialiBaseUrl());
+        if (v === null) return;
+        const s = String(v || "").trim();
+        if (s) localStorage.setItem("rhcl_kiali_url", s);
+        else localStorage.removeItem("rhcl_kiali_url");
+        refreshKialiLinks();
+        toast(`Kiali URL set to: ${kialiBaseUrl() || "(unknown)"}`);
+      }
+
       function consoleBaseUrl(){
         let url = String(localStorage.getItem("rhcl_console_url") || "").trim();
         if (!url){
@@ -3100,6 +3218,37 @@ spec:
         consoleUrlPillEl.textContent = u ? `console: ${u.replace(/^https?:\/\//i,"")}` : "console: (unknown)";
       }
 
+      function buildOcQueryUrl(promql){
+        const base = consoleBaseUrl();
+        if (!base) return "";
+        const q = String(promql || "").trim();
+        return `${base}/monitoring/query-browser?units=short&query0=${encodeURIComponent(q)}`;
+      }
+
+      function refreshOcLinks(){
+        const links = [
+          [ocLinkRpsEl, 'sum(rate(istio_requests_total{destination_service_namespace=\"demo\"}[5m])) by (destination_service_name)'],
+          [ocLinkErrEl, 'sum(rate(istio_requests_total{destination_service_namespace=\"demo\",response_code=~\"4..|5..\"}[5m])) by (destination_service_name)'],
+          [ocLinkP95El, 'histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_namespace=\"demo\"}[5m])) by (le, destination_service_name))'],
+          [ocLinkAbEl, 'sum(rate(istio_requests_total{destination_service_name=~\"ab-a|ab-b\"}[1m])) by (destination_service_name)'],
+          [ocLinkCanaryEl, 'sum(rate(istio_requests_total{destination_service_name=~\"canary-v1|canary-v2\"}[1m])) by (destination_service_name)'],
+        ];
+        for (const [el, q] of links){
+          if (!el) continue;
+          const url = buildOcQueryUrl(q);
+          el.setAttribute("href", url || "#");
+          if (!url){
+            el.setAttribute("aria-disabled", "true");
+            el.style.opacity = "0.55";
+            el.style.pointerEvents = "none";
+          }else{
+            el.removeAttribute("aria-disabled");
+            el.style.opacity = "";
+            el.style.pointerEvents = "";
+          }
+        }
+      }
+
       function setConsoleUrl(){
         const v = prompt("OpenShift console base URL (example: https://console-openshift-console.apps.<cluster>)", consoleBaseUrl());
         if (v === null) return;
@@ -3107,19 +3256,67 @@ spec:
         if (s) localStorage.setItem("rhcl_console_url", s);
         else localStorage.removeItem("rhcl_console_url");
         refreshConsoleUrlPill();
+        refreshOcLinks();
         toast(`Console URL set to: ${consoleBaseUrl() || "(unknown)"}`);
       }
 
       function openOcQuery(promql){
-        const base = consoleBaseUrl();
-        if (!base) return toast("Could not guess console URL. Click “Set Console URL”.");
-        const q = String(promql || "").trim();
-        const url = `${base}/monitoring/query-browser?units=short&query0=${encodeURIComponent(q)}`;
-        const w = window.open(url, "_blank", "noopener,noreferrer");
-        if (!w){
-          // Popup blocked → fallback to same-tab navigation
-          location.href = url;
+        const url = buildOcQueryUrl(promql);
+        if (!url) return toast("Could not guess console URL. Click “Change console URL”.");
+        location.href = url;
+      }
+
+      async function obsGenerateTraffic(){
+        const host = String(location.host || "");
+        if (!host) return;
+        if (obsTrafficStatusEl) obsTrafficStatusEl.textContent = "traffic: running…";
+        if (obsTrafficLogEl) obsTrafficLogEl.textContent = "";
+
+        const log = (s) => {
+          if (!obsTrafficLogEl) return;
+          const line = `[${now()}] ${s}`;
+          obsTrafficLogEl.textContent = line + "\n" + obsTrafficLogEl.textContent;
+        };
+
+        const counters = { ok: 0, err: 0, byStatus: {} };
+        const hit = async (path, headers) => {
+          try{
+            const r = await fetch(path, { headers: headers || {}, cache: "no-store" });
+            const st = r.status || 0;
+            counters.byStatus[String(st)] = (counters.byStatus[String(st)] || 0) + 1;
+            if (st >= 200 && st < 400) counters.ok++;
+            else counters.err++;
+          }catch(e){
+            counters.err++;
+          }
+        };
+
+        log("Starting traffic generator (about 20s)…");
+        // Sustain traffic so rate[1m] becomes visible quickly
+        const start = Date.now();
+        const durationMs = 20000;
+        let tick = 0;
+
+        while (Date.now() - start < durationMs){
+          tick++;
+          // Burst 3 requests per tick, every ~250ms => ~12 req/s sustained
+          await Promise.all([
+            hit("/hello", { "Authorization": "APIKEY IAMALICE" }),
+            hit("/ab"),
+            hit("/canary"),
+          ]);
+          if (tick % 8 === 0){
+            const statuses = Object.entries(counters.byStatus).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6)
+              .map(([k,v])=>`${k}:${v}`).join(" ");
+            log(`progress ok=${counters.ok} err=${counters.err} ${statuses}`);
+          }
+          await new Promise(r => setTimeout(r, 250));
         }
+
+        const statuses = Object.entries(counters.byStatus).sort((a,b)=>Number(b[1])-Number(a[1])).map(([k,v])=>`${k}:${v}`).join(" ");
+        log(`done ok=${counters.ok} err=${counters.err} ${statuses}`);
+        if (obsTrafficStatusEl) obsTrafficStatusEl.textContent = "traffic: done (refresh Grafana)";
+        toast("Traffic generated. Refresh dashboards.");
       }
 
       function aiLongPrompt(){

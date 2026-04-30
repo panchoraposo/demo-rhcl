@@ -2,7 +2,7 @@ apiVersion: kuadrant.io/v1alpha1
 kind: TokenRateLimitPolicy
 metadata:
   name: ai-bot-token-rl
-  namespace: demo
+  namespace: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "72"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true

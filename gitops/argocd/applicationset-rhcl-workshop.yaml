@@ -19,6 +19,11 @@ spec:
             demoHostname: REPLACE_ME_DEMO_HOSTNAME
             oidcHostname: REPLACE_ME_OIDC_HOSTNAME
             clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+          - name: bot
+            path: gitops/apps/rhcl-demo/appsets/bot
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: keycloak
             path: gitops/apps/rhcl-demo/appsets/keycloak
             demoHostname: REPLACE_ME_DEMO_HOSTNAME
@@ -26,6 +31,11 @@ spec:
             clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: oidc-portal
             path: gitops/apps/rhcl-demo/appsets/oidc-portal
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+          - name: tracing
+            path: gitops/apps/rhcl-demo/appsets/tracing
             demoHostname: REPLACE_ME_DEMO_HOSTNAME
             oidcHostname: REPLACE_ME_OIDC_HOSTNAME
             clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
@@ -235,21 +245,6 @@ spec:
                 group: gateway.networking.k8s.io
                 version: v1
                 kind: HTTPRoute
-                name: ai-bot
-                namespace: demo
-              patch: |-
-                apiVersion: gateway.networking.k8s.io/v1
-                kind: HTTPRoute
-                metadata:
-                  name: ai-bot
-                  namespace: demo
-                spec:
-                  hostnames:
-                    - {{.demoHostname}}
-            - target:
-                group: gateway.networking.k8s.io
-                version: v1
-                kind: HTTPRoute
                 name: jwt-demo
                 namespace: demo
               patch: |-
@@ -280,6 +275,23 @@ spec:
                         jwt:
                           jwt:
                             issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
+          {{- end }}
+          {{- if eq .name "bot" }}
+            - target:
+                group: gateway.networking.k8s.io
+                version: v1
+                kind: HTTPRoute
+                name: ai-bot
+                namespace: rhcl-ai-bot
+              patch: |-
+                apiVersion: gateway.networking.k8s.io/v1
+                kind: HTTPRoute
+                metadata:
+                  name: ai-bot
+                  namespace: rhcl-ai-bot
+                spec:
+                  hostnames:
+                    - {{.demoHostname}}
           {{- end }}
           {{- if eq .name "oidc-portal" }}
             - target:

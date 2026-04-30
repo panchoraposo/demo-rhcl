@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base/resources/00-namespace-ai-bot.yaml
+  - ../../base/resources/34-httproute-ai-bot.yaml
+  - ../../base/resources/35-ai-bot.yaml
+  - ../../base/resources/68-ai-bot-authpolicy.yaml
+  - ../../base/resources/73-ai-bot-tokenratelimitpolicy.yaml
+
