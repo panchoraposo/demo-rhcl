@@ -281,15 +281,15 @@
         return `${y}${m}${day}`;
       }
       function datesWindow(days){
-        const out = [];
+        // ESPN scoreboard accepts a single date (YYYYMMDD) or a dash range (YYYYMMDD-YYYYMMDD).
+        // Comma-separated date lists return 400.
         const n = Number(days || 7);
         const base = new Date();
-        for (let i = -n; i <= n; i++){
-          const d = new Date(base.getTime());
-          d.setDate(d.getDate() + i);
-          out.push(ymd(d));
-        }
-        return out.join(",");
+        const a = new Date(base.getTime()); a.setDate(a.getDate() - n);
+        const b = new Date(base.getTime()); b.setDate(b.getDate() + n);
+        const start = ymd(a);
+        const end = ymd(b);
+        return start === end ? start : `${start}-${end}`;
       }
 
       function setTab(t){
@@ -495,7 +495,7 @@
         const host = String(location.host || "");
         document.cookie = `target=//${host}/; Path=/; Max-Age=3600; SameSite=Lax; Secure`;
 
-        const redirectUri = encodeURIComponent(`https://${host}/oidc/callback`);
+        const redirectUri = encodeURIComponent(`https://${host}/auth/callback`);
         const url = `/auth/realms/rhcl/protocol/openid-connect/auth?client_id=rhcl-ui&redirect_uri=${redirectUri}&response_type=code&scope=openid`;
         location.href = url;
       }

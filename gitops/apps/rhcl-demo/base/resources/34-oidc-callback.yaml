@@ -1,0 +1,267 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oidc-callback
+  namespace: rhcl-oidc-portal
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+data:
+  server.js: |
+    const http = require("http");
+    const { URL } = require("url");
+
+    function parseCookies(h) {
+      const out = {};
+      const s = String(h || "");
+      if (!s) return out;
+      for (const part of s.split(";")) {
+        const idx = part.indexOf("=");
+        if (idx <= 0) continue;
+        const k = part.slice(0, idx).trim();
+        const v = part.slice(idx + 1).trim();
+        if (!k) continue;
+        out[k] = v;
+      }
+      return out;
+    }
+
+    function formEncode(obj) {
+      return Object.entries(obj)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+        .join("&");
+    }
+
+    function readBody(req) {
+      return new Promise((resolve, reject) => {
+        let b = "";
+        req.on("data", (c) => (b += c));
+        req.on("end", () => resolve(b));
+        req.on("error", reject);
+      });
+    }
+
+    async function postForm(urlStr, body) {
+      const u = new URL(urlStr);
+      const lib = u.protocol === "https:" ? require("https") : require("http");
+      const opts = {
+        method: "POST",
+        hostname: u.hostname,
+        port: u.port || (u.protocol === "https:" ? 443 : 80),
+        path: u.pathname + (u.search || ""),
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          "content-length": Buffer.byteLength(body),
+        },
+      };
+      return await new Promise((resolve, reject) => {
+        const r = lib.request(opts, (res) => {
+          let data = "";
+          res.on("data", (c) => (data += c));
+          res.on("end", () => resolve({ status: res.statusCode || 0, headers: res.headers || {}, body: data }));
+        });
+        r.on("error", reject);
+        r.write(body);
+        r.end();
+      });
+    }
+
+    function chooseRedirect(host, cookies) {
+      const t = String((cookies && cookies.target) || "");
+      if (t.startsWith("//")) return `https:${t}`;
+      if (t.startsWith("/")) return `https://${host}${t}`;
+      return `https://${host}/`;
+    }
+
+    function setCookie(name, value, opts) {
+      const parts = [`${name}=${value}`];
+      if (opts && opts.maxAge) parts.push(`Max-Age=${opts.maxAge}`);
+      if (opts && opts.path) parts.push(`Path=${opts.path}`);
+      if (opts && opts.httpOnly) parts.push("HttpOnly");
+      if (opts && opts.secure) parts.push("Secure");
+      if (opts && opts.sameSite) parts.push(`SameSite=${opts.sameSite}`);
+      return parts.join("; ");
+    }
+
+    const PORT = Number(process.env.PORT || "8080");
+    const TOKEN_URL =
+      process.env.KEYCLOAK_TOKEN_URL ||
+      "http://keycloak-service.rhcl-keycloak.svc.cluster.local:8080/auth/realms/rhcl/protocol/openid-connect/token";
+    const CLIENT_ID = process.env.OIDC_CLIENT_ID || "rhcl-ui";
+
+    const server = http.createServer(async (req, res) => {
+      try {
+        const host = String(req.headers["x-forwarded-host"] || req.headers.host || "example.com");
+        const u = new URL(req.url || "/", `http://${host}`);
+        if (u.pathname !== "/auth/callback") {
+          res.writeHead(404, { "content-type": "text/plain" });
+          res.end("not found\n");
+          return;
+        }
+
+        const cookies = parseCookies(req.headers.cookie);
+        const code = u.searchParams.get("code") || "";
+        if (!code) {
+          res.writeHead(302, { location: `https://${host}/` });
+          res.end();
+          return;
+        }
+
+        const redirectUri = `https://${host}/auth/callback`;
+        const body = formEncode({
+          code,
+          grant_type: "authorization_code",
+          redirect_uri: redirectUri,
+          client_id: CLIENT_ID,
+        });
+
+        const tr = await postForm(TOKEN_URL, body);
+        if (tr.status < 200 || tr.status >= 300) {
+          res.writeHead(502, { "content-type": "text/plain" });
+          res.end(`token_exchange_failed status=${tr.status}\n${tr.body.slice(0, 2000)}\n`);
+          return;
+        }
+
+        let tok = null;
+        try {
+          tok = JSON.parse(tr.body);
+        } catch {
+          tok = null;
+        }
+        const idToken = tok && tok.id_token ? String(tok.id_token) : "";
+        if (!idToken) {
+          res.writeHead(502, { "content-type": "text/plain" });
+          res.end("token_exchange_failed missing id_token\n");
+          return;
+        }
+
+        const loc = chooseRedirect(host, cookies);
+        const cookieHeaders = [
+          setCookie("rhcl_token", idToken, { maxAge: 3600, path: "/", httpOnly: true, secure: true, sameSite: "Lax" }),
+          setCookie("target", "", { maxAge: 0, path: "/", httpOnly: true, secure: true, sameSite: "Lax" }),
+        ];
+        res.writeHead(302, { location: loc, "set-cookie": cookieHeaders });
+        res.end();
+      } catch (e) {
+        res.writeHead(500, { "content-type": "text/plain" });
+        res.end(`error: ${String(e)}\n`);
+      }
+    });
+
+    server.listen(PORT, "0.0.0.0", () => {
+      // eslint-disable-next-line no-console
+      console.log(`oidc-callback listening on :${PORT}`);
+    });
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oidc-callback
+  namespace: rhcl-oidc-portal
+  labels:
+    app: oidc-callback
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: oidc-callback
+  template:
+    metadata:
+      labels:
+        app: oidc-callback
+    spec:
+      containers:
+        - name: node
+          image: node:20-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["node", "/app/server.js"]
+          env:
+            - name: PORT
+              value: "8080"
+            - name: KEYCLOAK_TOKEN_URL
+              value: "http://keycloak-service.rhcl-keycloak.svc.cluster.local:8080/auth/realms/rhcl/protocol/openid-connect/token"
+            - name: OIDC_CLIENT_ID
+              value: "rhcl-ui"
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: app
+          configMap:
+            name: oidc-callback
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oidc-callback
+  namespace: rhcl-oidc-portal
+  annotations:
+    argocd.argoproj.io/sync-wave: "12"
+spec:
+  selector:
+    app: oidc-callback
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: oidc-callback
+  namespace: rhcl-oidc-portal
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  hostnames:
+    - oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+    - oidc-rhcl-workshop.sandbox1529.opentlc.com
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-gw
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - method: GET
+          path:
+            type: Exact
+            value: /auth/callback
+        - method: HEAD
+          path:
+            type: Exact
+            value: /auth/callback
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: oidc-callback
+          namespace: rhcl-oidc-portal
+          port: 80
+          weight: 1
+---
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: oidc-callback-allow
+  namespace: rhcl-oidc-portal
+  annotations:
+    argocd.argoproj.io/sync-wave: "32"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: oidc-callback
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+
