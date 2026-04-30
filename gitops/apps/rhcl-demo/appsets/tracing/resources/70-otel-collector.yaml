@@ -17,12 +17,12 @@ metadata:
 spec:
   mode: deployment
   serviceAccount: otel
-  config: |
+  config:
     receivers:
       otlp:
         protocols:
-          grpc:
-          http:
+          grpc: {}
+          http: {}
 
     exporters:
       otlp/tempo:
@@ -40,9 +40,12 @@ spec:
         filename: /var/run/secrets/kubernetes.io/serviceaccount/token
 
     service:
-      extensions: [bearertokenauth]
+      extensions:
+        - bearertokenauth
       pipelines:
         traces:
-          receivers: [otlp]
-          exporters: [otlp/tempo]
+          receivers:
+            - otlp
+          exporters:
+            - otlp/tempo
 
