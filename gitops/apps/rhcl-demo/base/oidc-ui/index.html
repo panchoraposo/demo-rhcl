@@ -192,10 +192,10 @@
 
       <div class="row" style="margin-top:10px">
         <button class="primary" onclick="refresh()">Refresh scoreboard</button>
-        <button class="primary" onclick="login()">Login</button>
-        <button class="good" onclick="openMain()">Back to Policies playground</button>
-        <button class="warn" onclick="logout()">Logout</button>
+        <button class="primary" id="loginBtn" onclick="login()">Login</button>
+        <button class="warn" id="logoutBtn" onclick="logout()">Logout</button>
         <span class="pill"><span class="dot"></span><span id="meta">—</span></span>
+        <span class="pill" title="Current session (from JWT cookie)"><span class="dot" id="uDot"></span><span id="uText">Session: —</span></span>
       </div>
 
       <div class="grid">
@@ -252,6 +252,10 @@
       const tabUpcoming = el("tabUpcoming");
       const tzEl = el("tz");
       const reqEl = el("req");
+      const loginBtn = el("loginBtn");
+      const logoutBtn = el("logoutBtn");
+      const uDot = el("uDot");
+      const uText = el("uText");
 
       let tab = "live";
       let lastEvents = [];
@@ -272,6 +276,33 @@
       function append(line){
         logEl.textContent += (logEl.textContent ? "\n" : "") + line;
         logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function setUser(kind, text){
+        uDot.className = "dot " + (kind || "");
+        uText.textContent = text || "Session: —";
+      }
+
+      async function refreshSession(){
+        try{
+          const r = await fetch("/whoami", { cache: "no-store" });
+          if (!r.ok) {
+            setUser("warn", "Session: not logged in");
+            if (loginBtn) loginBtn.style.display = "";
+            if (logoutBtn) logoutBtn.style.display = "none";
+            return;
+          }
+          const j = await r.json();
+          const u = (j && j.user) ? j.user : {};
+          const label = u && (u.name || u.username || u.email) ? (u.name || u.username || u.email) : "logged in";
+          setUser("ok", `Session: ${label}`);
+          if (loginBtn) loginBtn.style.display = "none";
+          if (logoutBtn) logoutBtn.style.display = "";
+        } catch {
+          setUser("warn", "Session: unknown");
+          if (loginBtn) loginBtn.style.display = "";
+          if (logoutBtn) logoutBtn.style.display = "none";
+        }
       }
 
       function ymd(d){
@@ -383,6 +414,18 @@
           const dt = document.createElement("div");
           dt.className = "dt";
           dt.textContent = fmtDate(ev) + (venueTxt ? ` · ${venueTxt}` : "");
+          const links = (ev && Array.isArray(ev.links)) ? ev.links : [];
+          const href = (links[0] && links[0].href) ? String(links[0].href) : "";
+          if (href && href.startsWith("http")) {
+            const a = document.createElement("a");
+            a.href = href;
+            a.target = "_blank";
+            a.rel = "noreferrer";
+            a.style.marginLeft = "10px";
+            a.style.fontSize = "12px";
+            a.textContent = "ESPN";
+            dt.appendChild(a);
+          }
           meta.appendChild(stEl);
           meta.appendChild(dt);
           top.appendChild(meta);
@@ -404,8 +447,10 @@
             img.className = "logo";
             img.alt = safe(tm.shortDisplayName || tm.displayName || tm.name || "team");
             img.loading = "lazy";
+            img.referrerPolicy = "no-referrer";
             const logos = tm.logos || [];
             img.src = (logos && logos[0] && logos[0].href) ? logos[0].href : "";
+            img.onerror = () => { img.style.display = "none"; };
             row.appendChild(img);
             const nm = document.createElement("div");
             nm.className = "nm";
@@ -473,6 +518,7 @@
         if (r.status === 302){
           setStatus("warn", "Login required");
           render([]);
+          refreshSession();
           return;
         }
         const txt = await r.text();
@@ -488,6 +534,7 @@
         setStatus("ok", "Ready");
         metaEl.textContent = `${txt.length.toLocaleString()} bytes · events=${events.length} · range=${dates}`;
         render(events);
+        refreshSession();
       }
 
       function login(){
@@ -501,14 +548,8 @@
       }
 
       async function logout(){
-        append(`[${now()}] GET /logout`);
-        try{
-          const r = await fetch("/logout", { cache: "no-store" });
-          append(`[${now()}] /logout status=${r.status}`);
-        } catch (e){
-          append(`[${now()}] logout failed: ${String(e)}`);
-        }
-        location.reload();
+        // Use a top-level navigation so Keycloak can clear its own session and redirect back.
+        location.href = "/logout";
       }
 
       function openMain(){
@@ -539,6 +580,7 @@
       setTab("live");
       tryPopupClose();
       ensureTargetCookie();
+      refreshSession();
       refresh().catch(e => {
         setStatus("bad", "Error");
         append(`[${now()}] error: ${String(e)}`);

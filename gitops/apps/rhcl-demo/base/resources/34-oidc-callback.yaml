@@ -65,13 +65,6 @@ data:
       });
     }
 
-    function chooseRedirect(host, cookies) {
-      const t = String((cookies && cookies.target) || "");
-      if (t.startsWith("//")) return `https:${t}`;
-      if (t.startsWith("/")) return `https://${host}${t}`;
-      return `https://${host}/`;
-    }
-
     function setCookie(name, value, opts) {
       const parts = [`${name}=${value}`];
       if (opts && opts.maxAge) parts.push(`Max-Age=${opts.maxAge}`);
@@ -80,6 +73,24 @@ data:
       if (opts && opts.secure) parts.push("Secure");
       if (opts && opts.sameSite) parts.push(`SameSite=${opts.sameSite}`);
       return parts.join("; ");
+    }
+
+    function base64urlDecode(s) {
+      const str = String(s || "").replace(/-/g, "+").replace(/_/g, "/");
+      const pad = str.length % 4 ? "=".repeat(4 - (str.length % 4)) : "";
+      return Buffer.from(str + pad, "base64").toString("utf8");
+    }
+
+    function decodeJwtPayload(jwt) {
+      const t = String(jwt || "");
+      const parts = t.split(".");
+      if (parts.length < 2) return null;
+      try {
+        const json = base64urlDecode(parts[1]);
+        return JSON.parse(json);
+      } catch {
+        return null;
+      }
     }
 
     const PORT = Number(process.env.PORT || "8080");
@@ -92,13 +103,63 @@ data:
       try {
         const host = String(req.headers["x-forwarded-host"] || req.headers.host || "example.com");
         const u = new URL(req.url || "/", `http://${host}`);
+        const cookies = parseCookies(req.headers.cookie);
+
+        if (u.pathname === "/whoami") {
+          const tok = String(cookies.rhcl_token || "");
+          if (!tok) {
+            res.writeHead(401, { "content-type": "application/json", "cache-control": "no-store" });
+            res.end(JSON.stringify({ ok: false, error: "not_logged_in" }));
+            return;
+          }
+          const payload = decodeJwtPayload(tok) || {};
+          res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+          res.end(
+            JSON.stringify(
+              {
+                ok: true,
+                user: {
+                  username: payload.preferred_username || payload.username || "",
+                  name: payload.name || "",
+                  email: payload.email || "",
+                },
+                token: { exp: payload.exp || null, iat: payload.iat || null, iss: payload.iss || "" },
+              },
+              null,
+              2
+            )
+          );
+          return;
+        }
+
+        if (u.pathname === "/logout") {
+          const back = `https://${host}/`;
+          const keycloakLogout =
+            `https://${host}/auth/realms/rhcl/protocol/openid-connect/logout` +
+            `?client_id=${encodeURIComponent(CLIENT_ID)}` +
+            `&post_logout_redirect_uri=${encodeURIComponent(back)}`;
+
+          // Clear RHCL cookies and Keycloak session cookies (best-effort).
+          const clears = [
+            setCookie("rhcl_token", "", { maxAge: 0, path: "/", httpOnly: true, secure: true, sameSite: "Lax" }),
+            setCookie("target", "", { maxAge: 0, path: "/", httpOnly: true, secure: true, sameSite: "Lax" }),
+            // Keycloak cookies live under /auth/realms/rhcl/
+            setCookie("KEYCLOAK_SESSION", "", { maxAge: 0, path: "/auth/realms/rhcl/", secure: true, sameSite: "None" }),
+            setCookie("KEYCLOAK_IDENTITY", "", { maxAge: 0, path: "/auth/realms/rhcl/", httpOnly: true, secure: true, sameSite: "None" }),
+            setCookie("KC_RESTART", "", { maxAge: 0, path: "/auth/realms/rhcl/" }),
+          ];
+
+          res.writeHead(302, { location: keycloakLogout, "set-cookie": clears, "cache-control": "no-store" });
+          res.end();
+          return;
+        }
+
         if (u.pathname !== "/auth/callback") {
           res.writeHead(404, { "content-type": "text/plain" });
           res.end("not found\n");
           return;
         }
 
-        const cookies = parseCookies(req.headers.cookie);
         const code = u.searchParams.get("code") || "";
         if (!code) {
           res.writeHead(302, { location: `https://${host}/` });
@@ -134,12 +195,14 @@ data:
           return;
         }
 
-        const loc = chooseRedirect(host, cookies);
+        // Always redirect back to the portal root after login.
+        // This avoids accidentally landing on the raw JSON protected endpoint in the browser.
+        const loc = `https://${host}/`;
         const cookieHeaders = [
           setCookie("rhcl_token", idToken, { maxAge: 3600, path: "/", httpOnly: true, secure: true, sameSite: "Lax" }),
           setCookie("target", "", { maxAge: 0, path: "/", httpOnly: true, secure: true, sameSite: "Lax" }),
         ];
-        res.writeHead(302, { location: loc, "set-cookie": cookieHeaders });
+        res.writeHead(302, { location: loc, "set-cookie": cookieHeaders, "cache-control": "no-store" });
         res.end();
       } catch (e) {
         res.writeHead(500, { "content-type": "text/plain" });
@@ -237,6 +300,22 @@ spec:
           path:
             type: Exact
             value: /auth/callback
+        - method: GET
+          path:
+            type: Exact
+            value: /logout
+        - method: HEAD
+          path:
+            type: Exact
+            value: /logout
+        - method: GET
+          path:
+            type: Exact
+            value: /whoami
+        - method: HEAD
+          path:
+            type: Exact
+            value: /whoami
       backendRefs:
         - group: ""
           kind: Service
