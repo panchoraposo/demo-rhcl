@@ -15,4 +15,11 @@ spec:
       path: /stats/prometheus
       scheme: http
       interval: 30s
+      relabelings:
+        - action: replace
+          sourceLabels: [__meta_kubernetes_service_label_gateway]
+          targetLabel: gateway
+        - action: replace
+          sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: gateway_namespace
 
