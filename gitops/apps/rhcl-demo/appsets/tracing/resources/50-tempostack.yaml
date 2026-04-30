@@ -9,7 +9,7 @@ metadata:
 spec:
   storage:
     secret:
-      name: minio
+      name: tempo-storage
       type: s3
   storageSize: 200M
   resources:

@@ -9,6 +9,11 @@ spec:
   generators:
     - list:
         elements:
+          - name: storage
+            path: gitops/apps/rhcl-demo/appsets/storage
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: infra
             path: gitops/apps/rhcl-demo/appsets/infra
             demoHostname: REPLACE_ME_DEMO_HOSTNAME
