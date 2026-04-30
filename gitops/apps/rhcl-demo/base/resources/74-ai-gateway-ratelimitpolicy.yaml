@@ -1,0 +1,19 @@
+apiVersion: kuadrant.io/v1
+kind: RateLimitPolicy
+metadata:
+  name: rhcl-ai-gw-rlp
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "33"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-ai-gw
+  limits:
+    global:
+      rates:
+        - limit: 200
+          window: 10s
+

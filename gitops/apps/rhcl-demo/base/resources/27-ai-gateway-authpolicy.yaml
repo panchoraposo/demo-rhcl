@@ -1,0 +1,33 @@
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: rhcl-ai-gw-auth
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "23"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-ai-gw
+  defaults:
+    when:
+      - predicate: "request.path != '/health'"
+    rules:
+      authorization:
+        deny-all:
+          opa:
+            rego: "allow = false"
+      response:
+        unauthorized:
+          headers:
+            "content-type":
+              value: application/json
+          body:
+            value: |
+              {
+                "error": "Forbidden",
+                "message": "Access denied by the AI gateway default policy. Create a route-level AuthPolicy to allow access."
+              }
+

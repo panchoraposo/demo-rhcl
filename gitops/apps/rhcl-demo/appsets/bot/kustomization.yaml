@@ -4,8 +4,11 @@ kind: Kustomization
 resources:
   - ../../base/resources/00-namespace-ai-bot.yaml
   - ../../base/resources/21-ai-gateway.yaml
+  - ../../base/resources/27-ai-gateway-authpolicy.yaml
+  - ../../base/resources/28-ai-gateway-dnspolicy.yaml
   - ../../base/resources/34-httproute-ai-bot.yaml
   - ../../base/resources/35-ai-bot.yaml
   - ../../base/resources/68-ai-bot-authpolicy.yaml
   - ../../base/resources/73-ai-bot-tokenratelimitpolicy.yaml
+  - ../../base/resources/74-ai-gateway-ratelimitpolicy.yaml
 
