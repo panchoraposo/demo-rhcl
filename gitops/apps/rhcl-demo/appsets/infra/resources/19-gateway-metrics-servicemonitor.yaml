@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rhcl-gateway-metrics
+  namespace: openshift-ingress
+spec:
+  namespaceSelector:
+    matchNames:
+      - openshift-ingress
+  selector:
+    matchLabels:
+      app: rhcl-gateway-metrics
+  endpoints:
+    - port: metrics
+      path: /stats/prometheus
+      scheme: http
+      interval: 30s
+
