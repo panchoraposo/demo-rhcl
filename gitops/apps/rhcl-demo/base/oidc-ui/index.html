@@ -485,12 +485,11 @@
       function login(){
         // Start browser login explicitly and set a well-formed "target" cookie.
         // The callback AuthPolicy builds a redirect like "http:" + cookies.target.
-        // Using "s://<host>/" turns "http:" + target into a proper https:// redirect.
+        // Use a scheme-relative target ("//<host>/") so "http:" + target becomes a valid absolute URL.
         const host = String(location.host || "");
-        document.cookie = `target=s://${host}/; Path=/; Max-Age=3600; SameSite=Lax`;
+        document.cookie = `target=//${host}/; Path=/; Max-Age=3600; SameSite=Lax`;
 
-        // Keep the callback path outside /auth so it doesn't collide with the Keycloak /auth route.
-        const redirectUri = encodeURIComponent(`https://${host}/callback`);
+        const redirectUri = encodeURIComponent(`https://${host}/auth/callback`);
         const url = `/auth/realms/rhcl/protocol/openid-connect/auth?client_id=rhcl-ui&redirect_uri=${redirectUri}&response_type=code&scope=openid`;
         location.href = url;
       }
