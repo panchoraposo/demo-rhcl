@@ -154,34 +154,6 @@ spec:
                     kind: ClusterIssuer
                     name: {{.clusterIssuer}}
             - target:
-                group: route.openshift.io
-                version: v1
-                kind: Route
-                name: rhcl-gw
-                namespace: openshift-ingress
-              patch: |-
-                apiVersion: route.openshift.io/v1
-                kind: Route
-                metadata:
-                  name: rhcl-gw
-                  namespace: openshift-ingress
-                spec:
-                  host: {{.demoHostname}}
-            - target:
-                group: route.openshift.io
-                version: v1
-                kind: Route
-                name: rhcl-gw-oidc
-                namespace: openshift-ingress
-              patch: |-
-                apiVersion: route.openshift.io/v1
-                kind: Route
-                metadata:
-                  name: rhcl-gw-oidc
-                  namespace: openshift-ingress
-                spec:
-                  host: {{.oidcHostname}}
-            - target:
                 group: grafana.integreatly.org
                 version: v1beta1
                 kind: Grafana
