@@ -22,7 +22,6 @@ spec:
   ols:
     defaultProvider: litellm
     defaultModel: deepseek-r1-distill-qwen-14b
-    hideIcon: false
   mcpServers:
     # Kuadrant MCP server (Connectivity Link policy help)
     - name: kuadrant
