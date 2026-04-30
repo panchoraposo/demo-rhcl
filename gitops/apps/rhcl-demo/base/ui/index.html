@@ -1091,10 +1091,9 @@
               </div>
               <div class="row" style="margin-top:10px; align-items:center">
                 <button class="primary" onclick="openOidcPortal()">Open OIDC portal</button>
-                <button onclick="copyOidcPortal()">Copy URL</button>
                 <button onclick="openYamlSet('oidc')">View policy YAML</button>
                 <button onclick="openKeycloak()">Open Keycloak</button>
-                <span class="pill"><span class="dot"></span> <code id="oidcPortalPill">—</code></span>
+                <span class="pill" title="OIDC portal hostname"><span class="dot"></span> <code id="oidcPortalPill">—</code></span>
               </div>
             </div>
             <div class="grid">
@@ -1194,9 +1193,9 @@
               <div class="card">
                 <h2>What to show (quick)</h2>
                 <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
-                  <li><b>Graph</b>: gateway → <span class="mono">demo-api</span>, <span class="mono">ab-a/ab-b</span>, <span class="mono">canary-v1/v2</span></li>
+                  <li><b>Graph</b>: gateway → <span class="mono">demo</span> (UI + API + external proxy), <span class="mono">demo-ab</span> (A/B + canary), <span class="mono">rhcl-ai-bot</span> (AI)</li>
                   <li><b>HTTP codes</b>: show spikes when you demo <span class="mono">401/403</span> (auth), <span class="mono">429</span> (rate limit)</li>
-                  <li><b>Namespace focus</b>: keep the view on <span class="mono">demo</span> for clarity</li>
+                  <li><b>Namespace focus</b>: start with <span class="mono">demo</span>, then switch to <span class="mono">demo-ab</span> and <span class="mono">demo-jwt</span> to explain policy isolation</li>
                 </ul>
               </div>
             </div>
@@ -1220,7 +1219,7 @@
                   <button class="primary" onclick="openGrafanaUid('rhcl-business')">Business user</button>
                 </div>
                 <div class="footer">
-                  Default Grafana: <span class="mono">https://grafana-&lt;demo-host&gt;</span> (anonymous).
+                  Default Grafana: <span class="mono">https://grafana-&lt;demo-host&gt;</span> (anonymous). Dashboards live in folder <b>RHCL Workshop</b>.
                 </div>
               </div>
 
@@ -1251,7 +1250,7 @@
                 <h2>Quick checks</h2>
                 <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
                   <li><b>Monitors exist</b>: <span class="mono">oc get servicemonitor,podmonitor -A -l kuadrant.io/observability=true</span></li>
-                  <li><b>Generate traffic</b> using the demo modules (API keys, A/B, canary, external, AI, JWT) before opening dashboards.</li>
+                  <li><b>Generate traffic</b> for each module: <span class="mono">demo</span> (UI/API/external), <span class="mono">demo-ab</span> (A/B + canary), <span class="mono">demo-jwt</span> (JWT), <span class="mono">rhcl-ai-bot</span> (AI).</li>
                   <li><b>Most useful metric</b> for the live demo: <span class="mono">istio_requests_total</span> (requests, errors, splits).</li>
                 </ul>
               </div>
@@ -2966,22 +2965,28 @@ spec:
       }
 
       function oidcPortalHost(){
+        const stored = String(localStorage.getItem("rhcl_oidc_host") || "").trim();
+        if (stored) return stored.replace(/^https?:\/\//i,"").replace(/\/+$/g,"");
         const h = (location && location.host) ? String(location.host) : "example.com";
         if (h.startsWith("oidc-")) return h;
         const configured = "REPLACE_ME_OIDC_HOSTNAME";
         if (configured && !configured.includes("REPLACE_ME")) return configured;
+        // Prefer the base hosted zone (last 3 labels) to avoid conflicts with *.apps.cluster.* A records.
+        const parts = h.split(".");
+        if (parts.length >= 3){
+          const zone = parts.slice(-3).join(".");
+          return `oidc-${parts[0]}.${zone}`;
+        }
         return `oidc-${h}`;
       }
 
       function oidcPortalUrl(){
-        const u = new URL(`https://${oidcPortalHost()}/`);
-        u.searchParams.set("main", location.origin);
-        return u.toString();
+        return `https://${oidcPortalHost()}/`;
       }
 
       function refreshOidcPortalPill(){
         if (!oidcPortalPillEl) return;
-        oidcPortalPillEl.textContent = oidcPortalUrl();
+        oidcPortalPillEl.textContent = oidcPortalHost();
       }
 
       function refreshKeycloakJwtHostPill(){
@@ -2993,10 +2998,7 @@ spec:
         window.open(oidcPortalUrl(), "_blank", "noopener,noreferrer");
       }
 
-      async function copyOidcPortal(){
-        const ok = await copyText(oidcPortalUrl());
-        if (!ok) return;
-      }
+      // (copy URL removed for OIDC portal to keep UI clean)
 
       function aiSetStatus(text){
         if (!aiStatusEl) return;

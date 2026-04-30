@@ -12,13 +12,12 @@ resources:
   - resources/06-enable-kuadrant-console-plugin.yaml
   - resources/07-enable-user-workload-monitoring.yaml
   - resources/08-install-kuadrant-observability-config.yaml
-  - resources/09-install-kuadrant-dashboards.yaml
   - resources/10-grafana-rbac.yaml
   - resources/11-grafana-thanos-token.yaml
   - resources/12-grafana.yaml
   - resources/13-grafana-datasource-thanos.yaml
+  - resources/14a-grafana-dashboard-configmaps.yaml
   - resources/14-grafana-dashboards.yaml
-  - resources/09b-patch-kuadrant-dashboards-promql.yaml
   - resources/15-kiali.yaml
   - resources/16-ossm-ambient.yaml
   - resources/17-kiali-monitoring-rbac.yaml
