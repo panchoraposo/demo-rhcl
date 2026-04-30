@@ -458,7 +458,7 @@ spec:
                     issuerURL: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl
                     authorizationEndpoint: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl/protocol/openid-connect/auth
                     tokenEndpoint: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl/protocol/openid-connect/token
-                    redirectURI: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/oidc/callback
+                    redirectURI: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/callback
             - target:
                 group: kuadrant.io
                 version: v1

@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ../../base/resources/00-namespace-oidc-portal.yaml
   - ../../base/resources/15-oidc-ui.yaml
+  - ../../base/resources/34-oidc-callback.yaml
   - ../../base/resources/33-httproute-oidc-portal.yaml
   - ../../base/resources/38-oidc-referencegrant-external-proxy.yaml
   - ../../base/resources/65-secure-jwt-authpolicy.yaml
