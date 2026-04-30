@@ -2,7 +2,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: ab-demo
-  namespace: demo
+  namespace: demo-ab
   labels:
     app: ab-demo
   annotations:
@@ -63,15 +63,4 @@ spec:
           name: canary-v2
           port: 80
           weight: 10
-    - matches:
-        - method: GET
-          path:
-            type: PathPrefix
-            value: /external
-      backendRefs:
-        - group: ""
-          kind: Service
-          name: external-proxy
-          port: 80
-          weight: 1
 

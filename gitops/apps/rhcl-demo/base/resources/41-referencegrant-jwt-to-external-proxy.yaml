@@ -1,0 +1,17 @@
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-jwt-lab-to-external-proxy
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "29"
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: demo-jwt
+  to:
+    - group: ""
+      kind: Service
+      name: external-proxy
+

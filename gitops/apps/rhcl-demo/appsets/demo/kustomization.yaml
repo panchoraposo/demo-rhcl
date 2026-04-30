@@ -3,20 +3,26 @@ kind: Kustomization
 
 resources:
   - ../../base/resources/00-namespace.yaml
+  - ../../base/resources/00-namespace-demo-ab.yaml
+  - ../../base/resources/00-namespace-demo-jwt.yaml
   - ../../base/resources/10-demo-api.yaml
   - ../../base/resources/15-ui.yaml
-  - ../../base/resources/16-ab-canary-external.yaml
+  - ../../base/resources/16-ab-canary.yaml
+  - ../../base/resources/17-external-proxy.yaml
   - ../../base/resources/30-httproute-api.yaml
   - ../../base/resources/31-httproute-ui.yaml
   - ../../base/resources/32-httproute-ab-canary-external.yaml
   - ../../base/resources/36-httproute-jwt-demo.yaml
   - ../../base/resources/37-trace-svc.yaml
+  - ../../base/resources/39-httproute-external-proxy.yaml
+  - ../../base/resources/41-referencegrant-jwt-to-external-proxy.yaml
   - ../../base/resources/50-api-keys.yaml
   - ../../base/resources/60-route-authpolicy.yaml
   - ../../base/resources/62-ui-authpolicy.yaml
   - ../../base/resources/63-ab-authpolicy.yaml
   - ../../base/resources/69-jwt-demo-authpolicy.yaml
   - ../../base/resources/70-route-ratelimitpolicy.yaml
+  - ../../base/resources/71-external-proxy-authpolicy.yaml
 
 configMapGenerator:
   - name: rhcl-ui
