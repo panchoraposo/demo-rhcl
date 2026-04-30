@@ -355,7 +355,7 @@ spec:
                 issuerURL: https://${OIDC_HOSTNAME}/auth/realms/rhcl
                 authorizationEndpoint: https://${OIDC_HOSTNAME}/auth/realms/rhcl/protocol/openid-connect/auth
                 tokenEndpoint: https://${OIDC_HOSTNAME}/auth/realms/rhcl/protocol/openid-connect/token
-                redirectURI: https://${OIDC_HOSTNAME}/auth/callback
+                redirectURI: https://${OIDC_HOSTNAME}/callback
 
         - target:
             group: kuadrant.io
