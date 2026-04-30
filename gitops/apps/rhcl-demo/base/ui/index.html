@@ -630,6 +630,29 @@
         font-size:12px;
       }
 
+      .monoMini{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size:12px;
+        line-height:1.35;
+        word-break:break-word;
+      }
+      .tokenMini{
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(0,0,0,.12);
+        border-radius:14px;
+        padding:10px 12px;
+      }
+      .tokenPreview{
+        display:block;
+        padding:8px 10px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,.10);
+        background:rgba(255,255,255,.05);
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+      }
+
       .btnGrid{
         display:grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1134,15 +1157,19 @@
                   <button class="primary" onclick="jwtFetchToken()">Get token</button>
                   <button onclick="jwtClearToken()">Clear token</button>
                   <button onclick="jwtCopyToken()">Copy token</button>
+                  <button onclick="jwtShowDecoded()">Decode token</button>
                   <span class="pill"><span class="dot"></span> <span id="jwtStatus">—</span></span>
                 </div>
                 <div class="row" style="margin-top:10px">
-                  <textarea id="jwtToken" spellcheck="false" style="flex:1; min-height:120px; resize:vertical; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); padding:10px 12px; border-radius:14px;" placeholder="JWT will appear here…"></textarea>
+                  <div class="tokenMini" style="flex:1">
+                    <div class="row" style="justify-content:space-between; gap:10px">
+                      <span class="pill"><span class="dot"></span> Token preview</span>
+                      <button onclick="jwtShowToken()">Show token</button>
+                    </div>
+                    <span id="jwtTokenPreview" class="tokenPreview monoMini" style="margin-top:10px">(no token)</span>
+                  </div>
                 </div>
-                <details style="margin-top:10px">
-                  <summary class="pill" style="cursor:pointer; user-select:none">Decode token (header + payload)</summary>
-                  <div class="log" id="jwtDecoded" style="height:180px; margin-top:10px"></div>
-                </details>
+                <textarea id="jwtToken" spellcheck="false" style="display:none" aria-hidden="true"></textarea>
               </div>
 
               <div class="card">
@@ -1339,6 +1366,22 @@
       </div>
     </dialog>
 
+    <dialog id="jsonDlg">
+      <div class="dlgHead">
+        <div class="row" style="gap:10px; align-items:center">
+          <span class="pill"><span class="dot"></span> JSON</span>
+          <span class="pill"><span class="dot"></span> <span id="jsonTitle">—</span></span>
+        </div>
+        <div class="row" style="gap:8px">
+          <button onclick="copyJson()">Copy</button>
+          <button class="warn" onclick="document.getElementById('jsonDlg').close()">Close</button>
+        </div>
+      </div>
+      <div class="dlgBody">
+        <pre id="jsonPre" class="dlgPre"></pre>
+      </div>
+    </dialog>
+
     <script>
       const el = (id) => document.getElementById(id);
       const logEl = el("log");
@@ -1405,9 +1448,13 @@
       const jwtApiPillEl = el("jwtApiPill");
       const jwtStatusEl = el("jwtStatus");
       const jwtTokenEl = el("jwtToken");
-      const jwtDecodedEl = el("jwtDecoded");
+      const jwtTokenPreviewEl = el("jwtTokenPreview");
       const jwtLogEl = el("jwtLog");
       const jwtHttpEl = el("jwtHttp");
+
+      const jsonDlg = el("jsonDlg");
+      const jsonTitleEl = el("jsonTitle");
+      const jsonPreEl = el("jsonPre");
       const consoleUrlPillEl = el("consoleUrlPill");
       const obsTrafficStatusEl = el("obsTrafficStatus");
       const obsTrafficLogEl = el("obsTrafficLog");
@@ -1437,6 +1484,8 @@
       let yamlActiveKey = "";
       let aiConversation = [];
       let jwtToken = "";
+      let jwtDecodedText = "";
+      let jsonActiveText = "";
 
       const YAML_SETS = {
         "policies": [
@@ -3092,24 +3141,55 @@ spec:
         return txt;
       }
 
+      function jwtPreview(tok){
+        const t = String(tok || "").trim();
+        if (!t) return "(no token)";
+        if (t.length <= 42) return t;
+        return `${t.slice(0, 18)}…${t.slice(-18)}`;
+      }
+
+      function openJson(title, text){
+        if (!jsonDlg || !jsonTitleEl || !jsonPreEl) return;
+        jsonActiveText = String(text || "");
+        jsonTitleEl.textContent = String(title || "JSON");
+        jsonPreEl.textContent = jsonActiveText || "(empty)";
+        jsonDlg.showModal();
+      }
+
+      async function copyJson(){
+        if (!jsonActiveText) return;
+        await copyText(jsonActiveText);
+      }
+
+      function jwtShowToken(){
+        if (!jwtToken) return;
+        openJson("JWT token", jwtToken);
+      }
+
+      function jwtShowDecoded(){
+        if (!jwtToken) return;
+        if (!jwtDecodedText) jwtDecode();
+        openJson("Decoded JWT (header + payload)", jwtDecodedText || "(no token)");
+      }
+
       function jwtDecode(){
-        if (!jwtDecodedEl) return;
         const t = String(jwtToken || "").trim();
+        if (jwtTokenPreviewEl) jwtTokenPreviewEl.textContent = jwtPreview(t);
         if (!t || !t.includes(".")){
-          jwtDecodedEl.textContent = "(no token)";
+          jwtDecodedText = "(no token)";
           return;
         }
         const parts = t.split(".");
         if (parts.length < 2){
-          jwtDecodedEl.textContent = "(invalid token)";
+          jwtDecodedText = "(invalid token)";
           return;
         }
         try{
           const head = JSON.parse(b64urlDecode(parts[0]));
           const pay = JSON.parse(b64urlDecode(parts[1]));
-          jwtDecodedEl.textContent = JSON.stringify({ header: head, payload: pay }, null, 2);
+          jwtDecodedText = JSON.stringify({ header: head, payload: pay }, null, 2);
         } catch (e){
-          jwtDecodedEl.textContent = `decode failed: ${String(e)}`;
+          jwtDecodedText = `decode failed: ${String(e)}`;
         }
       }
 
