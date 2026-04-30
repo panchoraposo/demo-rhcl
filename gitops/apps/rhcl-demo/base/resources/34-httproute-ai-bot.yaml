@@ -40,6 +40,8 @@ spec:
       filters:
         - type: ResponseHeaderModifier
           responseHeaderModifier:
+            remove:
+              - access-control-allow-credentials
             set:
               - name: access-control-allow-origin
                 value: "*"
