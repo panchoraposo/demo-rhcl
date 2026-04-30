@@ -19,6 +19,14 @@ spec:
     - matches:
         - method: GET
           path:
+            type: Exact
+            value: /oidc/callback
+        - method: HEAD
+          path:
+            type: Exact
+            value: /oidc/callback
+        - method: GET
+          path:
             type: PathPrefix
             value: /portal-login
         - method: HEAD

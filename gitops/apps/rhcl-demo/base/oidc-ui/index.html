@@ -495,7 +495,7 @@
         const host = String(location.host || "");
         document.cookie = `target=//${host}/; Path=/; Max-Age=3600; SameSite=Lax; Secure`;
 
-        const redirectUri = encodeURIComponent(`https://${host}/auth/callback`);
+        const redirectUri = encodeURIComponent(`https://${host}/oidc/callback`);
         const url = `/auth/realms/rhcl/protocol/openid-connect/auth?client_id=rhcl-ui&redirect_uri=${redirectUri}&response_type=code&scope=openid`;
         location.href = url;
       }
