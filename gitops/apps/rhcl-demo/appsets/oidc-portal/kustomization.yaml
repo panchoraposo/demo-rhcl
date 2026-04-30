@@ -16,6 +16,10 @@ configMapGenerator:
     namespace: rhcl-oidc-portal
     files:
       - index.html=../../base/oidc-ui/index.html
+  - name: oidc-callback
+    namespace: rhcl-oidc-portal
+    files:
+      - server.js=../../base/oidc-callback/server.js
 
 generatorOptions:
   annotations:
