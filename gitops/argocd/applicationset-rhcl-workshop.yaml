@@ -374,6 +374,7 @@ spec:
           namespace: rhcl-observability
           jsonPointers:
             - /metadata/annotations
+            - /spec
             - /status
       {{- end }}
 
