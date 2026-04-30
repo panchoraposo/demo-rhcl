@@ -341,6 +341,20 @@
         return { comps, home, away };
       }
 
+      function teamLogoHref(tm){
+        if (!tm) return "";
+        const logos = tm.logos || [];
+        let href = "";
+        if (Array.isArray(logos) && logos.length && logos[0] && logos[0].href) href = String(logos[0].href);
+        if (!href && tm.logo) href = String(tm.logo);
+        if (!href && tm.links && Array.isArray(tm.links) && tm.links[0] && tm.links[0].href) {
+          // sometimes only a team page link exists; no direct logo URL
+        }
+        if (href.startsWith("//")) href = "https:" + href;
+        if (href.startsWith("http://")) href = "https://" + href.slice("http://".length);
+        return href;
+      }
+
       function seriesLabel(ev){
         const comps = (ev && ev.competitions && ev.competitions[0]) ? ev.competitions[0] : null;
         const s = comps && comps.series ? comps.series : null;
@@ -448,8 +462,7 @@
             img.alt = safe(tm.shortDisplayName || tm.displayName || tm.name || "team");
             img.loading = "lazy";
             img.referrerPolicy = "no-referrer";
-            const logos = tm.logos || [];
-            img.src = (logos && logos[0] && logos[0].href) ? logos[0].href : "";
+            img.src = teamLogoHref(tm);
             img.onerror = () => { img.style.display = "none"; };
             row.appendChild(img);
             const nm = document.createElement("div");
