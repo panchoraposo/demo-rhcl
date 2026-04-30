@@ -17,7 +17,6 @@ resources:
   - resources/18-rhbk-operator.yaml
   - resources/20-gateway.yaml
   - resources/24-gateway-certificate.yaml
-  - resources/25-gateway-tlspolicy.yaml
   - resources/26-gateway-dnspolicy.yaml
   - resources/30-httproute-api.yaml
   - resources/31-httproute-ui.yaml
