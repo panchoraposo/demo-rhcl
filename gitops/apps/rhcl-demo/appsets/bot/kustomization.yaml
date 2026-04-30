@@ -7,8 +7,11 @@ resources:
   - ../../base/resources/27-ai-gateway-authpolicy.yaml
   - ../../base/resources/28-ai-gateway-dnspolicy.yaml
   - ../../base/resources/34-httproute-ai-bot.yaml
+  - ../../base/resources/34a-httproute-ai-bot-main.yaml
   - ../../base/resources/35-ai-bot.yaml
   - ../../base/resources/68-ai-bot-authpolicy.yaml
+  - ../../base/resources/68a-ai-bot-main-authpolicy.yaml
   - ../../base/resources/73-ai-bot-tokenratelimitpolicy.yaml
+  - ../../base/resources/73a-ai-bot-main-tokenratelimitpolicy.yaml
   - ../../base/resources/74-ai-gateway-ratelimitpolicy.yaml
 
