@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Red Hat Connectivity Link — Policies playground</title>
+    <title>Red Hat Connectivity Link playground</title>
     <meta name="color-scheme" content="dark light" />
     <style>
       :root{
@@ -724,7 +724,7 @@
         <div class="wrap">
           <header>
             <div class="title">
-              <h1>Red Hat Connectivity Link — Policies playground</h1>
+              <h1>Red Hat Connectivity Link playground</h1>
               <div class="sub">
                 Gateway API + Kuadrant (Connectivity Link): Auth, rate-limit, TLS, traffic shaping, OIDC, and external API proxying.
               </div>
@@ -739,7 +739,7 @@
           <section class="module active" id="policies" data-module="policies">
             <div class="moduleHero">
               <div class="k">Module</div>
-              <div class="t"><b>Policies playground</b> — AuthPolicy + RateLimitPolicy</div>
+              <div class="t"><b>Workshop</b> — AuthPolicy + RateLimitPolicy</div>
               <div class="d">Use API keys to demonstrate identity + rate limiting (429). The live log is your “audience screen”.</div>
               <div class="row" style="margin-top:10px">
                 <button onclick="openYamlSet('policies')">View policy YAML</button>
@@ -3418,14 +3418,20 @@ spec:
 
         const counters = { ok: 0, err: 0, byStatus: {} };
         const hit = async (path, headers) => {
+          const ctl = new AbortController();
+          const t = setTimeout(() => ctl.abort(), 4000);
           try{
-            const r = await fetch(path, { headers: headers || {}, cache: "no-store" });
+            const r = await fetch(path, { headers: headers || {}, cache: "no-store", signal: ctl.signal });
             const st = r.status || 0;
+            try{ if (r.body && r.body.cancel) await r.body.cancel(); } catch {}
             counters.byStatus[String(st)] = (counters.byStatus[String(st)] || 0) + 1;
             if (st >= 200 && st < 400) counters.ok++;
             else counters.err++;
           }catch(e){
             counters.err++;
+            counters.byStatus["err"] = (counters.byStatus["err"] || 0) + 1;
+          } finally {
+            clearTimeout(t);
           }
         };
 
@@ -3461,6 +3467,8 @@ spec:
 
         while (Date.now() - start < durationMs){
           tick++;
+          const sec = Math.min(60, Math.floor((Date.now() - start) / 1000));
+          if (statusEl) statusEl.textContent = `traffic: running… ${sec}/60s`;
           // Burst requests per tick, every ~250ms => sustained traffic for dashboards.
           await Promise.all([
             hit("/hello", { "Authorization": "APIKEY IAMALICE" }),
@@ -3477,10 +3485,10 @@ spec:
             await hit("/jwt/secure/nba", { "Authorization": `Bearer ${jwtTok}` });
           }
           if (tick % 6 === 0){
-            // MCP ping-like traffic to show AI component in graphs.
-            await hit("/mcp/streamable", { "content-type": "application/json", "accept": "application/json, text/event-stream" });
+            // Non-streaming ping to show AI component without hanging the generator.
+            await hit("/mcp", { "accept": "application/json" });
           }
-          if (tick % 8 === 0){
+          if (tick % 4 === 0){
             const statuses = Object.entries(counters.byStatus).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6)
               .map(([k,v])=>`${k}:${v}`).join(" ");
             log(`progress ok=${counters.ok} err=${counters.err} ${statuses}`);
