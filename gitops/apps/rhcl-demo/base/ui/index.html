@@ -1186,6 +1186,7 @@
                   <button class="primary" onclick="jwtCall(true)">Call with token</button>
                   <button onclick="jwtClearLog()">Clear log</button>
                   <span class="pill"><span class="dot"></span> <span id="jwtHttp">HTTP: —</span></span>
+                  <span class="pill"><span class="dot"></span> <span id="jwtCallStatus">—</span></span>
                 </div>
                 <div class="log" id="jwtLog" style="height:260px; margin-top:10px"></div>
               </div>
@@ -1465,6 +1466,7 @@
       const jwtTokenPreviewEl = el("jwtTokenPreview");
       const jwtLogEl = el("jwtLog");
       const jwtHttpEl = el("jwtHttp");
+      const jwtCallStatusEl = el("jwtCallStatus");
 
       const jsonDlg = el("jsonDlg");
       const jsonTitleEl = el("jsonTitle");
@@ -3131,6 +3133,11 @@ spec:
         jwtTokenHttpEl.textContent = text || "HTTP (token): —";
       }
 
+      function jwtSetCallStatus(text){
+        if (!jwtCallStatusEl) return;
+        jwtCallStatusEl.textContent = text || "—";
+      }
+
       function jwtSetHttp(text){
         if (!jwtHttpEl) return;
         jwtHttpEl.textContent = text || "HTTP: —";
@@ -3245,6 +3252,7 @@ spec:
       async function jwtFetchToken(){
         jwtSetStatus("Fetching token…");
         jwtSetTokenHttp("HTTP (token): —");
+        jwtSetCallStatus("—");
         const form = new URLSearchParams();
         form.set("grant_type","password");
         form.set("client_id","rhcl-ui");
@@ -3290,13 +3298,13 @@ spec:
 
       async function jwtCall(withToken){
         const use = !!withToken;
-        jwtSetStatus("Calling…");
+        jwtSetCallStatus("Calling…");
         jwtSetHttp("HTTP: —");
         const headers = {};
         if (use){
           const t = String(jwtToken || "").trim();
           if (!t){
-            jwtSetStatus("No token");
+            jwtSetCallStatus("No token");
             appendTo(jwtLogEl, `[${now()}] no token set`, "bad");
             return;
           }
@@ -3308,7 +3316,7 @@ spec:
           r = await fetch("/jwt/secure/nba", { method: "GET", headers, cache: "no-store" });
           txt = await r.text();
         } catch (e){
-          jwtSetStatus("Error");
+          jwtSetCallStatus("Error");
           appendTo(jwtLogEl, `[${now()}] request failed: ${String(e)}`, "bad");
           return;
         }
@@ -3317,7 +3325,7 @@ spec:
         appendTo(jwtLogEl, `[${now()}] GET /jwt/secure/nba ${use ? "(with token)" : "(no token)"} -> ${r.status}`, r.ok ? "good" : "bad");
         if (!r.ok){
           appendTo(jwtLogEl, txt.slice(0, 2000), "bad");
-          jwtSetStatus("Done");
+          jwtSetCallStatus("Done");
           return;
         }
         let obj=null;
@@ -3327,12 +3335,12 @@ spec:
         } else {
           appendTo(jwtLogEl, txt.slice(0, 1200), "muted");
         }
-        jwtSetStatus("Done");
+        jwtSetCallStatus("Done");
       }
 
       function jwtClearLog(){
         if (jwtLogEl) jwtLogEl.textContent = "";
-        jwtSetStatus("Log cleared");
+        jwtSetCallStatus("Log cleared");
         jwtSetHttp("HTTP: —");
       }
 
@@ -3407,14 +3415,19 @@ spec:
           apply(kialiLinkAppsEl, "");
           return;
         }
-        apply(kialiLinkHomeEl, base + "/");
-        // Kiali Console deep-link (graph with animation enabled).
-        apply(
-          kialiLinkGraphEl,
-          base + "/console/graph/namespaces?traffic=ambient%2CambientTotal%2Cgrpc%2CgrpcRequest%2Ctcp%2CtcpSent&graphType=versionedApp&namespaces=demo&duration=60&refresh=60000&layout=dagre&animation=true"
-        );
-        apply(kialiLinkWorkloadsEl, base + "/?tab=workloads&namespaces=demo");
-        apply(kialiLinkAppsEl, base + "/?tab=applications&namespaces=demo");
+        const traffic = "ambient%2CambientTotal%2Cgrpc%2CgrpcRequest%2Ctcp%2CtcpSent";
+        const common = `traffic=${traffic}&graphType=versionedApp&duration=300&refresh=10000&layout=dagre&animation=true`;
+        const g = (namespaces) => base + `/console/graph/namespaces?${common}&namespaces=${encodeURIComponent(namespaces)}`;
+
+        // Multi-namespace workshop views.
+        apply(kialiLinkHomeEl, g("demo,demo-ab,demo-jwt,rhcl-oidc-portal,rhcl-keycloak,rhcl-ai-bot"));
+        apply(kialiLinkGraphEl, g("openshift-ingress,demo,demo-ab,demo-jwt,rhcl-ai-bot"));
+        apply(kialiLinkWorkloadsEl, g("demo-ab"));
+        apply(kialiLinkAppsEl, g("demo-jwt,rhcl-keycloak,rhcl-oidc-portal,demo"));
+      }
+
+      function meshGenerateTraffic(){
+        return obsGenerateTraffic({ statusEl: meshTrafficStatusEl, logEl: meshTrafficLogEl, buttonEl: meshTrafficBtnEl });
       }
 
       function setKialiUrl(){
@@ -3519,16 +3532,25 @@ spec:
         location.href = url;
       }
 
-      async function obsGenerateTraffic(){
+      async function obsGenerateTraffic(opts){
         const host = String(location.host || "");
         if (!host) return;
-        if (obsTrafficStatusEl) obsTrafficStatusEl.textContent = "traffic: running…";
-        if (obsTrafficLogEl) obsTrafficLogEl.textContent = "";
+        const statusEl = (opts && opts.statusEl) ? opts.statusEl : obsTrafficStatusEl;
+        const logEl = (opts && opts.logEl) ? opts.logEl : obsTrafficLogEl;
+        const buttonEl = (opts && opts.buttonEl) ? opts.buttonEl : null;
+        const origBtnText = buttonEl ? String(buttonEl.textContent || "") : "";
+        if (buttonEl){
+          buttonEl.disabled = true;
+          buttonEl.textContent = "Generating traffic…";
+        }
+
+        if (statusEl) statusEl.textContent = "traffic: running…";
+        if (logEl) logEl.textContent = "";
 
         const log = (s) => {
-          if (!obsTrafficLogEl) return;
+          if (!logEl) return;
           const line = `[${now()}] ${s}`;
-          obsTrafficLogEl.textContent = line + "\n" + obsTrafficLogEl.textContent;
+          logEl.textContent = line + "\n" + logEl.textContent;
         };
 
         const counters = { ok: 0, err: 0, byStatus: {} };
@@ -3544,20 +3566,57 @@ spec:
           }
         };
 
-        log("Starting traffic generator (about 20s)…");
+        log("Starting traffic generator (about 60s)…");
         // Sustain traffic so rate[1m] becomes visible quickly
         const start = Date.now();
-        const durationMs = 20000;
+        const durationMs = 60000;
         let tick = 0;
+
+        // Fetch a JWT once so the JWT module produces 200s (avoid making the graph look red by default).
+        let jwtTok = "";
+        try{
+          const form = new URLSearchParams();
+          form.set("grant_type","password");
+          form.set("client_id","rhcl-ui");
+          form.set("username","demo");
+          form.set("password","demo");
+          form.set("scope","openid");
+          const tr = await fetch("/auth/realms/rhcl/protocol/openid-connect/token", {
+            method: "POST",
+            headers: { "content-type": "application/x-www-form-urlencoded" },
+            body: form.toString(),
+            cache: "no-store",
+          });
+          if (tr.ok){
+            const tj = await tr.json();
+            jwtTok = String(tj && tj.access_token ? tj.access_token : "");
+            if (jwtTok) log("JWT token acquired for traffic generator.");
+          }
+        } catch {
+          // ignore
+        }
 
         while (Date.now() - start < durationMs){
           tick++;
-          // Burst 3 requests per tick, every ~250ms => ~12 req/s sustained
+          // Burst requests per tick, every ~250ms => sustained traffic for dashboards.
           await Promise.all([
             hit("/hello", { "Authorization": "APIKEY IAMALICE" }),
+            hit("/external/nba"),
             hit("/ab"),
             hit("/canary"),
           ]);
+          if (tick % 3 === 0){
+            // Ensure canary v2 gets steady traffic.
+            await hit("/canary", { "x-rhcl-canary": "always" });
+          }
+          if (tick % 4 === 0 && jwtTok){
+            // JWT-protected endpoint (success path).
+            await hit("/jwt/secure/nba", { "Authorization": `Bearer ${jwtTok}` });
+          }
+          if (tick % 6 === 0){
+            // MCP ping-like traffic to show AI component in graphs.
+            await hit("/mcp/streamable", { "content-type": "application/json", "accept": "application/json, text/event-stream" });
+          }
           if (tick % 8 === 0){
             const statuses = Object.entries(counters.byStatus).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6)
               .map(([k,v])=>`${k}:${v}`).join(" ");
@@ -3568,7 +3627,11 @@ spec:
 
         const statuses = Object.entries(counters.byStatus).sort((a,b)=>Number(b[1])-Number(a[1])).map(([k,v])=>`${k}:${v}`).join(" ");
         log(`done ok=${counters.ok} err=${counters.err} ${statuses}`);
-        if (obsTrafficStatusEl) obsTrafficStatusEl.textContent = "traffic: done (refresh Grafana)";
+        if (statusEl) statusEl.textContent = "traffic: done";
+        if (buttonEl){
+          buttonEl.disabled = false;
+          buttonEl.textContent = origBtnText || "Generate traffic";
+        }
         toast("Traffic generated. Refresh dashboards.");
       }
 
