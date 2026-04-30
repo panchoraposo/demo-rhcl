@@ -5,7 +5,6 @@ resources:
   - resources/04-namespace-gateway-system.yaml
   - resources/05-namespace-monitoring.yaml
   - ../../base/resources/05-console-banner.yaml
-  - ../../base/resources/18-rhbk-operator.yaml
   - ../../base/resources/20-gateway.yaml
   - ../../base/resources/24-gateway-certificate.yaml
   - ../../base/resources/25-gateway-tlspolicy.yaml

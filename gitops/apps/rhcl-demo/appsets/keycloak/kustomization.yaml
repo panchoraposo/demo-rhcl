@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base/resources/00-namespace-keycloak.yaml
+  - ../../base/resources/18-rhbk-operator.yaml
   - ../../base/resources/17-oidc-keycloak.yaml
   - ../../base/resources/33-httproute-keycloak.yaml
   - ../../base/resources/64-keycloak-authpolicy.yaml
