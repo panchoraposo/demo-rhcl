@@ -101,6 +101,89 @@ spec:
             - /metadata/annotations
             - /spec
             - /status
+        - group: grafana.integreatly.org
+          kind: Grafana
+          name: rhcl-grafana
+          namespace: monitoring
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: grafana.integreatly.org
+          kind: GrafanaDatasource
+          name: rhcl-thanos
+          namespace: monitoring
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: grafana.integreatly.org
+          kind: GrafanaDashboard
+          namespace: monitoring
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: kiali.io
+          kind: Kiali
+          name: kiali
+          namespace: istio-system
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: kuadrant.io
+          kind: AuthPolicy
+          name: rhcl-gw-auth
+          namespace: openshift-ingress
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: kuadrant.io
+          kind: DNSPolicy
+          name: rhcl-oidc-dns
+          namespace: openshift-ingress
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: sailoperator.io
+          kind: Istio
+          name: default
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: sailoperator.io
+          kind: IstioCNI
+          name: default
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: sailoperator.io
+          kind: ZTunnel
+          name: default
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+        - group: ""
+          kind: ServiceAccount
+          name: rhcl-grafana
+          namespace: monitoring
+          jsonPointers:
+            - /imagePullSecrets
+            - /secrets
+            - /metadata/annotations
+        - group: ""
+          kind: ServiceAccount
+          name: enable-kuadrant-console-plugin
+          namespace: openshift-gitops
+          jsonPointers:
+            - /imagePullSecrets
+            - /secrets
+            - /metadata/annotations
+        - group: ""
+          kind: ServiceAccount
+          name: rhcl-observability-bootstrap
+          namespace: openshift-gitops
+          jsonPointers:
+            - /imagePullSecrets
+            - /secrets
+            - /metadata/annotations
 
   templatePatch: |
     spec:
