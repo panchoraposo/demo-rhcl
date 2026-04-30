@@ -25,9 +25,6 @@ public class OpenAiClient {
   @ConfigProperty(name = "rhcl.ai.openai.base-url", defaultValue = "https://api.openai.com/v1")
   String baseUrl;
 
-  @ConfigProperty(name = "rhcl.ai.openai.api-key", defaultValue = "")
-  String apiKey;
-
   @ConfigProperty(name = "rhcl.ai.openai.model", defaultValue = "gpt-4o-mini")
   String model;
 
@@ -35,11 +32,21 @@ public class OpenAiClient {
     this.json = json;
   }
 
+  private static String envApiKey() {
+    String v = System.getenv("RHCL_AI_OPENAI_API_KEY");
+    return v == null ? "" : v.trim();
+  }
+
   public boolean enabled() {
-    return apiKey != null && !apiKey.isBlank();
+    return !envApiKey().isBlank();
   }
 
   public JsonNode chat(ArrayNode messages) throws Exception {
+    String apiKey = envApiKey();
+    if (apiKey.isBlank()) {
+      throw new IllegalStateException("LLM disabled: missing RHCL_AI_OPENAI_API_KEY");
+    }
+
     ObjectNode body = json.obj();
     body.put("model", model);
     body.set("messages", messages);
