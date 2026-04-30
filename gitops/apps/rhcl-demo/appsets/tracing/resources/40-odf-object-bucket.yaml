@@ -53,16 +53,11 @@ metadata:
   namespace: rhcl-observability
   annotations:
     argocd.argoproj.io/sync-wave: "22"
-    argocd.argoproj.io/sync-options: Replace=true
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,BeforeHookCreation
 spec:
   backoffLimit: 8
-  selector:
-    matchLabels:
-      app: tempo-odf-secret-sync
   template:
-    metadata:
-      labels:
-        app: tempo-odf-secret-sync
     spec:
       restartPolicy: OnFailure
       serviceAccountName: tempo-storage-secret-sync
