@@ -16,7 +16,6 @@ resources:
   - resources/17-oidc-keycloak.yaml
   - resources/18-rhbk-operator.yaml
   - resources/20-gateway.yaml
-  - resources/24-gateway-certificate.yaml
   - resources/26-gateway-dnspolicy.yaml
   - resources/30-httproute-api.yaml
   - resources/31-httproute-ui.yaml

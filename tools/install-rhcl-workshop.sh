@@ -21,24 +21,27 @@ if [[ -z "${APPS_DOMAIN}" ]]; then
   exit 1
 fi
 
+# Use the cluster's default ingress wildcard cert for Gateway TLS.
+DEFAULT_INGRESS_CERT_SECRET="$(
+  oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.spec.defaultCertificate.name}' 2>/dev/null || true
+)"
+if [[ -z "${DEFAULT_INGRESS_CERT_SECRET}" ]]; then
+  echo "Could not detect default ingress certificate secret (ingresscontroller default). " >&2
+  echo "Set DEFAULT_INGRESS_CERT_SECRET manually." >&2
+  exit 1
+fi
+DEFAULT_INGRESS_CERT_SECRET="${DEFAULT_INGRESS_CERT_SECRET:-cert-manager-ingress-cert}"
+
 DEMO_HOSTNAME="${DEMO_HOSTNAME:-rhcl-workshop.${APPS_DOMAIN}}"
-# Default OIDC hostname is created under the base hosted zone (last 3 labels),
-# so Kuadrant DNSPolicy can create a fresh Route53 record without conflicting
-# with the existing *.apps.<cluster> A records.
+# Default OIDC hostname lives under the cluster apps domain.
+# Most OpenShift clusters already expose a wildcard record for `*.${APPS_DOMAIN}`,
+# so this hostname resolves without needing Route53 automation.
 # Example:
 #   rhcl-workshop.apps.cluster-xxxx.yyyy.sandbox1529.opentlc.com
-# -> oidc-rhcl-workshop.sandbox1529.opentlc.com
+# -> oidc-rhcl-workshop.apps.cluster-xxxx.yyyy.sandbox1529.opentlc.com
 if [[ -z "${OIDC_HOSTNAME:-}" ]]; then
   DEMO_NAME="${DEMO_HOSTNAME%%.*}"
-  ZONE="$(
-    python3 - <<'PY'
-import os
-h=os.environ.get("DEMO_HOSTNAME","").strip()
-parts=h.split(".")
-print(".".join(parts[-3:]) if len(parts) >= 3 else h)
-PY
-  )"
-  OIDC_HOSTNAME="oidc-${DEMO_NAME}.${ZONE}"
+  OIDC_HOSTNAME="oidc-${DEMO_NAME}.${APPS_DOMAIN}"
 fi
 GRAFANA_HOSTNAME="${GRAFANA_HOSTNAME:-grafana-${DEMO_HOSTNAME}}"
 
@@ -58,6 +61,7 @@ echo "- DEMO_HOSTNAME=${DEMO_HOSTNAME}"
 echo "- OIDC_HOSTNAME=${OIDC_HOSTNAME}"
 echo "- GRAFANA_HOSTNAME=${GRAFANA_HOSTNAME}"
 echo "- CLUSTER_ISSUER=${CLUSTER_ISSUER}"
+echo "- DEFAULT_INGRESS_CERT_SECRET=${DEFAULT_INGRESS_CERT_SECRET}"
 
 # Optional: configure Route53 credentials for Kuadrant DNSPolicy.
 if [[ -n "${AWS_ACCESS_KEY_ID:-}" || -n "${AWS_SECRET_ACCESS_KEY:-}" || -n "${AWS_REGION:-}" ]]; then
@@ -126,7 +130,7 @@ spec:
                     certificateRefs:
                       - group: ""
                         kind: Secret
-                        name: rhcl-gw-tls
+                        name: ${DEFAULT_INGRESS_CERT_SECRET}
                   allowedRoutes:
                     namespaces:
                       from: All
@@ -139,7 +143,7 @@ spec:
                     certificateRefs:
                       - group: ""
                         kind: Secret
-                        name: rhcl-gw-tls
+                        name: ${DEFAULT_INGRESS_CERT_SECRET}
                   allowedRoutes:
                     namespaces:
                       from: All
@@ -173,25 +177,6 @@ spec:
               namespace: openshift-ingress
             spec:
               host: ${OIDC_HOSTNAME}
-
-        - target:
-            group: cert-manager.io
-            version: v1
-            kind: Certificate
-            name: rhcl-gw-tls
-            namespace: openshift-ingress
-          patch: |-
-            apiVersion: cert-manager.io/v1
-            kind: Certificate
-            metadata:
-              name: rhcl-gw-tls
-              namespace: openshift-ingress
-            spec:
-              dnsNames:
-                - ${DEMO_HOSTNAME}
-                - ${OIDC_HOSTNAME}
-              issuerRef:
-                name: ${CLUSTER_ISSUER}
 
         - target:
             group: kuadrant.io

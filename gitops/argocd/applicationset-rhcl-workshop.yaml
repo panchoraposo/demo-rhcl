@@ -220,7 +220,7 @@ spec:
                         certificateRefs:
                           - group: ""
                             kind: Secret
-                            name: rhcl-gw-tls
+                            name: cert-manager-ingress-cert
                       allowedRoutes:
                         namespaces:
                           from: All
@@ -233,32 +233,10 @@ spec:
                         certificateRefs:
                           - group: ""
                             kind: Secret
-                            name: rhcl-gw-tls
+                            name: cert-manager-ingress-cert
                       allowedRoutes:
                         namespaces:
                           from: All
-            - target:
-                group: cert-manager.io
-                version: v1
-                kind: Certificate
-                name: rhcl-gw-tls
-                namespace: openshift-ingress
-              patch: |-
-                apiVersion: cert-manager.io/v1
-                kind: Certificate
-                metadata:
-                  name: rhcl-gw-tls
-                  namespace: openshift-ingress
-                spec:
-                  secretName: rhcl-gw-tls
-                  dnsNames:
-                    - {{.demoHostname}}
-                    - {{.oidcHostname}}
-                    - {{ printf "ai-%s" .demoHostname }}
-                  issuerRef:
-                    group: cert-manager.io
-                    kind: ClusterIssuer
-                    name: {{.clusterIssuer}}
             - target:
                 group: grafana.integreatly.org
                 version: v1beta1
