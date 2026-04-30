@@ -63,6 +63,8 @@ spec:
             # Allow the workshop UI (different hostname) to call this API directly
             - name: QUARKUS_HTTP_CORS
               value: "true"
+            - name: QUARKUS_HTTP_CORS_ORIGINS
+              value: "/.*/"
             - name: QUARKUS_HTTP_CORS_METHODS
               value: "GET,POST,OPTIONS"
             - name: QUARKUS_HTTP_CORS_HEADERS

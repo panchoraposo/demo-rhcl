@@ -5,4 +5,5 @@ resources:
   - resources/00-namespace-mcp-system.yaml
   - resources/10-kuadrant-mcp-server.yaml
   - resources/20-httproute-mcp.yaml
+  - resources/30-mcp-authpolicy.yaml
 
