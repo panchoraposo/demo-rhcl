@@ -27,4 +27,5 @@ configMapGenerator:
 generatorOptions:
   annotations:
     argocd.argoproj.io/sync-wave: "11"
+  disableNameSuffixHash: true
 

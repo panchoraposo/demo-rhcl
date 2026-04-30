@@ -40,7 +40,6 @@ resources:
   - resources/73-ai-bot-tokenratelimitpolicy.yaml
   - resources/80-route-passthrough.yaml
   - resources/81-route-oidc-passthrough.yaml
-  - resources/90-istio-waypoint-demo.yaml
   - resources/91-istio-serviceentry-espn.yaml
 
 configMapGenerator:

@@ -39,6 +39,7 @@ spec:
             value: /canary
           headers:
             - name: x-rhcl-canary
+              type: Exact
               value: always
       backendRefs:
         - group: ""

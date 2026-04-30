@@ -266,7 +266,7 @@ spec:
                   namespace: rhcl-ai-bot
                 spec:
                   hostnames:
-                    - {{.demoHostname}}
+                    - {{ printf "ai-%s" .demoHostname }}
           {{- end }}
           {{- if eq .name "oidc-portal" }}
             - target:
@@ -337,6 +337,26 @@ spec:
                           jwt:
                             issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
           {{- end }}
+
+      {{- if eq .name "bot" }}
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          name: rhcl-ai-bot
+          namespace: rhcl-ai-bot
+          jsonPointers:
+            - /spec/template/spec/containers/0/image
+      {{- end }}
+
+      {{- if eq .name "demo" }}
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          name: rhcl-trace-svc
+          namespace: demo
+          jsonPointers:
+            - /spec/template/spec/containers/0/image
+      {{- end }}
 
       {{- if eq .name "tracing" }}
       ignoreDifferences:
