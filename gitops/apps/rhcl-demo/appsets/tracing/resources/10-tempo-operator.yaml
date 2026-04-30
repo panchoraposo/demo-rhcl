@@ -1,0 +1,30 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: tempo-operator
+  namespace: openshift-tempo-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  targetNamespaces: []
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: tempo-product
+  namespace: openshift-tempo-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: tempo-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  config:
+    env:
+      - name: FEATURE_GATES
+        value: "openshift.route,openshift.servingCertsService"
+      - name: TLS_PROFILE
+        value: "Modern"
+

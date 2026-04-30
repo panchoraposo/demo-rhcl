@@ -1,0 +1,73 @@
+openapi: 3.0.3
+info:
+  title: OpenAPI Demo API
+  version: 1.0.0
+  description: |
+    Minimal API used to demo OpenAPI → RHCL (Kuadrant) publication via GitOps.
+
+servers:
+  - url: https://{hostname}
+    variables:
+      hostname:
+        default: REPLACE_ME_DEMO_HOSTNAME
+
+x-rhcl:
+  namespace: openapi-demo
+  routeName: openapi-demo-api
+  labels:
+    app: openapi-demo-api
+
+  gatewayRef:
+    name: rhcl-gw
+    namespace: openshift-ingress
+
+  backend:
+    serviceName: openapi-demo-api
+    port: 80
+
+  auth:
+    allowUnauthenticatedPaths:
+      - /health
+    apiKey:
+      authorizationHeaderPrefix: APIKEY
+      selectorLabels:
+        app: openapi-demo-api
+
+  rateLimit:
+    counterExpression: auth.identity.userid
+    limits:
+      general-user:
+        rates:
+          - limit: 5
+            window: 10s
+        when:
+          - "auth.identity.userid != 'bob'"
+      bob-limit:
+        rates:
+          - limit: 2
+            window: 10s
+        when:
+          - "auth.identity.userid == 'bob'"
+
+paths:
+  /hello:
+    get:
+      summary: Hello endpoint
+      description: Requires API key.
+      responses:
+        "200":
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+        "401":
+          description: Missing/invalid API key
+  /health:
+    get:
+      summary: Health check
+      description: Public (no API key), for liveness checks.
+      responses:
+        "200":
+          description: OK
+

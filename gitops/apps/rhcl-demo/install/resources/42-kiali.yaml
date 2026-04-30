@@ -36,4 +36,18 @@ spec:
     accessible_namespaces:
       - '**'
     view_only_mode: false
+  external_services:
+    prometheus:
+      # OpenShift user-workload Prometheus does NOT expose the full Prometheus API (config/runtimeinfo),
+      # so Kiali must use the cluster monitoring Prometheus endpoint.
+      url: https://prometheus-k8s.openshift-monitoring.svc:9091
+      auth:
+        type: bearer
+        use_kiali_token: true
+        insecure_skip_verify: true
+    grafana:
+      enabled: true
+      internal_url: http://rhcl-grafana-service.monitoring.svc:3000
+      auth:
+        type: none
 

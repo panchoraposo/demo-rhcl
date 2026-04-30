@@ -1,0 +1,35 @@
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: openapi-demo-api-auth
+  namespace: openapi-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: '32'
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: openapi-demo-api
+  defaults:
+    when:
+    - predicate: request.path != '/health'
+    rules:
+      authentication:
+        api-key-users:
+          apiKey:
+            allNamespaces: true
+            selector:
+              matchLabels:
+                app: openapi-demo-api
+          credentials:
+            authorizationHeader:
+              prefix: APIKEY
+      response:
+        success:
+          filters:
+            identity:
+              json:
+                properties:
+                  userid:
+                    selector: auth.identity.metadata.annotations.secret\.kuadrant\.io/user-id

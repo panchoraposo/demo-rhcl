@@ -2,7 +2,7 @@ apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: rhcl-ai-bot
-  namespace: demo
+  namespace: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec: {}
@@ -11,7 +11,7 @@ apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: rhcl-ai-bot
-  namespace: demo
+  namespace: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
@@ -35,13 +35,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rhcl-ai-bot
-  namespace: demo
+  namespace: rhcl-ai-bot
   labels:
     app: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "13"
     image.openshift.io/triggers: |
-      [{"from":{"kind":"ImageStreamTag","name":"rhcl-ai-bot:latest","namespace":"demo"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]
+      [{"from":{"kind":"ImageStreamTag","name":"rhcl-ai-bot:latest","namespace":"rhcl-ai-bot"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]
 spec:
   replicas: 1
   selector:
@@ -72,8 +72,10 @@ spec:
                   key: apiKey
                   optional: true
             # Tool calls go through the existing in-cluster ESPN proxy
-            - name: ESPN_BASE_URL
+            - name: RHCL_AI_ESPN_BASE_URL
               value: http://external-proxy.demo.svc.cluster.local
+            - name: RHCL_AI_TRACE_BASE_URL
+              value: http://rhcl-trace-svc.demo.svc.cluster.local
           readinessProbe:
             httpGet:
               path: /q/health/ready
@@ -91,7 +93,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: rhcl-ai-bot
-  namespace: demo
+  namespace: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "13"
 spec:

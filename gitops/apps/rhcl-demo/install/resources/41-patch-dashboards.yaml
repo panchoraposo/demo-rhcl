@@ -90,7 +90,8 @@ spec:
                       q["query"] = 'label_values(istio_requests_total{destination_service_namespace="demo"}, destination_service_name)'
                       q["refId"] = q.get("refId") or "StandardVariableQuery"
                       v["query"] = q
-                    v["includeAll"] = False
+                    v["includeAll"] = True
+                    v["allValue"] = ".*"
                     v["multi"] = False
                     v["current"] = {"selected": True, "text": "demo-api", "value": "demo-api"}
                 j.setdefault("templating", {})["list"] = t
@@ -105,6 +106,206 @@ spec:
                       e = add_service_filter(e)
                       t["expr"] = e
 
+                  title = (p.get("title") or "").strip().lower()
+                  if title == "request breakdown by code (req/s)":
+                    p["targets"] = _code_class_targets()
+                    _ensure_code_class_colors(p)
+                  elif title == "request breakdown by cluster and code (req/s)":
+                    p["targets"] = _code_class_targets()
+                    _ensure_code_class_colors(p)
+                  elif title == "request latency (percentiles)":
+                    for t in (p.get("targets") or []):
+                      lf = (t.get("legendFormat") or "").strip()
+                      if lf in ("P90", "P95", "P99"):
+                        t["legendFormat"] = lf
+                  elif title == "request latency by cluster (percentiles)":
+                    for t in (p.get("targets") or []):
+                      lf = (t.get("legendFormat") or "").strip()
+                      if lf in ("P90", "P95", "P99"):
+                        t["legendFormat"] = lf
+
+              def _code_class_targets():
+                base = 'destination_service_namespace="demo",destination_service_name=~"$api"'
+              def q(sel, rng='1m'):
+                  core = 'sum(rate(istio_requests_total{%s%s}[%s]))' % (base, (','+sel) if sel else '', rng)
+                  return '(%s) or vector(0)' % core
+                return [
+                  {"refId": "A", "expr": q(""), "legendFormat": "total"},
+                  {"refId": "B", "expr": q('response_code=~"2.."'), "legendFormat": "200"},
+                  {"refId": "C", "expr": q('response_code="401"'), "legendFormat": "401"},
+                  {"refId": "D", "expr": q('response_code="403"'), "legendFormat": "403"},
+                  {"refId": "E", "expr": q('response_code="404"'), "legendFormat": "404"},
+                  {"refId": "F", "expr": q('response_code="429"'), "legendFormat": "429"},
+                  {"refId": "G", "expr": q('response_code=~"5.."'), "legendFormat": "5xx"},
+                ]
+
+              def _ensure_code_class_colors(panel):
+                fc = panel.get("fieldConfig") or {}
+                fc.setdefault("defaults", {}).setdefault("color", {"mode": "palette-classic"})
+                overrides = fc.get("overrides") or []
+
+                def add(regex, color):
+                  overrides.append({
+                    "matcher": {"id": "byRegexp", "options": regex},
+                    "properties": [{"id": "color", "value": {"fixedColor": color, "mode": "fixed"}}],
+                  })
+
+                add(r"^5xx$", "#ff5c6c")
+                add(r"^429$", "#a78bfa")
+                add(r"^404$", "#ffd37a")
+                add(r"^403$", "#ffb86b")
+                add(r"^401$", "#ff9f6b")
+                add(r"^200$", "#3adf9b")
+                add(r"^total$", "#cbd5e1")
+
+                fc["overrides"] = overrides
+                panel["fieldConfig"] = fc
+
+              def _layout_app_developer(j):
+                REMOVE_IDS = set([137,149,147,150,148,151,138,139,146,99,157])
+
+                def strip_repeat(panels):
+                  for p in panels or []:
+                    if p.get("type") == "row" and "repeat" in p:
+                      p.pop("repeat", None)
+                      p.pop("repeatDirection", None)
+                    if "panels" in p:
+                      strip_repeat(p.get("panels"))
+
+                def filter_panels(panels):
+                  out = []
+                  for p in panels or []:
+                    if p.get("id") in REMOVE_IDS:
+                      continue
+                    if "panels" in p:
+                      p["panels"] = filter_panels(p.get("panels"))
+                    if p.get("id") == 156:
+                      p.setdefault("gridPos", {})["w"] = 12
+                      p.setdefault("gridPos", {})["h"] = 9
+                      p.setdefault("gridPos", {})["x"] = 0
+                      p.setdefault("gridPos", {})["y"] = 11
+                    if p.get("id") == 129:
+                      p.setdefault("gridPos", {})["w"] = 12
+                      p.setdefault("gridPos", {})["h"] = 9
+                      p.setdefault("gridPos", {})["x"] = 12
+                      p.setdefault("gridPos", {})["y"] = 11
+                    out.append(p)
+                  return out
+
+                strip_repeat(j.get("panels"))
+                j["panels"] = filter_panels(j.get("panels"))
+
+              def _layout_platform_engineer(j):
+                panels = list(j.get("panels") or [])
+                keep = []
+                base_ts = None
+                base_lat = None
+                for p in panels:
+                  if isinstance(p, dict) and p.get("type") in ("dashlist", "text"):
+                    keep.append(p)
+                flat = []
+                st = list(panels)
+                while st:
+                  p = st.pop(0)
+                  if isinstance(p, dict) and "panels" in p:
+                    st.extend(p.get("panels") or [])
+                  elif isinstance(p, dict):
+                    flat.append(p)
+                for p in flat:
+                  if p.get("type") == "timeseries" and base_ts is None:
+                    base_ts = p
+                  if p.get("id") == 137 and p.get("type") == "timeseries":
+                    base_lat = p
+                if base_ts is None:
+                  return
+                if base_lat is None:
+                  base_lat = base_ts
+
+                def clone(obj):
+                  return json.loads(json.dumps(obj))
+
+                top = clone(base_ts)
+                top["id"] = 5001
+                top["title"] = "Top services (req/s)"
+                top["gridPos"] = {"x": 0, "y": 8, "w": 24, "h": 8}
+                top["targets"] = [{
+                  "refId": "A",
+                  "expr": 'topk(6, sum(rate(istio_requests_total{destination_service_namespace="demo"}[1m])) by (destination_service_name))',
+                  "legendFormat": "{{destination_service_name}}",
+                }]
+
+                code = clone(base_ts)
+                code["id"] = 5002
+                code["title"] = "Requests by code (req/s)"
+                code["gridPos"] = {"x": 0, "y": 16, "w": 12, "h": 9}
+                code["targets"] = _code_class_targets()
+                _ensure_code_class_colors(code)
+
+                lat = clone(base_lat)
+                lat["id"] = 5003
+                lat["title"] = "Latency (ms) — P90/P95/P99"
+                lat["gridPos"] = {"x": 12, "y": 16, "w": 12, "h": 9}
+                lat["targets"] = [
+                  {"refId": "A", "expr": '(histogram_quantile(0.90, sum(irate(istio_request_duration_milliseconds_bucket{destination_service_namespace="demo",destination_service_name=~"$api"}[5m])) by (le))) or vector(0)', "legendFormat": "P90"},
+                  {"refId": "B", "expr": '(histogram_quantile(0.95, sum(irate(istio_request_duration_milliseconds_bucket{destination_service_namespace="demo",destination_service_name=~"$api"}[5m])) by (le))) or vector(0)', "legendFormat": "P95"},
+                  {"refId": "C", "expr": '(histogram_quantile(0.99, sum(irate(istio_request_duration_milliseconds_bucket{destination_service_namespace="demo",destination_service_name=~"$api"}[5m])) by (le))) or vector(0)', "legendFormat": "P99"},
+                ]
+
+                j["panels"] = keep + [top, code, lat]
+
+              def _layout_business_user(j):
+                panels = list(j.get("panels") or [])
+                keep = []
+                base_ts = None
+                base_tbl = None
+                flat = []
+                st = list(panels)
+                while st:
+                  p = st.pop(0)
+                  if isinstance(p, dict) and "panels" in p:
+                    st.extend(p.get("panels") or [])
+                  elif isinstance(p, dict):
+                    flat.append(p)
+                for p in flat:
+                  if p.get("type") == "timeseries" and base_ts is None:
+                    base_ts = p
+                  if p.get("type") == "table" and base_tbl is None:
+                    base_tbl = p
+                for p in panels:
+                  if isinstance(p, dict) and p.get("type") in ("dashlist", "text"):
+                    keep.append(p)
+                if base_ts is None:
+                  return
+                if base_tbl is None:
+                  base_tbl = base_ts
+
+                def clone(obj):
+                  return json.loads(json.dumps(obj))
+
+                traffic = clone(base_ts)
+                traffic["id"] = 6001
+                traffic["title"] = "Traffic summary (req/s)"
+                traffic["gridPos"] = {"x": 0, "y": 8, "w": 24, "h": 9}
+                traffic["targets"] = [{
+                  "refId": "A",
+                  "expr": 'topk(6, sum(rate(istio_requests_total{destination_service_namespace="demo"}[1m])) by (destination_service_name))',
+                  "legendFormat": "{{destination_service_name}}",
+                }]
+
+                totals = clone(base_tbl)
+                totals["id"] = 6002
+                totals["title"] = "Total requests (selected range)"
+                totals["gridPos"] = {"x": 0, "y": 17, "w": 24, "h": 8}
+                totals["targets"] = [{
+                  "refId": "A",
+                  "expr": 'sum(increase(istio_requests_total{destination_service_namespace="demo"}[$__range])) by (destination_service_name)',
+                  "legendFormat": "",
+                  "format": "table",
+                  "instant": True,
+                }]
+
+                j["panels"] = keep + [traffic, totals]
+
               for cm, key in CMS:
                 cm_raw = oc("-n", "monitoring", "get", "cm", cm, "-o", "json")
                 cm_obj = json.loads(cm_raw)
@@ -113,6 +314,19 @@ spec:
                   raise RuntimeError("ConfigMap %s missing key %s" % (cm, key))
                 j = json.loads(raw)
                 patch_templating(j)
+                if cm == "grafana-app-developer":
+                  # Developer dashboard: keep strict single-select (no "All")
+                  t = (j.get("templating") or {}).get("list") or []
+                  for v in t:
+                    if v.get("name") == "api" and v.get("type") == "query":
+                      v["includeAll"] = False
+                      v.pop("allValue", None)
+                  j.setdefault("templating", {})["list"] = t
+                  _layout_app_developer(j)
+                elif cm == "grafana-platform-engineer":
+                  _layout_platform_engineer(j)
+                elif cm == "grafana-business-user":
+                  _layout_business_user(j)
                 walk_panels(j.get("panels"))
                 out = {
                   "apiVersion": "v1",
@@ -122,6 +336,50 @@ spec:
                 }
                 oc("apply", "-f", "-", input_text=json.dumps(out))
                 print("patched %s/%s" % (cm, key))
+
+              oc("-n", "monitoring", "delete", "grafanadashboard",
+                 "rhcl-app-developer", "rhcl-platform-engineer", "rhcl-business-user", "rhcl-dns-operator",
+                 "--ignore-not-found=true")
+              dashboards = [
+                {
+                  "apiVersion": "grafana.integreatly.org/v1beta1",
+                  "kind": "GrafanaDashboard",
+                  "metadata": {"name": "rhcl-app-developer", "namespace": "monitoring"},
+                  "spec": {
+                    "instanceSelector": {"matchLabels": {"app": "rhcl-grafana"}},
+                    "resyncPeriod": "30s",
+                    "uid": "rhcl-app-dev",
+                    "folder": "RHCL Workshop",
+                    "configMapRef": {"name": "grafana-app-developer", "key": "app_developer.json"},
+                  },
+                },
+                {
+                  "apiVersion": "grafana.integreatly.org/v1beta1",
+                  "kind": "GrafanaDashboard",
+                  "metadata": {"name": "rhcl-platform-engineer", "namespace": "monitoring"},
+                  "spec": {
+                    "instanceSelector": {"matchLabels": {"app": "rhcl-grafana"}},
+                    "resyncPeriod": "30s",
+                    "uid": "rhcl-platform",
+                    "folder": "RHCL Workshop",
+                    "configMapRef": {"name": "grafana-platform-engineer", "key": "platform_engineer.json"},
+                  },
+                },
+                {
+                  "apiVersion": "grafana.integreatly.org/v1beta1",
+                  "kind": "GrafanaDashboard",
+                  "metadata": {"name": "rhcl-business-user", "namespace": "monitoring"},
+                  "spec": {
+                    "instanceSelector": {"matchLabels": {"app": "rhcl-grafana"}},
+                    "resyncPeriod": "30s",
+                    "uid": "rhcl-business",
+                    "folder": "RHCL Workshop",
+                    "configMapRef": {"name": "grafana-business-user", "key": "business_user.json"},
+                  },
+                },
+              ]
+              for d in dashboards:
+                oc("-n", "monitoring", "apply", "-f", "-", input_text=json.dumps(d))
 
               print("OK")
               PY

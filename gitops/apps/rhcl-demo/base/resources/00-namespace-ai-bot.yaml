@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rhcl-ai-bot
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  labels:
+    istio-discovery: enabled
+    # Ambient enrollment is enabled in the optional module to avoid breaking the base demo
+

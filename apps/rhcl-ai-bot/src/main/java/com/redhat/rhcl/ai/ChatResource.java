@@ -20,11 +20,13 @@ import java.util.UUID;
 public class ChatResource {
   private final JsonUtil json;
   private final EspnTool espn;
+  private final TraceSvcTool traceSvc;
   private final OpenAiClient llm;
 
-  public ChatResource(JsonUtil json, EspnTool espn, OpenAiClient llm) {
+  public ChatResource(JsonUtil json, EspnTool espn, TraceSvcTool traceSvc, OpenAiClient llm) {
     this.json = json;
     this.espn = espn;
+    this.traceSvc = traceSvc;
     this.llm = llm;
   }
 
@@ -44,6 +46,13 @@ public class ChatResource {
         JsonNode sb = espn.nbaScoreboard(dates);
         String summary = summarizeNba(sb);
         toolNote = "tool=espn_nba_scoreboard";
+
+        try {
+          int st = traceSvc.ping();
+          toolNote = toolNote + " trace_svc_status=" + st;
+        } catch (Exception ignored) {
+          toolNote = toolNote + " trace_svc_status=error";
+        }
 
         if (llm.enabled()) {
           try {
