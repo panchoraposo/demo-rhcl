@@ -3161,9 +3161,30 @@ spec:
         await copyText(jsonActiveText);
       }
 
+      function chunkString(s, n){
+        const str = String(s || "");
+        const size = Math.max(8, Number(n || 64) | 0);
+        const out = [];
+        for (let i = 0; i < str.length; i += size) out.push(str.slice(i, i + size));
+        return out;
+      }
+
       function jwtShowToken(){
         if (!jwtToken) return;
-        openJson("JWT token", jwtToken);
+        const t = String(jwtToken || "").trim();
+        const parts = t.split(".");
+        const view = {
+          type: "JWT",
+          length: t.length,
+          preview: jwtPreview(t),
+          parts: {
+            header_b64url: parts[0] || "",
+            payload_b64url: parts[1] || "",
+            signature_b64url: parts[2] || "",
+          },
+          token_chunks_64: chunkString(t, 64),
+        };
+        openJson("JWT token (readable view)", JSON.stringify(view, null, 2));
       }
 
       function jwtShowDecoded(){
