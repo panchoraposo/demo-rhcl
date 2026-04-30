@@ -60,6 +60,15 @@ spec:
             - name: http
               containerPort: 8080
           env:
+            # Allow the workshop UI (different hostname) to call this API directly
+            - name: QUARKUS_HTTP_CORS
+              value: "true"
+            - name: QUARKUS_HTTP_CORS_METHODS
+              value: "GET,POST,OPTIONS"
+            - name: QUARKUS_HTTP_CORS_HEADERS
+              value: "accept,authorization,content-type,origin,x-requested-with"
+            - name: QUARKUS_HTTP_CORS_EXPOSED_HEADERS
+              value: "mcp-session-id"
             # Optional: enable real LLM calls (OpenAI-compatible)
             - name: RHCL_AI_OPENAI_BASE_URL
               value: https://litellm-prod.apps.maas.redhatworkshops.io/v1

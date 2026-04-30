@@ -25,7 +25,15 @@ spec:
           path:
             type: PathPrefix
             value: /mcp
+        - method: OPTIONS
+          path:
+            type: PathPrefix
+            value: /mcp
         - method: POST
+          path:
+            type: PathPrefix
+            value: /ai
+        - method: OPTIONS
           path:
             type: PathPrefix
             value: /ai
