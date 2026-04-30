@@ -37,6 +37,18 @@ spec:
           path:
             type: PathPrefix
             value: /ai
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: access-control-allow-origin
+                value: "*"
+              - name: access-control-allow-methods
+                value: "GET,POST,OPTIONS"
+              - name: access-control-allow-headers
+                value: "accept,authorization,content-type,origin,x-requested-with"
+              - name: access-control-expose-headers
+                value: "mcp-session-id"
       backendRefs:
         - group: ""
           kind: Service
