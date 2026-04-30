@@ -6,5 +6,4 @@ metadata:
     argocd.argoproj.io/sync-wave: "10"
   labels:
     istio-discovery: enabled
-    istio.io/dataplane-mode: ambient
 
