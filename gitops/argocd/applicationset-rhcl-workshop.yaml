@@ -366,3 +366,14 @@ spec:
                             issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
           {{- end }}
 
+      {{- if eq .name "tracing" }}
+      ignoreDifferences:
+        - group: tempo.grafana.com
+          kind: TempoStack
+          name: simplest
+          namespace: rhcl-observability
+          jsonPointers:
+            - /metadata/annotations
+            - /status
+      {{- end }}
+
