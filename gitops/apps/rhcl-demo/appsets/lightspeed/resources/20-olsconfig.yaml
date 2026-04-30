@@ -1,0 +1,56 @@
+apiVersion: ols.openshift.io/v1alpha1
+kind: OLSConfig
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  featureGates:
+    - MCPServer
+  llm:
+    providers:
+      - name: litellm
+        type: openai
+        url: https://litellm-prod.apps.maas.redhatworkshops.io/v1
+        credentialsSecretRef:
+          # Create this secret out-of-band (not stored in Git):
+          # oc -n openshift-lightspeed create secret generic credentials --from-literal=apitoken='...'
+          name: credentials
+        models:
+          - name: deepseek-r1-distill-qwen-14b
+  ols:
+    defaultProvider: litellm
+    defaultModel: deepseek-r1-distill-qwen-14b
+    hideIcon: false
+  mcpServers:
+    # Kuadrant MCP server (Connectivity Link policy help)
+    - name: kuadrant
+      streamableHTTP:
+        url: http://kuadrant-mcp-server.mcp-system.svc.cluster.local:8080/mcp
+        timeout: 30
+        headers:
+          - name: Authorization
+            valueFrom:
+              type: kubernetes
+
+    # Kiali MCP server (Kubernetes MCP server configured for Kiali)
+    - name: kiali
+      streamableHTTP:
+        url: http://kubernetes-mcp-server.istio-system.svc.cluster.local:8080/mcp
+        timeout: 30
+        headers:
+          - name: Authorization
+            valueFrom:
+              type: kubernetes
+
+    # Existing demo bot MCP endpoint (ESPN tool)
+    - name: rhcl-ai-bot
+      streamableHTTP:
+        url: http://rhcl-ai-bot.rhcl-ai-bot.svc.cluster.local:80/mcp
+        timeout: 30
+        headers:
+          - name: Authorization
+            valueFrom:
+              type: kubernetes
+

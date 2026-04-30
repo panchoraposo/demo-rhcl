@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - resources/00-namespace-openshift-lightspeed.yaml
+  - resources/01-namespace-istio-system.yaml
+  - resources/10-lightspeed-operator.yaml
+  - resources/20-olsconfig.yaml
+
+  # Kiali MCP server (Kubernetes MCP server configured for Kiali)
+  - resources/50-kiali-mcp-config.yaml
+  - resources/51-kiali-mcp-server.yaml
+

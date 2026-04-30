@@ -22,7 +22,24 @@ if [[ -z "${APPS_DOMAIN}" ]]; then
 fi
 
 DEMO_HOSTNAME="${DEMO_HOSTNAME:-rhcl-workshop.${APPS_DOMAIN}}"
-OIDC_HOSTNAME="${OIDC_HOSTNAME:-oidc-${DEMO_HOSTNAME}}"
+# Default OIDC hostname is created under the base hosted zone (last 3 labels),
+# so Kuadrant DNSPolicy can create a fresh Route53 record without conflicting
+# with the existing *.apps.<cluster> A records.
+# Example:
+#   rhcl-workshop.apps.cluster-xxxx.yyyy.sandbox1529.opentlc.com
+# -> oidc-rhcl-workshop.sandbox1529.opentlc.com
+if [[ -z "${OIDC_HOSTNAME:-}" ]]; then
+  DEMO_NAME="${DEMO_HOSTNAME%%.*}"
+  ZONE="$(
+    python3 - <<'PY'
+import os
+h=os.environ.get("DEMO_HOSTNAME","").strip()
+parts=h.split(".")
+print(".".join(parts[-3:]) if len(parts) >= 3 else h)
+PY
+  )"
+  OIDC_HOSTNAME="oidc-${DEMO_NAME}.${ZONE}"
+fi
 GRAFANA_HOSTNAME="${GRAFANA_HOSTNAME:-grafana-${DEMO_HOSTNAME}}"
 
 if [[ -z "${CLUSTER_ISSUER:-}" ]]; then
