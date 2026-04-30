@@ -63,6 +63,27 @@ spec:
         syncOptions:
           - CreateNamespace=true
           - ServerSideApply=true
+      ignoreDifferences:
+        - group: apps
+          kind: Deployment
+          name: rhcl-ai-bot
+          namespace: rhcl-ai-bot
+          jsonPointers:
+            - /spec/template/spec/containers/0/image
+        - group: apps
+          kind: Deployment
+          name: rhcl-trace-svc
+          namespace: demo
+          jsonPointers:
+            - /spec/template/spec/containers/0/image
+        - group: tempo.grafana.com
+          kind: TempoStack
+          name: simplest
+          namespace: rhcl-observability
+          jsonPointers:
+            - /metadata/annotations
+            - /spec
+            - /status
 
   templatePatch: |
     spec:
@@ -337,36 +358,4 @@ spec:
                           jwt:
                             issuerUrl: https://{{.oidcHostname}}/auth/realms/rhcl
           {{- end }}
-
-      {{- if eq .name "bot" }}
-      ignoreDifferences:
-        - group: apps
-          kind: Deployment
-          name: rhcl-ai-bot
-          namespace: rhcl-ai-bot
-          jsonPointers:
-            - /spec/template/spec/containers/0/image
-      {{- end }}
-
-      {{- if eq .name "demo" }}
-      ignoreDifferences:
-        - group: apps
-          kind: Deployment
-          name: rhcl-trace-svc
-          namespace: demo
-          jsonPointers:
-            - /spec/template/spec/containers/0/image
-      {{- end }}
-
-      {{- if eq .name "tracing" }}
-      ignoreDifferences:
-        - group: tempo.grafana.com
-          kind: TempoStack
-          name: simplest
-          namespace: rhcl-observability
-          jsonPointers:
-            - /metadata/annotations
-            - /spec
-            - /status
-      {{- end }}
 
