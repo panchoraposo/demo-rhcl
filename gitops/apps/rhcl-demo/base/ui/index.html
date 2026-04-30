@@ -3586,9 +3586,9 @@ spec:
       async function aiDemo429(){
         if (!aiPromptEl) return;
         aiPromptEl.value = "Show finals in the last 7 days.\n\nWrite a very detailed recap designed to consume tokens: include 12 bullet points per game, a short table, and a 'Notable performers' section. Do NOT include any internal reasoning.";
-        // Two quick, large requests should exceed 400 tokens / 15s for a deterministic 429 demo.
-        await aiChat();
-        await aiChat();
+        // Don't auto-send: keep the conversation clean until the user clicks Send.
+        aiSetStatus("Ready");
+        appendTo(aiLogEl, `[${now()}] 429 demo ready: click Send twice quickly to trigger rate limit`, "muted");
       }
 
       async function aiChat(){
