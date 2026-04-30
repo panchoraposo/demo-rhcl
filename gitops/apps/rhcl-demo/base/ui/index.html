@@ -1168,9 +1168,6 @@
               <div class="d">
                 Use Kiali to visualize how traffic goes through the Gateway and reaches your services. This complements the policy demos with an easy “flow” story.
               </div>
-              <div class="footer" style="margin-top:10px">
-                Bonus: this workshop also wires Kiali into <b>OpenShift Lightspeed</b> via MCP, so you can ask the Console assistant to analyze Kiali data for you.
-              </div>
             </div>
             <div class="grid">
               <div class="card">
@@ -1260,7 +1257,7 @@
           <section class="module" id="lightspeed" data-module="lightspeed">
             <div class="moduleHero">
               <div class="k">Module</div>
-              <div class="t"><b>OpenShift Lightspeed</b> — ask your cluster (Connectivity Link + Kiali)</div>
+              <div class="t"><b>OpenShift Lightspeed</b> — ask your cluster (Connectivity Link)</div>
               <div class="d">
                 Lightspeed runs in the OpenShift Console and can call MCP tools to answer questions with real cluster context.
                 Use this module as a guided entrypoint and a prompt cookbook.
@@ -1295,24 +1292,10 @@
               </div>
 
               <div class="card" style="grid-column: 1 / -1;">
-                <h2>Copy/paste prompts (Kiali via MCP)</h2>
-                <div class="sub">Use these after generating some traffic (API keys, A/B, canary, AI).</div>
-                <div class="btnGrid" style="margin-top:10px">
-                  <button class="primary" onclick="olsCopyPrompt('Using Kiali, analyze the traffic topology for namespace demo. Which workloads receive traffic from the Gateway and are there any error spikes? Summarize in 5 bullets.')">Copy: topology + errors</button>
-                  <button onclick="olsCopyPrompt('Using Kiali, compare traffic between canary-v1 and canary-v2 in namespace demo. Do the observed percentages match the intended weights?')">Copy: canary split check</button>
-                  <button onclick="olsCopyPrompt('Using Kiali, identify the top callers of the demo-api service and whether any path shows elevated 4xx/5xx.')">Copy: top callers</button>
-                </div>
-                <div class="footer">
-                  You can also open Kiali directly from the <b>Service Mesh</b> module above.
-                </div>
-              </div>
-
-              <div class="card" style="grid-column: 1 / -1;">
                 <h2>Quick checks (optional)</h2>
                 <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
                   <li><b>OLS installed</b>: namespace <span class="mono">openshift-lightspeed</span> (Subscription/CSV) + <span class="mono">OLSConfig/cluster</span></li>
                   <li><b>Kuadrant MCP</b>: namespace <span class="mono">mcp-system</span> running <span class="mono">kuadrant-mcp-server</span></li>
-                  <li><b>Kiali MCP</b>: namespace <span class="mono">istio-system</span> running <span class="mono">kubernetes-mcp-server</span></li>
                 </ul>
               </div>
             </div>
@@ -3259,8 +3242,15 @@ spec:
       function kialiBaseUrl(){
         let url = String(localStorage.getItem("rhcl_kiali_url") || "").trim();
         if (!url) url = kialiGuessUrl();
-        if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
-        return url.replace(/\/+$/g, "");
+        if (!url) return "";
+        if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+        // If the user pasted a deep link (path/query/hash), keep only the origin.
+        try{
+          const u = new URL(url);
+          return `${u.protocol}//${u.host}`;
+        } catch {
+          return String(url).replace(/\/+$/g, "");
+        }
       }
 
       function refreshKialiLinks(){
@@ -3285,7 +3275,11 @@ spec:
           return;
         }
         apply(kialiLinkHomeEl, base + "/");
-        apply(kialiLinkGraphEl, base + "/?tab=graph&namespaces=demo");
+        // Kiali Console deep-link (graph with animation enabled).
+        apply(
+          kialiLinkGraphEl,
+          base + "/console/graph/namespaces?traffic=ambient%2CambientTotal%2Cgrpc%2CgrpcRequest%2Ctcp%2CtcpSent&graphType=versionedApp&namespaces=demo&duration=60&refresh=60000&layout=dagre&animation=true"
+        );
         apply(kialiLinkWorkloadsEl, base + "/?tab=workloads&namespaces=demo");
         apply(kialiLinkAppsEl, base + "/?tab=applications&namespaces=demo");
       }
