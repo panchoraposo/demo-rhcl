@@ -40,11 +40,11 @@ spec:
       filters:
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            remove:
-              - access-control-allow-credentials
             set:
+              - name: access-control-allow-credentials
+                value: "true"
               - name: access-control-allow-origin
-                value: "*"
+                value: "https://rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com"
               - name: access-control-allow-methods
                 value: "GET,POST,OPTIONS"
               - name: access-control-allow-headers
