@@ -256,6 +256,14 @@
       let tab = "live";
       let lastEvents = [];
 
+      function ensureTargetCookie(){
+        // Kuadrant's OIDC callback builds a redirect as "http:" + cookies.target.
+        // Ensure the cookie exists for any login path (button-driven or gateway-driven).
+        const host = String(location.host || "");
+        if (!host) return;
+        document.cookie = `target=//${host}/; Path=/; Max-Age=3600; SameSite=Lax; Secure`;
+      }
+
       function now(){ return new Date().toLocaleTimeString(); }
       function setStatus(kind, text){
         sDot.className = "dot " + (kind || "");
@@ -483,11 +491,9 @@
       }
 
       function login(){
-        // Start browser login explicitly and set a well-formed "target" cookie.
-        // The callback AuthPolicy builds a redirect like "http:" + cookies.target.
-        // Use a scheme-relative target ("//<host>/") so "http:" + target becomes a valid absolute URL.
+        // Start browser login explicitly and ensure the target cookie exists.
         const host = String(location.host || "");
-        document.cookie = `target=//${host}/; Path=/; Max-Age=3600; SameSite=Lax`;
+        document.cookie = `target=//${host}/; Path=/; Max-Age=3600; SameSite=Lax; Secure`;
 
         const redirectUri = encodeURIComponent(`https://${host}/auth/callback`);
         const url = `/auth/realms/rhcl/protocol/openid-connect/auth?client_id=rhcl-ui&redirect_uri=${redirectUri}&response_type=code&scope=openid`;
@@ -532,6 +538,7 @@
 
       setTab("live");
       tryPopupClose();
+      ensureTargetCookie();
       refresh().catch(e => {
         setStatus("bad", "Error");
         append(`[${now()}] error: ${String(e)}`);
