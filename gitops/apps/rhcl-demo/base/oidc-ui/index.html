@@ -214,6 +214,15 @@
       }
       .kvs .k{color:var(--muted); font-size:12px}
       .kvs .v{font-family: var(--mono); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+      .pill.view{transition: background .2s ease, border-color .2s ease}
+      .pill.view .label{color: rgba(234,241,255,.88); font-weight:750}
+      .dot.live{background: var(--a1)}
+      .dot.final{background: var(--ok)}
+      .dot.upcoming{background: var(--a3)}
+      .pill.view.live{border-color: rgba(255,77,141,.35); background: rgba(255,77,141,.10)}
+      .pill.view.final{border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10)}
+      .pill.view.upcoming{border-color: rgba(56,189,248,.35); background: rgba(56,189,248,.08)}
     </style>
   </head>
   <body>
@@ -244,7 +253,7 @@
           <div class="cardHead">
             <h2>Protected NBA scoreboard</h2>
             <div class="row">
-              <span class="pill"><span class="dot"></span><span>View</span>
+              <span class="pill view live" id="viewPill"><span class="dot live" id="viewDot"></span><span class="label">View</span>
                 <button id="tabLive" class="primary" onclick="setTab('live')" style="padding:6px 10px; border-radius:999px">Live</button>
                 <button id="tabFinal" onclick="setTab('final')" style="padding:6px 10px; border-radius:999px">Final</button>
                 <button id="tabUpcoming" onclick="setTab('upcoming')" style="padding:6px 10px; border-radius:999px">Upcoming</button>
@@ -299,6 +308,8 @@
       const logoutBtn = el("logoutBtn");
       const uDot = el("uDot");
       const uText = el("uText");
+      const viewPill = el("viewPill");
+      const viewDot = el("viewDot");
 
       let tab = "live";
       let lastEvents = [];
@@ -319,6 +330,22 @@
       function append(line){
         logEl.textContent += (logEl.textContent ? "\n" : "") + line;
         logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function appendHdrs(r){
+        const keys = [
+          "x-ext-auth-reason",
+          "x-ext-auth-error",
+          "x-envoy-upstream-service-time",
+          "retry-after",
+          "ratelimit-limit",
+          "ratelimit-remaining",
+          "ratelimit-reset",
+        ];
+        for (const k of keys){
+          const v = r.headers.get(k);
+          if (v) append(`[${now()}] ${k}: ${v}`);
+        }
       }
 
       function setUser(kind, text){
@@ -371,6 +398,11 @@
         tabLive.classList.toggle("primary", tab === "live");
         tabFinal.classList.toggle("primary", tab === "final");
         tabUpcoming.classList.toggle("primary", tab === "upcoming");
+        if (viewPill){
+          viewPill.classList.remove("live", "final", "upcoming");
+          viewPill.classList.add(tab);
+        }
+        if (viewDot) viewDot.className = "dot " + tab;
         render(lastEvents);
       }
 
@@ -566,13 +598,16 @@
         hostPill.textContent = location.host;
 
         setStatus("", "Fetching…");
-        append(`[${now()}] GET ${path}`);
+        append(`[${now()}] ─────────────────────────────────────────────────────────────`);
+        append(`[${now()}] GET ${path} (tab=${tab})`);
         const t0 = performance.now();
         const r = await fetch(path, { redirect: "follow", cache: "no-store" });
         const ms = Math.round(performance.now() - t0);
 
         const ct = r.headers.get("content-type") || "";
         append(`[${now()}] status=${r.status} · ${ms}ms · content-type=${ct || "—"}`);
+        append(`[${now()}] response: type=${r.type} redirected=${r.redirected} url=${r.url || "—"}`);
+        appendHdrs(r);
 
         // If the Gateway redirected to Keycloak, fetch() followed it and we end up with HTML.
         // Treat that as "login required" (more reliable than opaqueredirect).
@@ -594,6 +629,7 @@
         let obj = null;
         try{ obj = JSON.parse(txt); } catch {}
         const events = (obj && Array.isArray(obj.events)) ? obj.events : [];
+        append(`[${now()}] parsed: bytes=${txt.length} events=${events.length}`);
         setStatus("ok", "Ready");
         metaEl.textContent = `${txt.length.toLocaleString()} bytes · events=${events.length} · range=${dates}`;
         render(events);
