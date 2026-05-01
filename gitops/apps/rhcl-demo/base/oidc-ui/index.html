@@ -510,25 +510,17 @@
         setStatus("", "Fetching…");
         append(`[${now()}] GET ${path}`);
         const t0 = performance.now();
-        const r = await fetch(path, { redirect: "manual", cache: "no-store" });
+        const r = await fetch(path, { redirect: "follow", cache: "no-store" });
         const ms = Math.round(performance.now() - t0);
 
-        // In browsers, redirect: "manual" commonly yields an "opaque redirect" response.
-        // That response has status=0 and no headers, so treat it as "login required".
-        const isOpaqueRedirect = (r.type === "opaqueredirect") || (r.status === 0);
-        if (isOpaqueRedirect){
-          append(`[${now()}] status=0 · ${ms}ms · redirect (hidden by browser)`);
-          setStatus("warn", "Login required");
-          render([]);
-          return;
-        }
-
         const ct = r.headers.get("content-type") || "";
-        const loc = r.headers.get("location") || "";
         append(`[${now()}] status=${r.status} · ${ms}ms · content-type=${ct || "—"}`);
-        if (loc) append(`[${now()}] redirect -> ${loc}`);
 
-        if (r.status === 302){
+        // If the Gateway redirected to Keycloak, fetch() followed it and we end up with HTML.
+        // Treat that as "login required" (more reliable than opaqueredirect).
+        const endedAtKeycloak = (r.url || "").includes("/auth/realms/");
+        const isHtml = (ct || "").toLowerCase().includes("text/html");
+        if (endedAtKeycloak || isHtml) {
           setStatus("warn", "Login required");
           render([]);
           refreshSession();
