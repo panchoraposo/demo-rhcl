@@ -125,10 +125,17 @@
         border-radius:16px;
         padding:12px;
       }
-      .gTop{display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px}
-      .gMeta{display:flex; flex-direction:column; gap:4px; min-width:0}
+      .gTop{display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px; flex-wrap:wrap}
+      .gMeta{display:flex; flex-direction:column; gap:4px; min-width:0; flex: 1 1 320px}
       .gMeta .st{font-size:12px; color:var(--muted); line-height:1.35}
-      .gMeta .dt{font-size:12px; color:rgba(234,241,255,.92); line-height:1.45; white-space:normal}
+      .gMeta .dt{
+        font-size:12px;
+        color:rgba(234,241,255,.92);
+        line-height:1.45;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
       .gMeta .venue{font-size:12px; color:rgba(234,241,255,.78); line-height:1.45; white-space:normal}
       .gMeta .dt a,.gMeta .venue a{white-space:nowrap}
       .gBadge{
@@ -416,7 +423,8 @@
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
         tzEl.textContent = tz;
         try{
-          return d.toLocaleString(undefined, { weekday:"short", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit", timeZoneName:"short" });
+          // Timezone is shown separately in the "What is happening?" panel; keep the card header compact.
+          return d.toLocaleString(undefined, { weekday:"short", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
         } catch {
           return d.toLocaleString();
         }
