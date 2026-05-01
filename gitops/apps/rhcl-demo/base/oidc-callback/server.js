@@ -75,6 +75,13 @@ function decodeJwtPayload(jwt) {
   }
 }
 
+function isJwtExpired(payload) {
+  const exp = payload && typeof payload.exp === "number" ? payload.exp : null;
+  if (!exp) return false;
+  const now = Math.floor(Date.now() / 1000);
+  return now >= exp;
+}
+
 const PORT = Number(process.env.PORT || "8080");
 const TOKEN_URL =
   process.env.KEYCLOAK_TOKEN_URL ||
@@ -95,6 +102,11 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const payload = decodeJwtPayload(tok) || {};
+      if (isJwtExpired(payload)) {
+        res.writeHead(401, { "content-type": "application/json", "cache-control": "no-store" });
+        res.end(JSON.stringify({ ok: false, error: "token_expired" }));
+        return;
+      }
       res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
       res.end(
         JSON.stringify(
