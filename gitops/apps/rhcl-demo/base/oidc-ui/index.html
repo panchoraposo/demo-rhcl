@@ -35,7 +35,10 @@
           linear-gradient(180deg, var(--bg0), var(--bg1));
       }
       a{color:#b7d8ff}
-      .wrap{max-width:1200px; margin:0 auto; padding:28px 18px 60px}
+      .wrap{max-width:1400px; margin:0 auto; padding:28px 18px 60px}
+      @media (min-width: 1700px){
+        .wrap{max-width:1650px}
+      }
       .top{
         display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;
         margin-bottom:16px;
@@ -112,6 +115,9 @@
       .hint li{margin:6px 0}
       .mono{font-family: var(--mono)}
       .board{display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px}
+      @media (min-width: 1300px){
+        .board{grid-template-columns: repeat(3, minmax(0, 1fr))}
+      }
       @media (max-width: 760px){.board{grid-template-columns:1fr}}
       .game{
         border:1px solid rgba(255,255,255,.10);
@@ -119,10 +125,12 @@
         border-radius:16px;
         padding:12px;
       }
-      .gTop{display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:10px}
-      .gMeta{display:flex; flex-direction:column; gap:2px}
-      .gMeta .st{font-size:12px; color:var(--muted)}
-      .gMeta .dt{font-size:12px; color:rgba(234,241,255,.85)}
+      .gTop{display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:10px}
+      .gMeta{display:flex; flex-direction:column; gap:4px; min-width:0}
+      .gMeta .st{font-size:12px; color:var(--muted); line-height:1.35}
+      .gMeta .dt{font-size:12px; color:rgba(234,241,255,.92); line-height:1.45; white-space:normal}
+      .gMeta .venue{font-size:12px; color:rgba(234,241,255,.78); line-height:1.45; white-space:normal}
+      .gMeta .dt a,.gMeta .venue a{white-space:nowrap}
       .gBadge{
         border:1px solid rgba(255,255,255,.14);
         background: rgba(255,255,255,.06);
@@ -458,7 +466,7 @@
           stEl.textContent = st.short || "—";
           const dt = document.createElement("div");
           dt.className = "dt";
-          dt.textContent = fmtDate(ev) + (venueTxt ? ` · ${venueTxt}` : "");
+          dt.textContent = fmtDate(ev);
           const links = (ev && Array.isArray(ev.links)) ? ev.links : [];
           const href = (links[0] && links[0].href) ? String(links[0].href) : "";
           if (href && href.startsWith("http")) {
@@ -466,13 +474,18 @@
             a.href = href;
             a.target = "_blank";
             a.rel = "noreferrer";
-            a.style.marginLeft = "10px";
-            a.style.fontSize = "12px";
+            a.style.marginLeft = "8px";
             a.textContent = "ESPN";
             dt.appendChild(a);
           }
           meta.appendChild(stEl);
           meta.appendChild(dt);
+          if (venueTxt) {
+            const v = document.createElement("div");
+            v.className = "venue";
+            v.textContent = venueTxt;
+            meta.appendChild(v);
+          }
           top.appendChild(meta);
 
           const badge = document.createElement("div");
