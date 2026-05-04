@@ -28,6 +28,9 @@ public class OpenAiClient {
   @ConfigProperty(name = "rhcl.ai.openai.model", defaultValue = "gpt-4o-mini")
   String model;
 
+  @ConfigProperty(name = "rhcl.ai.openai.timeout-seconds", defaultValue = "12")
+  int timeoutSeconds;
+
   public OpenAiClient(JsonUtil json) {
     this.json = json;
   }
@@ -54,7 +57,7 @@ public class OpenAiClient {
 
     URI uri = URI.create(stripTrailingSlash(baseUrl) + "/chat/completions");
     HttpRequest req = HttpRequest.newBuilder(uri)
-        .timeout(Duration.ofSeconds(30))
+        .timeout(Duration.ofSeconds(Math.max(3, timeoutSeconds)))
         .header("Content-Type", "application/json")
         .header("Authorization", "Bearer " + apiKey)
         .POST(HttpRequest.BodyPublishers.ofString(json.write(body)))

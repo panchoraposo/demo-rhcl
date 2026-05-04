@@ -15,3 +15,21 @@ spec:
   providerRefs:
     - name: route53-credentials
 
+---
+apiVersion: kuadrant.io/v1
+kind: DNSPolicy
+metadata:
+  name: rhcl-external-public-dns
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "22"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-gw
+    sectionName: https-external-public
+  providerRefs:
+    - name: route53-credentials
+

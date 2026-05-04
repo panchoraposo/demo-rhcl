@@ -1,0 +1,19 @@
+apiVersion: mcp.kuadrant.io/v1alpha1
+kind: MCPGatewayExtension
+metadata:
+  name: rhcl-mcp
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "24"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-mcp-gw
+    namespace: openshift-ingress
+    sectionName: https-mcp-public
+  publicHost: REPLACE_ME_MCP_HOSTNAME
+  privateHost: rhcl-mcp-gw-openshift-default.openshift-ingress.svc.cluster.local:80
+  httpRouteManagement: Disabled
+

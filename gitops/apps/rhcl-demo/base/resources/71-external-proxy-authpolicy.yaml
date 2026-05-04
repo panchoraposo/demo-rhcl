@@ -18,3 +18,24 @@ spec:
           opa:
             rego: "allow = true"
 
+---
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: external-proxy-public-allow
+  namespace: demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "32"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: external-proxy-public
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+

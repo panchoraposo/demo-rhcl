@@ -27,6 +27,7 @@ resources:
   - resources/36-httproute-jwt-demo.yaml
   - resources/38-oidc-referencegrant-external-proxy.yaml
   - resources/39-httproute-external-proxy.yaml
+  - resources/39b-httproute-external-proxy-public.yaml
   - resources/41-referencegrant-jwt-to-external-proxy.yaml
   - resources/40-gateway-authpolicy.yaml
   - resources/50-api-keys.yaml

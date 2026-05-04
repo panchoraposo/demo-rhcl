@@ -1,0 +1,230 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rhcl-mcp-tools-bridge
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "34"
+data:
+  server.mjs: |
+    import http from "node:http";
+    import crypto from "node:crypto";
+    import { URL } from "node:url";
+    
+    const upstream = process.env.UPSTREAM_URL || "http://rhcl-mcp-tools.mcp-system.svc.cluster.local:8080/mcp";
+    const listenPort = Number(process.env.PORT || "8080");
+    const DEFAULT_BROKER_SESSION = "default";
+    
+    // brokerSessionId -> upstreamSessionId
+    const sessions = new Map();
+    
+    async function upstreamInitialize(params) {
+      const init = {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: params || {
+          protocolVersion: "2025-11-25",
+          capabilities: {},
+          clientInfo: { name: "rhcl-mcp-tools-bridge", version: "1" },
+        },
+      };
+    
+      const r = await fetch(upstream, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+        },
+        body: JSON.stringify(init),
+      });
+    
+      const txt = await r.text();
+      const sid = (r.headers.get("mcp-session-id") || "").trim();
+      if (!sid) {
+        throw new Error("upstream initialize missing mcp-session-id");
+      }
+      return { sid, status: r.status, contentType: r.headers.get("content-type") || "application/json", body: txt };
+    }
+    
+    async function upstreamInitialized(upstreamSid) {
+      await fetch(upstream, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json, text/event-stream",
+          "mcp-session-id": upstreamSid,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
+      });
+    }
+    
+    async function ensureUpstreamSession(brokerSid, initParams) {
+      if (sessions.has(brokerSid)) return sessions.get(brokerSid);
+      const init = await upstreamInitialize(initParams);
+      try { await upstreamInitialized(init.sid); } catch { /* ignore */ }
+      sessions.set(brokerSid, init.sid);
+      return init.sid;
+    }
+    
+    function readBody(req) {
+      return new Promise((resolve, reject) => {
+        const chunks = [];
+        req.on("data", (c) => chunks.push(c));
+        req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+        req.on("error", reject);
+      });
+    }
+    
+    const handler = async (req, res) => {
+      try {
+        const url = new URL(req.url || "/", "http://localhost");
+        if (!url.pathname.startsWith("/mcp")) {
+          res.statusCode = 404;
+          res.end();
+          return;
+        }
+    
+        // CORS preflight support (the browser will preflight cross-origin JSON POSTs).
+        if (req.method === "OPTIONS") {
+          res.statusCode = 204;
+          res.setHeader("access-control-allow-origin", "*");
+          res.setHeader("access-control-allow-methods", "POST,OPTIONS");
+          res.setHeader("access-control-allow-headers", "content-type,authorization,accept,origin,x-requested-with,mcp-session-id");
+          res.setHeader("access-control-expose-headers", "mcp-session-id");
+          res.end();
+          return;
+        }
+    
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.end();
+          return;
+        }
+    
+        const raw = await readBody(req);
+        let msg;
+        try {
+          msg = JSON.parse(raw);
+        } catch {
+          res.statusCode = 400;
+          res.setHeader("content-type", "text/plain");
+          res.end("invalid json");
+          return;
+        }
+    
+        const method = String(msg && msg.method ? msg.method : "").trim();
+        const incomingBrokerSid = typeof req.headers["mcp-session-id"] === "string" ? String(req.headers["mcp-session-id"]).trim() : "";
+    
+    
+        // The Quarkiverse MCP server requires "notifications/initialized" after initialize.
+        // mcp-gateway does not reliably send that to upstream servers today, so we normalize here.
+        if (method === "initialize") {
+          const brokerSid = crypto.randomUUID();
+          const initParams = (msg && msg.params) ? msg.params : undefined;
+          const init = await upstreamInitialize(initParams);
+          try { await upstreamInitialized(init.sid); } catch { /* ignore */ }
+          sessions.set(brokerSid, init.sid);
+    
+          res.statusCode = init.status;
+          res.setHeader("mcp-session-id", brokerSid);
+          res.setHeader("content-type", init.contentType);
+          res.end(init.body);
+          return;
+        }
+    
+        const brokerSid = incomingBrokerSid || DEFAULT_BROKER_SESSION;
+        const upstreamSid = await ensureUpstreamSession(brokerSid);
+    
+        const up = await fetch(upstream, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "accept": "application/json, text/event-stream",
+            "mcp-session-id": upstreamSid,
+          },
+          body: raw,
+        });
+        const upText = await up.text();
+    
+        res.statusCode = up.status;
+        // Help stateless callers: always return a broker session id.
+        if (!incomingBrokerSid) res.setHeader("mcp-session-id", brokerSid);
+        res.setHeader("content-type", up.headers.get("content-type") || "application/json");
+        res.end(upText);
+      } catch (e) {
+        res.statusCode = 500;
+        res.setHeader("content-type", "text/plain");
+        res.end("bridge error");
+      }
+    };
+    
+    const server = http.createServer(handler);
+    
+    server.listen(listenPort, "0.0.0.0", () => {
+      // eslint-disable-next-line no-console
+      console.log(`mcp-tools-bridge listening on :${listenPort}, upstream=${upstream}`);
+    });
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhcl-mcp-tools-bridge
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "35"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rhcl-mcp-tools-bridge
+  template:
+    metadata:
+      labels:
+        app: rhcl-mcp-tools-bridge
+    spec:
+      containers:
+        - name: app
+          image: node:20-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["node", "/app/server.mjs"]
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: UPSTREAM_URL
+              value: http://rhcl-mcp-tools.mcp-system.svc.cluster.local:8080/mcp
+          volumeMounts:
+            - name: app
+              mountPath: /app
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: app
+          configMap:
+            name: rhcl-mcp-tools-bridge
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rhcl-mcp-tools-bridge
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "36"
+spec:
+  selector:
+    app: rhcl-mcp-tools-bridge
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+

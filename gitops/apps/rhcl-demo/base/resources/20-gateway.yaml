@@ -68,4 +68,17 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: https-external-public
+      port: 443
+      protocol: HTTPS
+      hostname: external-api.sandbox1529.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+      allowedRoutes:
+        namespaces:
+          from: All
 

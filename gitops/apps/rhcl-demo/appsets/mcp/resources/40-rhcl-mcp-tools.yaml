@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rhcl-mcp-tools
+  template:
+    metadata:
+      labels:
+        app: rhcl-mcp-tools
+    spec:
+      containers:
+        - name: app
+          # Reuse the workshop bot image as a tool server.
+          # OpenShift internal registry reference: <registry>/<namespace>/<imagestream>:<tag>
+          image: image-registry.openshift-image-registry.svc:5000/rhcl-ai-bot/rhcl-ai-bot:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: RHCL_AI_ESPN_BASE_URL
+              value: https://external-api.sandbox1529.opentlc.com
+            - name: RHCL_AI_TRACE_BASE_URL
+              value: http://rhcl-trace-svc.demo.svc.cluster.local
+            # Ensure LLM is not required for tool serving.
+            - name: RHCL_AI_OPENAI_API_KEY
+              value: ""
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "31"
+spec:
+  selector:
+    app: rhcl-mcp-tools
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+

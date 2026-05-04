@@ -82,11 +82,19 @@ spec:
                   name: rhcl-ai-bot-llm
                   key: apiKey
                   optional: true
-            # Tool calls go through the Connectivity Link entrypoint (/external on the main gateway)
+            # ESPN is consumed via the Gateway-published external API hostname.
             - name: RHCL_AI_ESPN_BASE_URL
-              value: http://rhcl-gw-openshift-default.openshift-ingress.svc.cluster.local
+              value: https://external-api.sandbox1529.opentlc.com
             - name: RHCL_AI_TRACE_BASE_URL
               value: http://rhcl-trace-svc.demo.svc.cluster.local
+            # Tool calls go through the same-origin /mcp-tools bridge (stable across environments).
+            # This avoids cross-origin/TLS issues on the dedicated MCP hostname while still demonstrating Gateway routing.
+            - name: RHCL_AI_MCP_BASE_URL
+              value: https://REPLACE_ME_DEMO_HOSTNAME
+            - name: RHCL_AI_MCP_PATH
+              value: /mcp-tools
+            - name: RHCL_AI_MCP_TOOL_SCOREBOARD
+              value: nba_scoreboard
           readinessProbe:
             httpGet:
               path: /q/health/ready

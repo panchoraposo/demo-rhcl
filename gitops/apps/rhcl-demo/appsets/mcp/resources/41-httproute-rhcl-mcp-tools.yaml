@@ -1,0 +1,52 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+  labels:
+    mcp-server: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "32"
+spec:
+  parentRefs:
+    - name: rhcl-mcp-gw
+      namespace: openshift-ingress
+      sectionName: https-mcp-public
+  hostnames:
+    - REPLACE_ME_MCP_HOSTNAME
+  rules:
+    - matches:
+        - method: OPTIONS
+          path:
+            type: PathPrefix
+            value: /tools/rhcl-mcp-tools
+        - method: POST
+        - path:
+            type: PathPrefix
+            value: /tools/rhcl-mcp-tools
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: access-control-allow-origin
+                value: "*"
+              - name: access-control-allow-methods
+                value: "POST,OPTIONS"
+              - name: access-control-allow-headers
+                value: "content-type,authorization,accept,origin,x-requested-with,mcp-session-id"
+              - name: access-control-expose-headers
+                value: "mcp-session-id"
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /mcp
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: accept
+                value: "application/json, text/event-stream"
+      backendRefs:
+        - name: rhcl-mcp-tools-bridge
+          port: 8080
+

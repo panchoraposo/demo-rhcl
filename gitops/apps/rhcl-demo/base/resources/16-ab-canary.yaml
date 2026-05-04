@@ -19,13 +19,15 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: registry.redhat.io/ubi10/nginx-126:10.1
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
           ports:
             - containerPort: 8080
               name: http
           volumeMounts:
             - name: cfg
-              mountPath: /etc/nginx/conf.d
+              mountPath: /opt/app-root/etc/nginx.default.d
               readOnly: true
       volumes:
         - name: cfg
@@ -40,13 +42,11 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
-  default.conf: |
-    server {
-      listen 8080;
-      location / {
-        add_header content-type text/plain;
-        return 200 "A\n";
-      }
+  ab-a.conf: |
+    # Included in the default server block by the UBI nginx image.
+    location / {
+      add_header content-type text/plain;
+      return 200 "A\n";
     }
 ---
 apiVersion: v1
@@ -86,13 +86,15 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: registry.redhat.io/ubi10/nginx-126:10.1
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
           ports:
             - containerPort: 8080
               name: http
           volumeMounts:
             - name: cfg
-              mountPath: /etc/nginx/conf.d
+              mountPath: /opt/app-root/etc/nginx.default.d
               readOnly: true
       volumes:
         - name: cfg
@@ -107,13 +109,11 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
-  default.conf: |
-    server {
-      listen 8080;
-      location / {
-        add_header content-type text/plain;
-        return 200 "B\n";
-      }
+  ab-b.conf: |
+    # Included in the default server block by the UBI nginx image.
+    location / {
+      add_header content-type text/plain;
+      return 200 "B\n";
     }
 ---
 apiVersion: v1
@@ -153,13 +153,15 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: registry.redhat.io/ubi10/nginx-126:10.1
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
           ports:
             - containerPort: 8080
               name: http
           volumeMounts:
             - name: cfg
-              mountPath: /etc/nginx/conf.d
+              mountPath: /opt/app-root/etc/nginx.default.d
               readOnly: true
       volumes:
         - name: cfg
@@ -174,13 +176,11 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
-  default.conf: |
-    server {
-      listen 8080;
-      location / {
-        add_header content-type text/plain;
-        return 200 "v1\n";
-      }
+  canary-v1.conf: |
+    # Included in the default server block by the UBI nginx image.
+    location / {
+      add_header content-type text/plain;
+      return 200 "v1\n";
     }
 ---
 apiVersion: v1
@@ -220,13 +220,15 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: registry.redhat.io/ubi10/nginx-126:10.1
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
           ports:
             - containerPort: 8080
               name: http
           volumeMounts:
             - name: cfg
-              mountPath: /etc/nginx/conf.d
+              mountPath: /opt/app-root/etc/nginx.default.d
               readOnly: true
       volumes:
         - name: cfg
@@ -241,13 +243,11 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
-  default.conf: |
-    server {
-      listen 8080;
-      location / {
-        add_header content-type text/plain;
-        return 200 "v2\n";
-      }
+  canary-v2.conf: |
+    # Included in the default server block by the UBI nginx image.
+    location / {
+      add_header content-type text/plain;
+      return 200 "v2\n";
     }
 ---
 apiVersion: v1

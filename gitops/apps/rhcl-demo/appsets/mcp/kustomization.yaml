@@ -3,7 +3,18 @@ kind: Kustomization
 
 resources:
   - resources/00-namespace-mcp-system.yaml
+  - resources/05-mcp-gateway-olm.yaml
   - resources/10-kuadrant-mcp-server.yaml
+  - resources/14-mcp-gateway-config-secret.yaml
   - resources/20-httproute-mcp.yaml
   - resources/30-mcp-authpolicy.yaml
+  - resources/15-mcp-gateway-gateway.yaml
+  - resources/16-mcp-gateway-public-dnspolicy.yaml
+  - resources/17-mcp-gateway-referencegrant.yaml
+  - resources/18-mcp-gateway-extension.yaml
+  - resources/19-mcp-gateway-public-httproute.yaml
+  - resources/40-rhcl-mcp-tools.yaml
+  - resources/41-httproute-rhcl-mcp-tools.yaml
+  - resources/44-rhcl-mcp-tools-bridge.yaml
+  - resources/45-referencegrant-demo-to-mcp-tools-bridge.yaml
 

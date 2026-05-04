@@ -21,13 +21,15 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: registry.redhat.io/ubi10/nginx-126:10.1
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
           ports:
             - containerPort: 8080
               name: http
           volumeMounts:
             - name: cfg
-              mountPath: /etc/nginx/conf.d
+              mountPath: /opt/app-root/etc/nginx.default.d
               readOnly: true
       volumes:
         - name: cfg
@@ -42,49 +44,66 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
-  default.conf: |
+  external.conf: |
+    # Included in the default server block by the UBI nginx image.
     resolver 172.30.0.10 valid=30s ipv6=off;
-    server {
-      listen 8080;
-      # External API demo (ESPN public JSON endpoints)
-      # - UI calls same-origin (/external/*)
-      # - This service proxies to upstream JSON (no browser CORS problems)
-      location ^~ /external {
-        # Default to NBA for the workshop
-        rewrite ^/external/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
 
-      location ^~ /external/nba {
-        rewrite ^/external/nba/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
+    # External API demo (ESPN public JSON endpoints)
+    # - UI calls same-origin (/external/*)
+    # - This service proxies to upstream JSON (no browser CORS problems)
+    location ^~ /external {
+      # Default to NBA for the workshop
+      rewrite ^/external/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
+      proxy_ssl_server_name on;
+      proxy_set_header Host site.api.espn.com;
+      proxy_set_header User-Agent "rhcl-demo";
+      proxy_set_header Accept "application/json";
+      proxy_pass https://site.api.espn.com;
+    }
 
-      location ^~ /external/epl {
-        rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
+    location ^~ /external/nba {
+      rewrite ^/external/nba/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
+      proxy_ssl_server_name on;
+      proxy_set_header User-Agent "rhcl-demo";
+      proxy_set_header Host site.api.espn.com;
+      proxy_set_header Accept "application/json";
+      proxy_pass https://site.api.espn.com;
+    }
 
-      location ^~ /external/laliga {
-        rewrite ^/external/laliga/?$ /apis/site/v2/sports/soccer/esp.1/scoreboard break;
-        proxy_ssl_server_name on;
-        proxy_set_header User-Agent "rhcl-demo";
-        proxy_set_header Host site.api.espn.com;
-        proxy_set_header Accept "application/json";
-        proxy_pass https://site.api.espn.com;
-      }
+    location ^~ /external/epl {
+      rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
+      proxy_ssl_server_name on;
+      proxy_set_header User-Agent "rhcl-demo";
+      proxy_set_header Host site.api.espn.com;
+      proxy_set_header Accept "application/json";
+      proxy_pass https://site.api.espn.com;
+    }
+
+    location ^~ /external/laliga {
+      rewrite ^/external/laliga/?$ /apis/site/v2/sports/soccer/esp.1/scoreboard break;
+      proxy_ssl_server_name on;
+      proxy_set_header User-Agent "rhcl-demo";
+      proxy_set_header Host site.api.espn.com;
+      proxy_set_header Accept "application/json";
+      proxy_pass https://site.api.espn.com;
+    }
+
+    location ^~ /external/nfl {
+      rewrite ^/external/nfl/?$ /apis/site/v2/sports/football/nfl/scoreboard break;
+      proxy_ssl_server_name on;
+      proxy_set_header User-Agent "rhcl-demo";
+      proxy_set_header Host site.api.espn.com;
+      proxy_set_header Accept "application/json";
+      proxy_pass https://site.api.espn.com;
+    }
+
+    location ^~ /external/nhl {
+      rewrite ^/external/nhl/?$ /apis/site/v2/sports/hockey/nhl/scoreboard break;
+      proxy_ssl_server_name on;
+      proxy_set_header User-Agent "rhcl-demo";
+      proxy_set_header Host site.api.espn.com;
+      proxy_set_header Accept "application/json";
+      proxy_pass https://site.api.espn.com;
     }
 ---
 apiVersion: v1

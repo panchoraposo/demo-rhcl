@@ -18,8 +18,8 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
   - **Canary opt-in**: header `x-rhcl-canary: always` → **force 100% v2** (great for “internal testers” story)
 
 ### External API (ESPN proxy)
-- **Objects**: `HTTPRoute` to an in-cluster proxy
-- **Benefit**: the Gateway becomes the **single policy enforcement point** even when your app consumes third-party APIs.
+- **Objects**: `Gateway` listener + `DNSPolicy` (Route53) + `Certificate` SANs + `HTTPRoute` + `AuthPolicy`
+- **Benefit**: publish a third‑party API behind the Gateway on a **dedicated hostname** (`external-api.<domain>`), so you can apply the same policies (auth/rate-limit/traffic) even when the data originates outside the cluster.
 
 ### Observability (Grafana + OpenShift Console graphs)
 - **Objects**: OpenShift **User Workload Monitoring**, Kuadrant `ServiceMonitor`/`PodMonitor`, **Grafana** (anonymous), preloaded dashboards
@@ -37,6 +37,7 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 - **Policies**: `TokenRateLimitPolicy`
 - **Benefit**: rate limiting based on **token usage** (not just requests), which maps better to LLM cost and abuse prevention.
   - Demo budget is intentionally small (currently **400 tokens / 15s**) so you can trigger `429` reliably.
+  - The bot calls MCP tools via a **same-origin bridge** (`/mcp-tools`) and can switch tools (NBA/EPL/LaLiga/NFL/NHL).
 
 ### AuthPolicy (Keycloak JWT) — token, decode, call with/without
 - **Policies**: `AuthPolicy` (JWT validation)
@@ -56,6 +57,23 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
   - the **Gateway** (guardrails like deny-by-default)
   - individual **HTTPRoutes** (auth, rate limits, traffic shaping)
 - TLS is handled via `TLSPolicy` + `cert-manager` (ClusterIssuer required).
+
+### Connectivity Link changes in this repo (demo wiring)
+
+- **External API published hostname**:
+  - `Gateway` listener: `https-external-public` → `external-api.<base-domain>`
+  - `DNSPolicy`: creates/updates the Route53 record for `external-api.<base-domain>`
+  - `Certificate`: `rhcl-gw-public-tls` includes `external-api.<base-domain>` as a SAN
+  - `HTTPRoute`: `demo/external-proxy-public` publishes clean paths:
+    - `GET /nba`, `/epl`, `/laliga`, `/nfl`, `/nhl`
+  - `AuthPolicy`: `demo/external-proxy-public-allow` (route-level allow) so the default deny-all does not block the demo
+
+- **MCP tools + UI/bot access (stable across environments)**:
+  - `HTTPRoute`: `demo/rhcl-mcp-tools-local` exposes same-origin `/mcp-tools` to the MCP tools bridge
+  - `AuthPolicy`: `demo/rhcl-mcp-tools-local-allow`
+  - The tool server (`rhcl-mcp-tools`) and bot consume ESPN via `https://external-api.<base-domain>`
+
+> Note: NGINX is just an implementation detail for serving static UI / proxying upstream JSON. The workshop value is the **Gateway API + Kuadrant policies** wiring, not the web server choice.
 
 ## Prerequisites
 
@@ -138,6 +156,7 @@ oc -n demo set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KEY'
 - OIDC portal: `https://<OIDC_HOSTNAME>/`
 - Grafana (anonymous): `https://<GRAFANA_HOSTNAME>/`
 - Kiali: `https://kiali-istio-system.<appsDomain>/`
+- External API hostname: `https://external-api.<appsDomain>/epl` (also `/nba`, `/laliga`, `/nfl`, `/nhl`)
 
 ## Suggested live-demo flow (5–8 minutes)
 

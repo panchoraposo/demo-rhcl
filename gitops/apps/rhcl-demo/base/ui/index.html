@@ -102,6 +102,12 @@
         min-width:0;
       }
 
+      /* Prevent long tokens/JSON from breaking grid layout */
+      .card{min-width:0}
+      .row{min-width:0}
+      .row > *{min-width:0}
+      code, .mono, .monoMini{overflow-wrap:anywhere; word-break:break-word}
+
       .wrap{max-width:1180px; margin:0 auto; padding:10px 6px 40px;}
       header{
         display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
@@ -183,6 +189,19 @@
         font-size:13px;
         padding:0;
       }
+      select{
+        width:100%;
+        border:none;
+        outline:none;
+        background:transparent;
+        color:var(--text);
+        font-size:13px;
+        padding:0;
+      }
+      select option{
+        background: var(--bg1);
+        color: var(--text);
+      }
 
       button{
         border:1px solid rgba(255,255,255,.12);
@@ -251,6 +270,9 @@
         background:rgba(0,0,0,.16);
         color:var(--muted);
         font-size:12px;
+        max-width:100%;
+        flex-wrap:wrap;
+        overflow-wrap:anywhere;
       }
       .dot{width:8px;height:8px;border-radius:999px;background:var(--info); box-shadow:0 0 0 3px rgba(56,189,248,.10)}
       .dot.good{background:var(--good); box-shadow:0 0 0 3px rgba(34,197,94,.10)}
@@ -268,6 +290,8 @@
         line-height:1.45;
         color:#d6e7ff;
         white-space: pre-wrap;
+        overflow-wrap:anywhere;
+        word-break:break-word;
       }
       .log .muted{color:#91a4d6}
       .log .ok{color:#86efac}
@@ -739,8 +763,11 @@
           <section class="module active" id="policies" data-module="policies">
             <div class="moduleHero">
               <div class="k">Module</div>
-              <div class="t"><b>Workshop</b> — AuthPolicy + RateLimitPolicy</div>
-              <div class="d">Use API keys to demonstrate identity + rate limiting (429). The live log is your “audience screen”.</div>
+              <div class="t"><b>Workshop</b> — AuthPolicy + RateLimitPolicy + MCP Gateway</div>
+              <div class="d">
+                Use API keys to demonstrate identity + rate limiting (429).
+                This module also includes the MCP Gateway building blocks used by the AI demo (dedicated hostname, Route53 DNSPolicy, and server registrations).
+              </div>
               <div class="row" style="margin-top:10px">
                 <button onclick="openYamlSet('policies')">View policy YAML</button>
               </div>
@@ -802,6 +829,26 @@
                 <div class="log" id="log"></div>
                 <div class="footer">
                   Tip: the UI is public (explicit allow override) and the `/hello` API requires a valid API key (AuthPolicy).
+                </div>
+              </div>
+            </div>
+
+            <div class="grid" style="margin-top:16px">
+              <div class="card" style="grid-column: 1 / -1;">
+                <h2>MCP module components (used by AI demo)</h2>
+                <div class="sub">
+                  These resources publish a stable MCP endpoint on a dedicated hostname and expose tools for AI agents.
+                </div>
+                <div class="row" style="margin-top:10px">
+                  <span class="pill"><span class="dot"></span> Gateway (MCP hostname)</span>
+                  <span class="pill"><span class="dot"></span> DNSPolicy (Route53 record)</span>
+                  <span class="pill"><span class="dot"></span> MCPGatewayExtension</span>
+                  <span class="pill"><span class="dot"></span> HTTPRoute (/mcp + /servers/*)</span>
+                  <span class="pill"><span class="dot"></span> mcp-gateway-config</span>
+                </div>
+                <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
+                  <button class="primary" onclick="openYamlSet('mcp')">View MCP Gateway YAML</button>
+                  <span class="pill"><span class="dot good"></span> demo tip: apply AuthPolicy + RateLimitPolicy here too</span>
                 </div>
               </div>
             </div>
@@ -945,27 +992,32 @@
           <section class="module" id="external" data-module="external">
             <div class="moduleHero">
               <div class="k">Module</div>
-              <div class="t"><b>External API</b> — same-origin proxy to ESPN JSON</div>
-              <div class="d">Visually explain what happens: browser calls <code>/external/&lt;preset&gt;</code>, cluster proxies to ESPN, UI renders a scoreboard with official team logos.</div>
+              <div class="t"><b>External API</b> — Gateway-published ESPN JSON</div>
+              <div class="d">
+                Visually explain what happens: the browser calls the dedicated hostname
+                <code>external-api.&lt;base-domain&gt;/&lt;league&gt;</code> published via <b>DNSPolicy</b> (Route53) + TLS, and the cluster fetches ESPN JSON (<code>site.api.espn.com</code>).
+              </div>
               <div class="row" style="margin-top:10px">
                 <button onclick="openYamlSet('external')">View policy YAML</button>
               </div>
             </div>
             <div class="grid">
               <div class="card" style="grid-column: 1 / -1;">
-                <h2>External API (ESPN) via in-cluster proxy</h2>
+                <h2>External API (ESPN) via external-api hostname</h2>
                 <div class="sub">
-                  The UI calls <code>/external/&lt;preset&gt;</code> on the same host. The in-cluster proxy fetches ESPN JSON and returns it same-origin.
+                  The UI calls <code>https://external-api.&lt;base-domain&gt;/&lt;league&gt;</code>. The in-cluster proxy fetches ESPN JSON and returns it.
                   Endpoints are the public ESPN JSON URLs commonly referenced by <a href="https://espnapi.com/" target="_blank" rel="noopener noreferrer">espnapi.com</a>.
                 </div>
                 <div class="row" style="margin-top:10px">
                   <button class="primary" onclick="callExternal('nba')">NBA</button>
                   <button class="primary" onclick="callExternal('epl')">Premier League</button>
                   <button class="primary" onclick="callExternal('laliga')">La Liga</button>
+                  <button onclick="callExternal('nfl')">NFL</button>
+                  <button onclick="callExternal('nhl')">NHL</button>
                 </div>
                 <div class="row" style="margin-top:10px">
                   <span class="pill"><span class="dot good"></span> browser</span>
-                  <span class="pill"><span class="dot"></span> <code>/external/&lt;preset&gt;</code></span>
+                  <span class="pill"><span class="dot"></span> <code>external-api.&lt;base-domain&gt;/&lt;league&gt;</code></span>
                   <span class="pill"><span class="dot"></span> proxy (cluster)</span>
                   <span class="pill"><span class="dot"></span> ESPN JSON (<code>site.api.espn.com</code>)</span>
                 </div>
@@ -1054,53 +1106,79 @@
           <section class="module" id="ai" data-module="ai">
             <div class="moduleHero">
               <div class="k">Module</div>
-              <div class="t"><b>AI chatbot</b> — tool call (ESPN) + TokenRateLimitPolicy</div>
+              <div class="t"><b>AI chatbot</b> — MCP tool call + TokenRateLimitPolicy</div>
               <div class="d">
-                The browser talks to a Quarkus app that can call an in-cluster “tool” (the ESPN proxy) and returns an OpenAI-compatible response including <code>usage.total_tokens</code>.
-                The Gateway enforces <b>TokenRateLimitPolicy</b> on this endpoint.
+                The browser talks to a Quarkus app that returns an OpenAI-compatible response including <code>usage.total_tokens</code>.
+                When it needs external data, the app calls tools through the <b>MCP Gateway</b> (separate hostname) and the Gateway enforces <b>TokenRateLimitPolicy</b> on the AI endpoint.
               </div>
               <div class="row" style="margin-top:10px">
                 <button onclick="openYamlSet('ai')">View policy YAML</button>
-                <button class="primary" onclick="aiPing()">Ping MCP</button>
+                <button class="primary" onclick="aiPing()">Ping MCP Gateway</button>
+                <button onclick="aiListTools()">List tools</button>
+                <button onclick="aiCallTool()">Call tool</button>
                 <button onclick="aiClear()">Clear</button>
                 <span class="pill"><span class="dot"></span> <code id="aiStatus">—</code></span>
+                <span class="pill" title="MCP gateway hostname"><span class="dot"></span> <code id="aiMcpHostPill">—</code></span>
               </div>
             </div>
 
             <div class="grid">
               <div class="card" style="grid-column: 1 / -1;">
-                <h2>Ask about NBA games</h2>
+                <h2>Ask about sports scoreboards</h2>
                 <div class="sub">
-                  Try: <span class="mono">What NBA games are live?</span> or <span class="mono">Show finals in the last 7 days</span>.
+                  Pick a tool (league) and try: <span class="mono">What games are live?</span> or <span class="mono">Show finals in the last 7 days</span>.
                   For the demo, the budget is intentionally small: <b>400 tokens / 15s</b>. If you exceed it, you’ll get <b>429</b> from the Gateway.
                 </div>
                 <div class="row" style="margin-top:10px; gap:10px; align-items:center">
-                  <button onclick="aiDemo429()">Hit 429 (demo)</button>
+                  <button class="primary" onclick="aiUseSafePrompt()">Run example (success)</button>
+                  <button class="warn" onclick="aiDemo429()">Hit 429 (demo)</button>
+                  <button onclick="aiRunCustomPrompt()">Run custom prompt</button>
                   <span class="pill"><span class="dot"></span> <span id="aiBudget">budget: 400/15s</span></span>
                 </div>
-                <div class="row" style="margin-top:10px">
-                  <textarea id="aiPrompt" spellcheck="false" style="flex:1; min-height:84px; resize:vertical; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); padding:10px 12px; border-radius:14px;" placeholder="Ask something about NBA games…"></textarea>
+                <div class="row" style="margin-top:10px; gap:10px; align-items:center; flex-wrap:wrap">
+                  <div class="input" style="flex: 0 1 420px; min-width: 260px">
+                    <label>Tool (league)</label>
+                    <select id="aiToolSelect">
+                      <option value="">auto (nba_scoreboard)</option>
+                    </select>
+                  </div>
+                  <span class="pill" title="Selected MCP tool (injected into prompts)"><span class="dot"></span> <span id="aiSelectedTool">tool: auto</span></span>
                 </div>
+                <div class="sub" id="aiToolDesc" style="margin-top:8px; color:var(--muted)"></div>
                 <div class="row" style="margin-top:10px; align-items:center; gap:10px">
-                  <button class="primary" onclick="aiChat()">Send</button>
-                  <button onclick="aiLongPrompt()">Make it longer</button>
                   <span class="pill"><span class="dot"></span> <span id="aiTokens">tokens: —</span></span>
                   <span class="pill"><span class="dot"></span> <span id="aiHttp">HTTP: —</span></span>
+                  <span class="pill"><span class="dot"></span> <span id="aiPromptStats">prompt: —</span></span>
                 </div>
-                <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px">
+                <div class="grid" style="grid-template-columns: 1.6fr .8fr; gap:12px; margin-top:10px">
                   <div class="card" style="background: rgba(0,0,0,.10); border-color: rgba(255,255,255,.08); box-shadow:none">
                     <div style="padding:12px 12px 0; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
                       <span class="pill"><span class="dot"></span> Conversation</span>
-                      <span class="pill"><span class="dot"></span> <span id="aiMeta">tool: — · llm: —</span></span>
+                      <span class="pill" title="Execution meta (click JSON below for details)"><span class="dot"></span> <span id="aiMeta">tool: — · llm: —</span></span>
                     </div>
-                    <div class="log" id="aiChatBox" style="height:210px; margin:10px 12px 12px"></div>
+                    <div class="log" id="aiChatBox" style="height:330px; margin:10px 12px 12px"></div>
+                    <details id="aiCustomPromptDetails" style="margin:0 12px 12px">
+                      <summary class="pill" style="cursor:pointer; user-select:none">Custom prompt</summary>
+                      <div class="row" style="margin-top:10px">
+                        <textarea id="aiPrompt" spellcheck="false" style="flex:1; min-height:120px; resize:vertical; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text); padding:10px 12px; border-radius:14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, &quot;Liberation Mono&quot;, &quot;Courier New&quot;, monospace; line-height:1.45;" placeholder="Ask something about scoreboards…"></textarea>
+                      </div>
+                      <div class="row" style="margin-top:10px; align-items:center; gap:10px; flex-wrap:wrap">
+                        <button class="primary" type="button" onclick="aiRunCustomPrompt()">Send custom prompt</button>
+                        <button type="button" onclick="aiClearCustomPrompt()">Clear prompt</button>
+                        <span class="sub">Tip: <span class="mono">Ctrl+Enter</span> / <span class="mono">Cmd+Enter</span> to send.</span>
+                      </div>
+                    </details>
                   </div>
                   <div class="card" style="background: rgba(0,0,0,.10); border-color: rgba(255,255,255,.08); box-shadow:none">
                     <div style="padding:12px 12px 0; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
                       <span class="pill"><span class="dot"></span> Live log</span>
-                      <button onclick="aiClearLogs()" style="padding:6px 10px; border-radius:999px">Clear log</button>
+                      <div class="row" style="gap:8px; align-items:center">
+                        <button onclick="aiShowLastToolJson()" style="padding:6px 10px; border-radius:999px">Tool JSON</button>
+                        <button onclick="aiShowLastMeta()" style="padding:6px 10px; border-radius:999px">Meta</button>
+                        <button onclick="aiClearLogs()" style="padding:6px 10px; border-radius:999px">Clear log</button>
+                      </div>
                     </div>
-                    <div class="log" id="aiLog" style="height:210px; margin:10px 12px 12px"></div>
+                    <div class="log" id="aiLog" style="height:330px; margin:10px 12px 12px"></div>
                   </div>
                 </div>
               </div>
@@ -1452,12 +1530,18 @@
       const yamlEnforcerPillEl = el("yamlEnforcerPill");
       const oidcPortalPillEl = el("oidcPortalPill");
       const aiStatusEl = el("aiStatus");
+      const aiMcpHostPillEl = el("aiMcpHostPill");
+      const aiCustomPromptDetailsEl = el("aiCustomPromptDetails");
       const aiPromptEl = el("aiPrompt");
+      const aiToolSelectEl = el("aiToolSelect");
+      const aiSelectedToolEl = el("aiSelectedTool");
+      const aiToolDescEl = el("aiToolDesc");
       const aiTokensEl = el("aiTokens");
       const aiHttpEl = el("aiHttp");
       const aiLogEl = el("aiLog");
       const aiChatBoxEl = el("aiChatBox");
       const aiMetaEl = el("aiMeta");
+      const aiPromptStatsEl = el("aiPromptStats");
       const jwtApiPillEl = el("jwtApiPill");
       const jwtStatusEl = el("jwtStatus");
       const jwtTokenHttpEl = el("jwtTokenHttp");
@@ -1497,6 +1581,7 @@
       let externalLastEvents = [];
       let externalLastRequestUrl = "";
       let externalLastUpstream = "";
+      let aiLongLevel = 0;
       const externalNodeIndex = new Map(); // path -> details element
       let yamlActiveText = "";
       let yamlActiveKey = "";
@@ -1504,6 +1589,12 @@
       let jwtToken = "";
       let jwtDecodedText = "";
       let jsonActiveText = "";
+      let aiLastToolJsonText = "";
+      let aiLastMetaObj = null;
+      const AI_SELECTED_TOOL_LS_KEY = "rhcl_ai_selected_tool";
+      const aiToolCatalog = new Map(); // name -> description
+      let aiToolsLoaded = false;
+      let aiClearNonce = 0; // increments on Clear to ignore late responses
 
       const YAML_SETS = {
         "policies": [
@@ -1577,6 +1668,261 @@ spec:
       when:
         - predicate: "auth.identity.userid == 'bob'"
 ` },
+          { name: "Gateway (MCP hostname)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rhcl-mcp-gw
+  namespace: openshift-ingress
+spec:
+  gatewayClassName: openshift-default
+  listeners:
+    - name: https-mcp-public
+      port: 443
+      protocol: HTTPS
+      hostname: REPLACE_ME_MCP_HOSTNAME
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+` },
+          { name: "DNSPolicy (Route53 for MCP hostname)", yaml: `apiVersion: kuadrant.io/v1
+kind: DNSPolicy
+metadata:
+  name: rhcl-mcp-public-dns
+  namespace: openshift-ingress
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-mcp-gw
+    sectionName: https-mcp-public
+  providerRefs:
+    - name: route53-credentials
+` },
+          { name: "MCPGatewayExtension", yaml: `apiVersion: mcp.kuadrant.io/v1alpha1
+kind: MCPGatewayExtension
+metadata:
+  name: rhcl-mcp
+  namespace: mcp-system
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-mcp-gw
+    namespace: openshift-ingress
+    sectionName: https-mcp-public
+  httpRouteManagement: Disabled
+` },
+          { name: "HTTPRoute (public /mcp)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-gateway
+  namespace: mcp-system
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-mcp-gw
+      namespace: openshift-ingress
+      sectionName: https-mcp-public
+  hostnames:
+    - REPLACE_ME_MCP_HOSTNAME
+  rules:
+    - matches:
+        - method: POST
+          path: { type: PathPrefix, value: /mcp }
+        - method: OPTIONS
+          path: { type: PathPrefix, value: /mcp }
+      backendRefs:
+        - kind: Service
+          name: mcp-gateway
+          port: 8080
+          weight: 1
+` },
+          { name: "HTTPRoute (tool server via /tools/rhcl-mcp-tools)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+spec:
+  parentRefs:
+    - name: rhcl-mcp-gw
+      namespace: openshift-ingress
+      sectionName: https-mcp-public
+  hostnames:
+    - REPLACE_ME_MCP_HOSTNAME
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /tools/rhcl-mcp-tools }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: { type: ReplacePrefixMatch, replacePrefixMatch: /mcp }
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: accept
+                value: "application/json, text/event-stream"
+      backendRefs:
+        - name: rhcl-mcp-tools-bridge
+          port: 8080
+` },
+          { name: "mcp-gateway-config (upstream servers)", yaml: `apiVersion: v1
+kind: Secret
+metadata:
+  name: mcp-gateway-config
+  namespace: mcp-system
+type: Opaque
+stringData:
+  config.yaml: |
+    servers:
+      - enabled: true
+        hostname: REPLACE_ME_MCP_HOSTNAME
+        name: mcp-system/rhcl-mcp-tools
+        toolPrefix: tools_
+        url: https://REPLACE_ME_MCP_HOSTNAME/tools/rhcl-mcp-tools
+` },
+        ],
+        "mcp": [
+          { name: "MCP Gateway (Gateway + listeners)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rhcl-mcp-gw
+  namespace: openshift-ingress
+spec:
+  gatewayClassName: openshift-default
+  listeners:
+    - name: https-mcp-public
+      port: 443
+      protocol: HTTPS
+      hostname: REPLACE_ME_MCP_HOSTNAME
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+` },
+          { name: "MCP Gateway public HTTPRoute (/mcp)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-gateway
+  namespace: mcp-system
+spec:
+  parentRefs:
+    - name: rhcl-mcp-gw
+      namespace: openshift-ingress
+      sectionName: https-mcp-public
+  hostnames:
+    - REPLACE_ME_MCP_HOSTNAME
+  rules:
+    - matches:
+        - method: POST
+          path: { type: PathPrefix, value: /mcp }
+        - method: OPTIONS
+          path: { type: PathPrefix, value: /mcp }
+      backendRefs:
+        - name: mcp-gateway
+          port: 8080
+` },
+          { name: "Tool server route (/tools/… -> bridge)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+spec:
+  parentRefs:
+    - name: rhcl-mcp-gw
+      namespace: openshift-ingress
+      sectionName: https-mcp-public
+  hostnames:
+    - REPLACE_ME_MCP_HOSTNAME
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /tools/rhcl-mcp-tools }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: { type: ReplacePrefixMatch, replacePrefixMatch: /mcp }
+      backendRefs:
+        - name: rhcl-mcp-tools-bridge
+          port: 8080
+` },
+          { name: "MCP AuthPolicy (allow Kuadrant MCP server)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: kuadrant-mcp-allow
+  namespace: mcp-system
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: kuadrant-mcp
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
+          { name: "mcp-gateway-config (federated tool servers)", yaml: `apiVersion: v1
+kind: Secret
+metadata:
+  name: mcp-gateway-config
+  namespace: mcp-system
+type: Opaque
+stringData:
+  config.yaml: |
+    servers:
+      - enabled: true
+        hostname: REPLACE_ME_MCP_HOSTNAME
+        name: mcp-system/rhcl-mcp-tools
+        toolPrefix: tools_
+        url: https://REPLACE_ME_MCP_HOSTNAME/tools/rhcl-mcp-tools
+` },
+          { name: "Same-origin bridge for the UI (/mcp-tools)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-tools-local
+  namespace: demo
+spec:
+  parentRefs:
+    - name: rhcl-gw
+      namespace: openshift-ingress
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /mcp-tools }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: { type: ReplacePrefixMatch, replacePrefixMatch: /mcp }
+      backendRefs:
+        - name: rhcl-mcp-tools-bridge
+          namespace: mcp-system
+          port: 8080
+` },
+          { name: "AuthPolicy allow (UI -> /mcp-tools)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: rhcl-mcp-tools-local-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: rhcl-mcp-tools-local
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
         ],
         "traffic": [
           { name: "HTTPRoute (A/B 80/20 + canary 90/10)", yaml: `apiVersion: gateway.networking.k8s.io/v1
@@ -1635,39 +1981,124 @@ spec:
 ` },
         ],
         "external": [
-          { name: "HTTPRoute (/external)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+          { name: "HTTPRoute (external-api.<domain>/<league>)", yaml: `apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: ab-demo
+  name: external-proxy-public
   namespace: demo
 spec:
+  hostnames:
+    - external-api.REPLACE_ME_BASE_DOMAIN
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-gw
+      namespace: openshift-ingress
+      sectionName: https-external-public
   rules:
     - matches:
         - method: GET
-          path:
-            type: PathPrefix
-            value: /external
+          path: { type: PathPrefix, value: /epl }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: { type: ReplacePrefixMatch, replacePrefixMatch: /external/epl }
       backendRefs:
         - kind: Service
           name: external-proxy
           port: 80
           weight: 1
+    # ... nba / laliga / nfl / nhl are equivalent
 ` },
-          { name: "external-proxy (NGINX upstream)", yaml: `apiVersion: v1
+          { name: "AuthPolicy allow (external routes)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: external-proxy-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: external-proxy
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+---
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: external-proxy-public-allow
+  namespace: demo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: external-proxy-public
+  defaults:
+    rules:
+      authorization:
+        allow-all:
+          opa:
+            rego: "allow = true"
+` },
+          { name: "DNSPolicy + TLS (external-api hostname)", yaml: `# Gateway listener uses rhcl-gw-public-tls
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rhcl-gw
+  namespace: openshift-ingress
+spec:
+  listeners:
+    - name: https-external-public
+      port: 443
+      protocol: HTTPS
+      hostname: external-api.REPLACE_ME_BASE_DOMAIN
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: rhcl-gw-public-tls
+---
+apiVersion: kuadrant.io/v1
+kind: DNSPolicy
+metadata:
+  name: rhcl-external-public-dns
+  namespace: openshift-ingress
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-gw
+    sectionName: https-external-public
+  providerRefs:
+    - name: route53-credentials
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rhcl-gw-public-tls
+  namespace: openshift-ingress
+spec:
+  secretName: rhcl-gw-public-tls
+  dnsNames:
+    - external-api.REPLACE_ME_BASE_DOMAIN
+` },
+          { name: "external-proxy (ESPN upstream mapping)", yaml: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: external-proxy-nginx
   namespace: demo
 data:
-  default.conf: |
-    server {
-      listen 8080;
-      location ^~ /external/nba {
-        rewrite ^/external/nba/?$ /apis/site/v2/sports/basketball/nba/scoreboard break;
-        proxy_set_header Host site.api.espn.com;
-        proxy_pass https://site.api.espn.com;
-      }
+  external.conf: |
+    location ^~ /external/epl {
+      rewrite ^/external/epl/?$ /apis/site/v2/sports/soccer/eng.1/scoreboard break;
+      proxy_set_header Host site.api.espn.com;
+      proxy_pass https://site.api.espn.com;
     }
+    # ... nba / laliga / nfl / nhl are equivalent
 ` },
         ],
         "ai": [
@@ -1691,6 +2122,108 @@ spec:
         - kind: Service
           name: rhcl-ai-bot
           port: 80
+` },
+          { name: "MCP Gateway (dedicated hostname)", yaml: `# MCP Gateway entrypoint (dedicated hostname)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rhcl-mcp-gw
+  namespace: openshift-ingress
+spec:
+  gatewayClassName: openshift-default
+  listeners:
+    - name: https-mcp-public
+      port: 443
+      protocol: HTTPS
+      hostname: REPLACE_ME_MCP_HOSTNAME
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: kuadrant.io/v1
+kind: DNSPolicy
+metadata:
+  name: rhcl-mcp-public-dns
+  namespace: openshift-ingress
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-mcp-gw
+    sectionName: https-mcp-public
+  providerRefs:
+    - name: route53-credentials
+---
+apiVersion: mcp.kuadrant.io/v1alpha1
+kind: MCPGatewayExtension
+metadata:
+  name: rhcl-mcp
+  namespace: mcp-system
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-mcp-gw
+    namespace: openshift-ingress
+    sectionName: https-mcp-public
+  httpRouteManagement: Disabled
+` },
+          { name: "MCP HTTPRoutes (/mcp + /tools)", yaml: `# Public MCP endpoint on the dedicated hostname
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-gateway
+  namespace: mcp-system
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-mcp-gw
+      namespace: openshift-ingress
+      sectionName: https-mcp-public
+  hostnames:
+    - REPLACE_ME_MCP_HOSTNAME
+  rules:
+    - matches:
+        - method: POST
+          path: { type: PathPrefix, value: /mcp }
+        - method: OPTIONS
+          path: { type: PathPrefix, value: /mcp }
+      backendRefs:
+        - kind: Service
+          name: mcp-gateway
+          port: 8080
+          weight: 1
+---
+# Tool server published through the gateway (bypasses broker aggregation)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+spec:
+  parentRefs:
+    - name: rhcl-mcp-gw
+      namespace: openshift-ingress
+      sectionName: https-mcp-public
+  hostnames:
+    - REPLACE_ME_MCP_HOSTNAME
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /tools/rhcl-mcp-tools }
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: { type: ReplacePrefixMatch, replacePrefixMatch: /mcp }
+      backendRefs:
+        - name: rhcl-mcp-tools-bridge
+          port: 8080
 ` },
           { name: "TokenRateLimitPolicy (tokens/min)", yaml: `apiVersion: kuadrant.io/v1alpha1
 kind: TokenRateLimitPolicy
@@ -2206,6 +2739,20 @@ spec:
         refreshConsoleUrlPill();
         refreshOcLinks();
         refreshKialiLinks();
+        // AI prompt stats should update as you type.
+        if (aiPromptEl){
+          aiPromptEl.addEventListener("input", aiUpdatePromptStats);
+          aiPromptEl.addEventListener("keydown", (e) => {
+            const isEnter = (e.key === "Enter");
+            const meta = !!(e.metaKey);
+            const ctrl = !!(e.ctrlKey);
+            if (isEnter && (meta || ctrl)){
+              e.preventDefault();
+              aiRunCustomPrompt();
+            }
+          });
+          aiUpdatePromptStats();
+        }
       }
 
       function setTrafficStatus(kind, text){
@@ -2546,17 +3093,20 @@ spec:
         const start = new Date(today); start.setDate(today.getDate() - rDays);
         const end = new Date(today); end.setDate(today.getDate() + rDays);
         const dates = `${ymd(start)}-${ymd(end)}`;
-        const path = `/external/${p}?dates=${dates}&_=${Date.now()}`;
+        const path = `/${p}?dates=${dates}&_=${Date.now()}`;
+        const url = `${externalApiBaseUrl()}${path}`;
         const upstreamMap = {
           nba: "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
           epl: "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard",
           laliga: "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard",
+          nfl: "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+          nhl: "https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard",
         };
         const upstream = upstreamMap[p] || "https://site.api.espn.com/";
         const cleanPath = path.replace(/&_=[0-9]+$/, "");
-        externalLastRequestUrl = location.origin + cleanPath;
+        externalLastRequestUrl = `${externalApiBaseUrl()}${cleanPath}`;
         externalLastUpstream = upstream;
-        if (externalReqEl) externalReqEl.textContent = `GET ${cleanPath}`;
+        if (externalReqEl) externalReqEl.textContent = `GET ${externalApiBaseUrl()}${cleanPath}`;
         if (externalUpEl) externalUpEl.textContent = upstream.replace(/^https?:\/\//, "");
         if (externalStatEl) externalStatEl.textContent = "—";
         if (externalEventsEl) externalEventsEl.textContent = "—";
@@ -2567,10 +3117,10 @@ spec:
         externalLastEvents = [];
         if (externalTreeEl) externalTreeEl.textContent = "";
         if (externalResultsEl) externalResultsEl.textContent = "";
-        appendTo(externalLogEl, `[${now()}] GET ${path}`, "muted");
+        appendTo(externalLogEl, `[${now()}] GET ${url}`, "muted");
 
         const t0 = performance.now();
-        const r = await fetch(path, { cache: "no-store" });
+        const r = await fetch(url, { cache: "no-store" });
         const ms = Math.round(performance.now() - t0);
         const txt = await r.text();
         externalLastJsonText = txt || "";
@@ -2959,39 +3509,438 @@ spec:
         return (location && location.origin) ? String(location.origin).replace(/\/+$/g,"") : "";
       }
 
+      function mcpHost(){
+        const stored = String(localStorage.getItem("rhcl_mcp_host") || "").trim();
+        if (stored) return stored.replace(/^https?:\/\//i,"").replace(/\/+$/g,"");
+        const h = (location && location.host) ? String(location.host) : "example.com";
+        if (h.startsWith("mcp.")) return h;
+        const configured = "REPLACE_ME_MCP_HOSTNAME";
+        if (configured && !configured.includes("REPLACE_ME")) return configured;
+        const parts = h.split(".").filter(Boolean);
+        // If we're on an OpenShift *.apps.* route, try to infer the public base domain.
+        // Example: rhcl-workshop.apps.cluster-xxxx.yyyy.sandbox1529.opentlc.com -> mcp.sandbox1529.opentlc.com
+        if (parts.includes("apps")){
+          const last3 = parts.slice(-3).join(".");
+          const thirdFromEnd = parts.length >= 3 ? parts[parts.length - 3] : "";
+          const bad = new Set(["apps", "cluster", "clusters", "openshift"]);
+          if (thirdFromEnd && !bad.has(thirdFromEnd)) return `mcp.${last3}`;
+          const last2 = parts.slice(-2).join(".");
+          if (last2) return `mcp.${last2}`;
+        }
+        // Default: mcp.<base-domain> (drop the first label from current host)
+        if (parts.length >= 2) return `mcp.${parts.slice(1).join(".")}`;
+        // Fallback: sibling hostname
+        return `mcp-${h}`;
+      }
+
+      function refreshMcpHostPill(){
+        if (!aiMcpHostPillEl) return;
+        aiMcpHostPillEl.textContent = mcpHost();
+      }
+
+      function mcpBaseUrl(){
+        return `https://${mcpHost()}`;
+      }
+
+      function externalApiHost(){
+        // Optional: set a concrete hostname at build time.
+        const explicit = "REPLACE_ME_EXTERNAL_API_HOSTNAME";
+        if (explicit && explicit.includes(".") && !explicit.includes("REPLACE_ME_")) return explicit;
+
+        const h = String((location && location.host) ? location.host : "").trim();
+        if (!h) return "external-api.local";
+        const parts = h.split(".").filter(Boolean);
+
+        // Example: rhcl-workshop.apps.cluster-xxxx.yyyy.sandbox1529.opentlc.com -> external-api.sandbox1529.opentlc.com
+        if (parts.includes("apps")){
+          const last3 = parts.slice(-3).join(".");
+          const thirdFromEnd = parts.length >= 3 ? parts[parts.length - 3] : "";
+          const bad = new Set(["apps", "cluster", "clusters", "openshift"]);
+          if (thirdFromEnd && !bad.has(thirdFromEnd)) return `external-api.${last3}`;
+          const last2 = parts.slice(-2).join(".");
+          if (last2) return `external-api.${last2}`;
+        }
+        // Default: external-api.<base-domain> (drop the first label from current host)
+        if (parts.length >= 2) return `external-api.${parts.slice(1).join(".")}`;
+        return `external-api-${h}`;
+      }
+
+      function externalApiBaseUrl(){
+        return `https://${externalApiHost()}`;
+      }
+
+      function toolsBaseUrl(){
+        // Same-origin bridge to avoid browser CORS/TLS issues on the MCP listener.
+        // The Gateway routes /mcp-tools -> rhcl-mcp-tools-bridge (in mcp-system).
+        return (location && location.origin) ? String(location.origin).replace(/\/+$/g,"") : "";
+      }
+
+      function toolsAltUrl(){
+        // Cross-origin direct tool endpoint on the dedicated MCP hostname.
+        // Used only as a fallback if the same-origin bridge is not reachable.
+        return `${mcpBaseUrl()}/tools/rhcl-mcp-tools`;
+      }
+
+      function mcpSessionId(){
+        try{ return String(localStorage.getItem("rhcl_mcp_session_id") || "").trim(); } catch { return ""; }
+      }
+
+      function mcpToolsSessionId(){
+        try{ return String(localStorage.getItem("rhcl_mcp_tools_session_id") || "").trim(); } catch { return ""; }
+      }
+
+      async function mcpInitializeAt(path, storageKey){
+        const init = {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-11-25",
+            capabilities: {},
+            clientInfo: { name: "rhcl-ui", version: "1" },
+          },
+        };
+        const r = await fetch(`${mcpBaseUrl()}${path}`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "accept": "application/json" },
+          body: JSON.stringify(init),
+          cache: "no-store",
+        });
+        const sid = r.headers.get("mcp-session-id") || "";
+        if (sid) try{ localStorage.setItem(storageKey, sid); } catch {}
+        return { r, sid };
+      }
+
+      async function mcpRpc(method, params){
+        const sid = mcpSessionId();
+        const req = { jsonrpc: "2.0", id: Date.now(), method, params: params || undefined };
+        const url = `${mcpBaseUrl()}/mcp`;
+        const r = await fetch(url, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "accept": "application/json",
+            ...(sid ? { "mcp-session-id": sid } : {}),
+          },
+          body: JSON.stringify(req),
+          cache: "no-store",
+        });
+        return r;
+      }
+
       async function aiPing(){
-        aiSetStatus("Pinging MCP…");
+        refreshMcpHostPill();
+        aiSetStatus("Pinging MCP Gateway…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          const init = {
-            jsonrpc: "2.0",
-            id: 1,
-            method: "initialize",
-            params: {
-              protocolVersion: "2024-11-05",
-              capabilities: {},
-              clientInfo: { name: "rhcl-ui", version: "1" },
-            },
-          };
-          const r = await fetch("/mcp/streamable", {
-            method: "POST",
-            headers: {
-              "content-type": "application/json",
-              "accept": "application/json, text/event-stream",
-            },
-            body: JSON.stringify(init),
-            cache: "no-store",
-          });
+          const { r, sid } = await mcpInitializeAt("/mcp", "rhcl_mcp_session_id");
           const ct = r.headers.get("content-type") || "—";
-          const sid = r.headers.get("mcp-session-id") || "";
-          if (sid) try{ localStorage.setItem("rhcl_mcp_session_id", sid); } catch {}
           aiSetStatus(`HTTP ${r.status}${sid ? " · session" : ""}`);
-          appendTo(aiLogEl, `[${now()}] POST /mcp/streamable (initialize) -> ${r.status} · content-type=${ct}${sid ? " · session=" + sid : ""}`, r.ok ? "good" : "bad");
-          appendTo(aiLogEl, `Tip: use MCP Inspector against /mcp/streamable or /mcp/sse to call tools/list and tools/call.`, "muted");
+          const shortSid = sid && sid.length > 26 ? `${sid.slice(0, 16)}…${sid.slice(-8)}` : sid;
+          appendTo(aiLogEl, `[${now()}] POST ${mcpBaseUrl()}/mcp (initialize) -> ${r.status} · content-type=${ct}${shortSid ? " · session=" + shortSid : ""}`, r.ok ? "good" : "bad");
+          aiLastMetaObj = { mcp: { baseUrl: `${mcpBaseUrl()}/mcp`, status: r.status, contentType: ct, sessionId: sid } };
         } catch (e){
           aiSetStatus("Error");
           appendTo(aiLogEl, `[${now()}] /mcp error: ${String(e)}`, "bad");
+          aiLastMetaObj = { mcp: { baseUrl: `${mcpBaseUrl()}/mcp`, error: String(e) } };
         }
+      }
+
+      async function aiListTools(){
+        refreshMcpHostPill();
+        aiSetStatus("Listing tools…");
+        if (aiLogEl) aiLogEl.textContent = "";
+        try{
+          // For this demo we list tools via a same-origin bridge (/mcp-tools).
+          const primaryUrl = `${toolsBaseUrl()}/mcp-tools`;
+          const initPrimary = async () => {
+            const r = await fetch(primaryUrl, {
+              method: "POST",
+              headers: { "content-type": "application/json", "accept": "application/json" },
+              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
+              cache: "no-store",
+            });
+            const sid = r.headers.get("mcp-session-id") || "";
+            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
+            return r;
+          };
+
+          const callPrimary = async (sid) => {
+            const req = { jsonrpc: "2.0", id: Date.now(), method: "tools/list" };
+            return await fetch(primaryUrl, {
+              method: "POST",
+              headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
+              body: JSON.stringify(req),
+              cache: "no-store",
+            });
+          };
+
+          const initAlt = async () => {
+            const r = await fetch(toolsAltUrl(), {
+              method: "POST",
+              headers: { "content-type": "application/json", "accept": "application/json" },
+              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
+              cache: "no-store",
+            });
+            const sid = r.headers.get("mcp-session-id") || "";
+            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
+            return r;
+          };
+
+          const callAlt = async (sid) => {
+            const req = { jsonrpc: "2.0", id: Date.now(), method: "tools/list" };
+            return await fetch(toolsAltUrl(), {
+              method: "POST",
+              headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
+              body: JSON.stringify(req),
+              cache: "no-store",
+            });
+          };
+
+          let used = "same-origin";
+          let initStatus = 0;
+          let sid = mcpToolsSessionId();
+          if (!sid){
+            const ir = await initPrimary();
+            initStatus = ir.status;
+            sid = mcpToolsSessionId();
+          }
+          let r = await callPrimary(sid);
+          let txt = await r.text();
+
+          if (r.status === 404 || initStatus === 404){
+            // If the same-origin bridge is missing in a given environment, fall back silently.
+            used = "direct";
+            try{ localStorage.removeItem("rhcl_mcp_tools_session_id"); } catch {}
+            const ir2 = await initAlt();
+            initStatus = ir2.status;
+            sid = mcpToolsSessionId();
+            r = await callAlt(sid);
+            txt = await r.text();
+          }
+
+          let obj=null;
+          try{ obj = JSON.parse(txt); } catch {}
+          const tools = obj?.result?.tools || [];
+          if (Array.isArray(tools) && tools.length){
+            appendTo(aiLogEl, `tools: ${tools.map(t => t && t.name ? t.name : "—").filter(Boolean).join(", ")}`, "good");
+            aiPopulateToolSelect(tools);
+          }
+          aiLastToolJsonText = obj ? JSON.stringify(obj, null, 2) : txt;
+          appendTo(aiLogEl, `(click “Tool JSON” to view)`, "muted");
+          aiSetStatus(`HTTP ${r.status}`);
+          // Keep Meta stable and demo-friendly: show paths instead of full URLs.
+          aiLastMetaObj = {
+            ...(aiLastMetaObj || {}),
+            tools: {
+              list: {
+                used,
+                initStatus,
+                status: r.status,
+                primaryPath: "/mcp-tools",
+                primaryOrigin: (location && location.origin) ? String(location.origin) : "",
+                altHost: mcpHost(),
+                altPath: "/tools/rhcl-mcp-tools",
+              },
+            },
+          };
+        } catch (e){
+          aiSetStatus("Error");
+          appendTo(aiLogEl, `[${now()}] tools/list error: ${String(e)}`, "bad");
+          aiLastToolJsonText = "";
+        }
+      }
+
+      async function aiCallTool(){
+        refreshMcpHostPill();
+        aiSetStatus("Calling tool…");
+        if (aiLogEl) aiLogEl.textContent = "";
+        try{
+          const primaryUrl = `${toolsBaseUrl()}/mcp-tools`;
+          const initPrimary = async () => {
+            const r = await fetch(primaryUrl, {
+              method: "POST",
+              headers: { "content-type": "application/json", "accept": "application/json" },
+              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
+              cache: "no-store",
+            });
+            const sid = r.headers.get("mcp-session-id") || "";
+            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
+            return r;
+          };
+
+          const initAlt = async () => {
+            const r = await fetch(toolsAltUrl(), {
+              method: "POST",
+              headers: { "content-type": "application/json", "accept": "application/json" },
+              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
+              cache: "no-store",
+            });
+            const sid = r.headers.get("mcp-session-id") || "";
+            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
+            return r;
+          };
+
+          let used = "same-origin";
+          let initStatus = 0;
+          let sid = mcpToolsSessionId();
+          if (!sid) {
+            const ir = await initPrimary();
+            initStatus = ir.status;
+            sid = mcpToolsSessionId();
+          }
+          const toolName = aiSelectedToolName() || "nba_scoreboard";
+          const params = { name: toolName, arguments: { dates: "" } };
+          const req = { jsonrpc: "2.0", id: Date.now(), method: "tools/call", params };
+          let r = await fetch(primaryUrl, {
+            method: "POST",
+            headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
+            body: JSON.stringify(req),
+            cache: "no-store",
+          });
+          let txt = await r.text();
+
+          if (r.status === 404){
+            used = "direct";
+            try{ localStorage.removeItem("rhcl_mcp_tools_session_id"); } catch {}
+            const ir2 = await initAlt();
+            initStatus = ir2.status;
+            sid = mcpToolsSessionId();
+            r = await fetch(toolsAltUrl(), {
+              method: "POST",
+              headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
+              body: JSON.stringify(req),
+              cache: "no-store",
+            });
+            txt = await r.text();
+          }
+
+          appendTo(aiLogEl, `[${now()}] tools/call ${toolName} -> ${r.status}`, r.ok ? "good" : "bad");
+          let obj=null;
+          try{ obj = JSON.parse(txt); } catch {}
+          aiLastToolJsonText = obj ? JSON.stringify(obj, null, 2) : txt;
+          if (obj?.result?.content?.[0]?.text){
+            // Most tools return JSON-as-text; show a compact hint and keep the full JSON in the popup.
+            appendTo(aiLogEl, `tool result: ${String(obj.result.content[0].text).slice(0, 180)}${String(obj.result.content[0].text).length > 180 ? "…" : ""}`, r.ok ? "" : "bad");
+            try{
+              const parsed = JSON.parse(String(obj.result.content[0].text));
+              aiLastToolJsonText = JSON.stringify({ ...obj, result: { ...obj.result, parsed } }, null, 2);
+            } catch {}
+          } else {
+            appendTo(aiLogEl, `(click “Tool JSON” to view)`, "muted");
+          }
+          aiSetStatus(`HTTP ${r.status}`);
+          aiLastMetaObj = {
+            ...(aiLastMetaObj || {}),
+            tools: {
+              ...((aiLastMetaObj && aiLastMetaObj.tools) ? aiLastMetaObj.tools : {}),
+              call: {
+                used,
+                initStatus,
+                status: r.status,
+                toolName,
+                primaryPath: "/mcp-tools",
+                primaryOrigin: (location && location.origin) ? String(location.origin) : "",
+                altHost: mcpHost(),
+                altPath: "/tools/rhcl-mcp-tools",
+              },
+            },
+          };
+        } catch (e){
+          aiSetStatus("Error");
+          appendTo(aiLogEl, `[${now()}] tools/call error: ${String(e)}`, "bad");
+          aiLastToolJsonText = "";
+        }
+      }
+
+      function aiToolLabel(name){
+        const n = String(name || "").trim();
+        const map = {
+          "nba_scoreboard": "NBA",
+          "epl_scoreboard": "Premier League",
+          "laliga_scoreboard": "LaLiga",
+          "nfl_scoreboard": "NFL",
+          "nhl_scoreboard": "NHL",
+        };
+        return map[n] || n || "auto";
+      }
+
+      function aiSelectedToolName(){
+        if (!aiToolsLoaded) return "";
+        let v = "";
+        try{ v = localStorage.getItem(AI_SELECTED_TOOL_LS_KEY) || ""; } catch {}
+        v = String(v || "").trim();
+        // Prefer the current UI selection if present.
+        if (aiToolSelectEl && typeof aiToolSelectEl.value === "string") {
+          const cur = String(aiToolSelectEl.value || "").trim();
+          if ((!v && cur) || (cur && cur !== v)) v = cur;
+        }
+        return v;
+      }
+
+      function aiSetSelectedToolName(name){
+        const v = String(name || "").trim();
+        if (aiToolsLoaded){
+          try{ localStorage.setItem(AI_SELECTED_TOOL_LS_KEY, v); } catch {}
+        }
+        if (aiToolSelectEl) aiToolSelectEl.value = v;
+        if (aiSelectedToolEl) aiSelectedToolEl.textContent = `tool: ${v ? aiToolLabel(v) : "auto"}`;
+        if (aiToolDescEl){
+          const desc = v ? (aiToolCatalog.get(v) || "") : "";
+          aiToolDescEl.textContent = desc ? desc : (v ? "" : "Auto: use the server default tool (typically nba_scoreboard).");
+        }
+      }
+
+      function aiPopulateToolSelect(tools){
+        if (!aiToolSelectEl) return;
+        aiToolsLoaded = true;
+        aiToolSelectEl.disabled = false;
+        const arr = Array.isArray(tools) ? tools : [];
+        const names = arr
+          .map(t => t && t.name ? String(t.name) : "")
+          .map(s => s.trim())
+          .filter(Boolean)
+          .sort((a,b) => a.localeCompare(b));
+
+        const selected = aiSelectedToolName();
+        const opts = [];
+        opts.push(`<option value="">auto (server default)</option>`);
+        try{ aiToolCatalog.clear(); } catch {}
+        for (const name of names){
+          const t = arr.find(x => x && x.name === name);
+          const desc = (t && t.description) ? String(t.description) : "";
+          if (desc) aiToolCatalog.set(name, desc);
+          const label = aiToolLabel(name);
+          opts.push(`<option value="${esc(name)}">${esc(label)} (${name})</option>`);
+        }
+        aiToolSelectEl.innerHTML = opts.join("");
+        // Keep current selection if still available; otherwise pick the first known scoreboard tool.
+        const hasSelected = selected && names.includes(selected);
+        if (hasSelected) {
+          aiSetSelectedToolName(selected);
+        } else if (names.includes("nba_scoreboard")) {
+          aiSetSelectedToolName("nba_scoreboard");
+        } else if (names.length) {
+          aiSetSelectedToolName(names[0]);
+        } else {
+          aiSetSelectedToolName("");
+        }
+      }
+
+      function aiShowLastToolJson(){
+        if (!aiLastToolJsonText){
+          toast("No tool JSON yet. Run List tools or Call tool.");
+          return;
+        }
+        openJson("MCP tool response (raw)", aiLastToolJsonText);
+      }
+
+      function aiShowLastMeta(){
+        if (!aiLastMetaObj){
+          toast("No meta yet.");
+          return;
+        }
+        openJson("Meta (debug view)", JSON.stringify(aiLastMetaObj, null, 2));
       }
 
       function renderAiConversation(){
@@ -3069,7 +4018,13 @@ spec:
         if (!jsonDlg || !jsonTitleEl || !jsonPreEl) return;
         jsonActiveText = String(text || "");
         jsonTitleEl.textContent = String(title || "JSON");
-        jsonPreEl.textContent = jsonActiveText || "(empty)";
+        // Pretty-print if the payload is JSON.
+        let view = jsonActiveText;
+        try{
+          const obj = JSON.parse(jsonActiveText);
+          view = JSON.stringify(obj, null, 2);
+        } catch {}
+        jsonPreEl.textContent = view || "(empty)";
         jsonDlg.showModal();
       }
 
@@ -3506,10 +4461,7 @@ spec:
             // JWT-protected endpoint (success path).
             await hit("/jwt/secure/nba", { "Authorization": `Bearer ${jwtTok}` });
           }
-          if (tick % 6 === 0){
-            // Non-streaming ping to show AI component without hanging the generator.
-            await hit("/mcp", { "accept": "application/json" });
-          }
+          // (MCP gateway traffic is generated via the AI module buttons to avoid cross-origin noise here.)
           if (tick % 4 === 0){
             const statuses = Object.entries(counters.byStatus).sort((a,b)=>Number(b[1])-Number(a[1])).slice(0,6)
               .map(([k,v])=>`${k}:${v}`).join(" ");
@@ -3528,20 +4480,57 @@ spec:
         toast("Traffic generated. Refresh dashboards.");
       }
 
-      function aiLongPrompt(){
+      function aiUseSafePrompt(){
         if (!aiPromptEl) return;
-        const base = aiPromptEl.value.trim() || "Show finals in the last 7 days.";
-        const extra = "\n\nNow make it much longer:\n- Summarize each game in 6–10 bullet points.\n- Include a short 'Top storylines' section.\n- Add a compact table with: matchup, status, and a one-line headline.\n- Keep it under 900 words, but make it very detailed.\n- Do NOT include any internal reasoning.\n";
-        aiPromptEl.value = base + extra + extra;
+        if (aiLogEl) aiLogEl.textContent = "";
+        const dr = aiDatesRange(7);
+        aiPromptEl.value =
+          "Show finals in the last 7 days.\n" +
+          "\n" +
+          `dates=${dr}\n` +
+          "limit=4\n" +
+          "tool_only=true\n" +
+          "\n" +
+          "Return a short answer (no extra sections). Do NOT include any internal reasoning.\n";
+        aiUpdatePromptStats();
+        aiSetStatus("Running safe prompt…");
+        // Show the result in the conversation; keep the log minimal.
+        aiChat({ prompt: aiPromptEl.value, record: true, logRequest: false, logContent: false, logAssistantLine: true, timeoutMs: 8000 });
+      }
+
+      function aiRunCustomPrompt(){
+        if (!aiPromptEl) return;
+        if (aiCustomPromptDetailsEl) aiCustomPromptDetailsEl.open = true;
+        const p = String(aiPromptEl.value || "").trim();
+        if (!p){
+          aiSetStatus("Enter a custom prompt");
+          try{ aiPromptEl.focus(); } catch {}
+          toast("Type a custom prompt, then click Run custom prompt.");
+          return;
+        }
+        if (aiLogEl) aiLogEl.textContent = "";
+        aiSetStatus("Running…");
+        // Conversation is the main output; keep log minimal.
+        aiChat({ prompt: p, record: true, logRequest: false, logContent: false, logAssistantLine: true, timeoutMs: 15000 });
+      }
+
+      function aiClearCustomPrompt(){
+        if (!aiPromptEl) return;
+        aiPromptEl.value = "";
+        aiUpdatePromptStats();
+        aiSetStatus("Custom prompt cleared");
+        try{ aiPromptEl.focus(); } catch {}
       }
 
       function aiClear(){
+        aiClearNonce++;
         if (aiPromptEl) aiPromptEl.value = "";
         if (aiTokensEl) aiTokensEl.textContent = "tokens: —";
         if (aiHttpEl) aiHttpEl.textContent = "HTTP: —";
         if (aiMetaEl) aiMetaEl.textContent = "tool: — · llm: —";
         if (aiChatBoxEl) aiChatBoxEl.textContent = "";
         if (aiLogEl) aiLogEl.textContent = "";
+        aiUpdatePromptStats();
         aiSetStatus("Cleared");
         aiConversation = [];
         renderAiConversation();
@@ -3552,26 +4541,198 @@ spec:
         aiSetStatus("Log cleared");
       }
 
-      async function aiDemo429(){
-        if (!aiPromptEl) return;
-        aiPromptEl.value = "Show finals in the last 7 days.\n\nWrite a very detailed recap designed to consume tokens: include 12 bullet points per game, a short table, and a 'Notable performers' section. Do NOT include any internal reasoning.";
-        // Don't auto-send: keep the conversation clean until the user clicks Send.
-        aiSetStatus("Ready");
-        appendTo(aiLogEl, `[${now()}] 429 demo ready: click Send twice quickly to trigger rate limit`, "muted");
+      function aiUpdatePromptStats(){
+        if (!aiPromptStatsEl || !aiPromptEl) return;
+        const t = String(aiPromptEl.value || "");
+        const lines = (t.length ? t.split(/\r?\n/).length : 0);
+        aiPromptStatsEl.textContent = `prompt: ${t.length} chars · ${lines} lines`;
       }
 
-      async function aiChat(){
-        const prompt = (aiPromptEl && aiPromptEl.value) ? String(aiPromptEl.value).trim() : "";
-        if (!prompt){
-          aiSetStatus("Enter a prompt");
-          return;
+      function aiDatesRange(lastNDays){
+        const n = Math.max(1, Math.min(120, Number(lastNDays || 7)));
+        const end = new Date();
+        const ymd = (d) => {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return `${yyyy}${mm}${dd}`;
+        };
+        const start = new Date(end.getTime() - ((n - 1) * 24 * 60 * 60 * 1000));
+        // ESPN accepts a start-end range.
+        return `${ymd(start)}-${ymd(end)}`;
+      }
+
+      function aiFutureDatesRange(nextNDays){
+        const n = Math.max(1, Math.min(120, Number(nextNDays || 7)));
+        const start = new Date();
+        const ymd = (d) => {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          return `${yyyy}${mm}${dd}`;
+        };
+        const end = new Date(start.getTime() + ((n - 1) * 24 * 60 * 60 * 1000));
+        return `${ymd(start)}-${ymd(end)}`;
+      }
+
+      function aiVariedAppendixLines(n){
+        const N = Math.max(40, Math.min(400, Number(n || 240)));
+        const topics = ["pace", "turnovers", "3PT", "paint points", "bench", "defense", "rebounding", "clutch time", "fouls", "injury", "travel", "home crowd"];
+        const verbs = ["Highlight", "Explain", "Compare", "Call out", "Quantify", "Summarize", "Describe", "Contextualize"];
+        const angles = ["momentum swing", "matchup wrinkle", "key run", "closing lineup", "shot profile", "transition", "half-court", "fourth quarter", "late-game execution", "coaching adjustment"];
+        const lines = [];
+        for (let i = 0; i < N; i++){
+          const t = topics[i % topics.length];
+          const v = verbs[i % verbs.length];
+          const a = angles[(i * 3) % angles.length];
+          lines.push(`Appendix #${String(i + 1).padStart(3, "0")}: ${v} the ${t} impact and one ${a}.`);
         }
+        return lines.join("\n");
+      }
+
+      function aiBuildHeavyPrompt(visiblePrompt){
+        const base = String(visiblePrompt || "").trim() || "Show finals in the last 7 days.";
+        // Human-readable (no "token burn" wording) but heavy enough to trigger TokenRateLimitPolicy.
+        const appendix = aiVariedAppendixLines(280);
+        return base +
+          "\n\ntool_only=true\n" +
+          "\n\nPlease answer in a very detailed format:\n" +
+          "- 15 bullets per game (1–2 sentences each)\n" +
+          "- Top storylines (10 items)\n" +
+          "- Notable performers (10 items)\n" +
+          "- Compact table with: matchup, status, headline\n" +
+          "- Do NOT include any internal reasoning\n\n" +
+          "Appendix (verbatim lines):\n" + appendix + "\n";
+      }
+
+      function aiForceToolOnly(visiblePrompt){
+        const p = String(visiblePrompt || "").trim();
+        if (!p) return "tool_only=true";
+        if (/tool_only=true/i.test(p)) return p;
+        return p + "\n\ntool_only=true";
+      }
+
+      function aiInjectToolDirective(promptText){
+        const p = String(promptText || "").trim();
+        if (!p) return p;
+        if (/\n\s*tool\s*=/i.test(p)) return p;
+        const tool = aiSelectedToolName();
+        if (!tool) return p;
+        return p + `\n\ntool=${tool}`;
+      }
+
+      async function aiDemo429(){
+        if (!aiPromptEl) return;
+        // Always keep a clean, human-readable prompt visible for the demo.
+        if (!String(aiPromptEl.value || "").trim()){
+          const dr = aiDatesRange(14);
+          aiPromptEl.value =
+            "Show finals in the last 14 days.\n" +
+            "\n" +
+            `dates=${dr}\n` +
+            "\n" +
+            "Now make it much longer:\n" +
+            "- Output a compact table first: status | away | home | headline.\n" +
+            "- Add: Top storylines (10), Notable performers (10), What to watch next (6).\n" +
+            "- Do NOT include any internal reasoning.\n";
+        }
+        const visible = String(aiPromptEl.value || "").trim() || "Show finals in the last 7 days.";
+        aiUpdatePromptStats();
+
+        // Build a heavy prompt *without* polluting the visible textarea.
+        const heavy = aiBuildHeavyPrompt(visible);
+
+        // Keep the live log clean for the workshop.
+        if (aiLogEl) aiLogEl.textContent = "";
+        aiSetStatus("Hitting 429…");
+
+        // Show the prompt in the conversation (this is the main UI output).
+        aiConversation = aiConversation || [];
+        aiConversation.push({ role: "user", content: visible });
+        renderAiConversation();
+
+        // If we are currently rate-limited due to prior activity, wait for the window to reset.
+        for (let cycle = 1; cycle <= 2; cycle++){
+          const baselinePrompt = aiForceToolOnly(visible);
+          const r1 = await aiChat({ prompt: baselinePrompt, record: false, logContent: false, logRequest: false, logAssistantLine: false, timeoutMs: 8000 });
+          if (r1 && r1.status === 429){
+            aiSetStatus("Waiting for rate-limit window…");
+            await new Promise(r => setTimeout(r, 16000));
+            continue;
+          }
+          if (r1 && r1.status && r1.status >= 400){
+            aiSetStatus(`Failed (${r1.status})`);
+            aiConversation.push({ role: "assistant", content: `Unexpected error (${r1.status}). Open “Meta” for details, then retry.` });
+            renderAiConversation();
+            return;
+          }
+
+          // TokenRateLimitPolicy learns token cost from the *response* usage, so the first heavy call often succeeds,
+          // and the *next* call within the window gets 429.
+          const r2 = await aiChat({ prompt: heavy, record: false, keepTokens: true, logContent: false, logRequest: false, logAssistantLine: false, timeoutMs: 12000 });
+          if (r2 && r2.status === 429){
+            aiSetStatus("Rate limited (429)");
+            aiConversation.push({ role: "assistant", content: "Too Many Requests (429) — blocked by TokenRateLimitPolicy at the Gateway." });
+            renderAiConversation();
+            return;
+          }
+          if (r2 && r2.status && r2.status >= 400){
+            aiSetStatus(`Failed (${r2.status})`);
+            aiConversation.push({ role: "assistant", content: `Unexpected error (${r2.status}) while demoing 429. Open “Meta” for details, then retry.` });
+            renderAiConversation();
+            return;
+          }
+
+          // Follow-up call to trigger the visible 429 in the workshop.
+          const r3 = await aiChat({ prompt: baselinePrompt, record: false, keepTokens: true, logContent: false, logRequest: false, logAssistantLine: false, timeoutMs: 8000 });
+          if (r3 && r3.status === 429){
+            aiSetStatus("Rate limited (429)");
+            aiConversation.push({ role: "assistant", content: "429 triggered — the previous request consumed the token budget; this follow-up request is now blocked by TokenRateLimitPolicy." });
+            renderAiConversation();
+            return;
+          }
+          if (r3 && r3.status && r3.status >= 400){
+            aiSetStatus(`Failed (${r3.status})`);
+            aiConversation.push({ role: "assistant", content: `Unexpected error (${r3.status}) after the heavy request. Open “Meta” for details, then retry.` });
+            renderAiConversation();
+            return;
+          }
+
+          // If we somehow didn't hit 429 yet, wait and try once more.
+          aiSetStatus("Retrying demo…");
+          await new Promise(r => setTimeout(r, 16000));
+        }
+        aiSetStatus("Ready");
+      }
+
+      async function aiChat(opts){
+        const nonce = aiClearNonce;
+        const record = !(opts && opts.record === false);
+        const logContent = !(opts && opts.logContent === false);
+        const logRequest = !(opts && opts.logRequest === false);
+        const logAssistantLine = !(opts && opts.logAssistantLine === false);
+        const keepTokens = !!(opts && opts.keepTokens === true);
+        const timeoutMs = (opts && typeof opts.timeoutMs === "number") ? opts.timeoutMs : 15000;
+        const visiblePrompt = (opts && typeof opts.prompt === "string")
+          ? String(opts.prompt).trim()
+          : (aiPromptEl && aiPromptEl.value) ? String(aiPromptEl.value).trim() : "";
+        if (!visiblePrompt){
+          aiSetStatus("Enter a prompt");
+          return { status: 0 };
+        }
+        aiUpdatePromptStats();
+
+        // Avoid LLM timeouts during the workshop demo: if the prompt asks for a long answer,
+        // force tool-only mode on the backend (without polluting the visible textarea).
+        const forceToolOnly = /\n\s*Now make it much longer:/i.test(visiblePrompt);
+        const prompt0 = forceToolOnly ? aiForceToolOnly(visiblePrompt) : visiblePrompt;
+        const prompt = aiInjectToolDirective(prompt0);
 
         aiSetStatus("Sending…");
-        if (aiTokensEl) aiTokensEl.textContent = "tokens: —";
+        if (aiTokensEl && !keepTokens) aiTokensEl.textContent = "tokens: —";
         if (aiHttpEl) aiHttpEl.textContent = "HTTP: —";
         const base = aiBaseUrl();
-        appendTo(aiLogEl, `[${now()}] POST ${base}/ai/v1/chat/completions`, "muted");
+        if (logRequest) appendTo(aiLogEl, `[${now()}] POST ${base}/ai/v1/chat/completions`, "muted");
 
         const body = {
           model: "rhcl-ai-bot",
@@ -3582,33 +4743,47 @@ spec:
         let r = null;
         let txt = "";
         try{
+          const ctl = new AbortController();
+          const t = setTimeout(() => ctl.abort(), timeoutMs);
           r = await fetch(`${base}/ai/v1/chat/completions`, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(body),
             cache: "no-store",
+            signal: ctl.signal,
           });
+          clearTimeout(t);
           const ms = Math.round(performance.now() - t0);
+          if (nonce !== aiClearNonce) return { status: 0, cancelled: true };
           if (aiHttpEl) aiHttpEl.textContent = `HTTP: ${r.status} · ${ms}ms`;
           txt = await r.text();
         } catch (e){
           aiSetStatus("Error");
           appendTo(aiLogEl, `[${now()}] error: ${String(e)}`, "bad");
-          return;
+          return { status: 0, error: String(e) };
         }
 
+        if (nonce !== aiClearNonce) return { status: 0, cancelled: true };
         if (r.status === 429){
           aiSetStatus("Rate limited (429)");
           appendTo(aiLogEl, `[${now()}] 429 from Gateway (TokenRateLimitPolicy)`, "bad");
           if (txt) appendTo(aiLogEl, txt.slice(0, 2000), "bad");
-          return;
+          if (record){
+            aiConversation.push({ role: "assistant", content: "Too Many Requests (429) — blocked by TokenRateLimitPolicy at the Gateway." });
+            renderAiConversation();
+          }
+          return { status: 429 };
         }
 
         if (!r.ok){
           aiSetStatus(`Failed (${r.status})`);
           appendTo(aiLogEl, `[${now()}] ${r.status} response`, "bad");
           if (txt) appendTo(aiLogEl, txt.slice(0, 2000), "bad");
-          return;
+          if (record){
+            aiConversation.push({ role: "assistant", content: `Request failed (${r.status}).` });
+            renderAiConversation();
+          }
+          return { status: r.status };
         }
 
         let obj = null;
@@ -3620,19 +4795,29 @@ spec:
         const llmError = obj?.rhcl_meta?.llm_error || "";
 
         aiSetStatus("Ready");
-        if (aiTokensEl) aiTokensEl.textContent = `tokens: ${typeof total === "number" ? total : "—"}${tool ? " · " + tool : ""}${llmEnabled === true ? " · llm:on" : llmEnabled === false ? " · llm:off" : ""}`;
+        // Keep the badges short (avoid breaking the layout with long error strings).
+        if (aiTokensEl) aiTokensEl.textContent = `tokens: ${typeof total === "number" ? total : "—"}${llmEnabled === true ? " · llm:on" : llmEnabled === false ? " · llm:off" : ""}`;
+        const toolShort = tool ? String(tool).split(/\s+/).slice(0, 3).join(" ") : "";
         if (aiMetaEl){
-          aiMetaEl.textContent = `${tool ? tool : "tool: —"} · ${llmEnabled === true ? "llm:on" : llmEnabled === false ? "llm:off" : "llm:—"}${llmError ? " · llm_error" : ""}`;
+          aiMetaEl.textContent = `${toolShort ? toolShort : "tool: —"} · ${llmEnabled === true ? "llm:on" : llmEnabled === false ? "llm:off" : "llm:—"}${llmError ? " · llm_error" : ""}`;
+        }
+        aiLastMetaObj = { rhcl_meta: obj?.rhcl_meta || {}, http: r.status, tokens: (typeof total === "number" ? total : null) };
+
+        if (record){
+          aiConversation = aiConversation || [];
+          // If the caller already added the user message (e.g. 429 demo), avoid duplicating.
+          const last = aiConversation.length ? aiConversation[aiConversation.length - 1] : null;
+          if (!(last && last.role === "user" && last.content === visiblePrompt)){
+            aiConversation.push({ role: "user", content: visiblePrompt });
+          }
+          aiConversation.push({ role: "assistant", content });
+          renderAiConversation();
         }
 
-        aiConversation = aiConversation || [];
-        aiConversation.push({ role: "user", content: prompt });
-        aiConversation.push({ role: "assistant", content });
-        renderAiConversation();
-
-        appendTo(aiLogEl, `[${now()}] assistant (${typeof total === "number" ? total : "—"} tokens)`, "good");
-        appendTo(aiLogEl, content, "");
-        if (llmError) appendTo(aiLogEl, `LLM fallback: ${String(llmError).slice(0, 400)}`, "bad");
+        if (logAssistantLine) appendTo(aiLogEl, `[${now()}] assistant (${typeof total === "number" ? total : "—"} tokens)`, "good");
+        if (logContent) appendTo(aiLogEl, content, "");
+        if (llmError) appendTo(aiLogEl, `LLM error: ${String(llmError).slice(0, 400)}`, "bad");
+        return { status: 200, tokens: (typeof total === "number" ? total : null) };
       }
 
       function clearRoleChecks(){
@@ -3758,6 +4943,29 @@ spec:
       installJsDiagnostics();
       refreshOidcPortalPill();
       refreshKeycloakJwtHostPill();
+      refreshMcpHostPill();
+      if (aiToolSelectEl){
+        aiToolSelectEl.disabled = true;
+        aiToolSelectEl.innerHTML = `<option value="">auto (nba_scoreboard) — run “List tools”</option>`;
+        aiToolSelectEl.addEventListener("change", () => {
+          aiSetSelectedToolName(String(aiToolSelectEl.value || "").trim());
+        });
+      }
+      if (aiSelectedToolEl) aiSelectedToolEl.textContent = "tool: auto (nba_scoreboard)";
+      if (aiToolDescEl) aiToolDescEl.textContent = "Default is NBA (nba_scoreboard). Click “List tools” to load and select another league.";
+      // Provide a custom prompt example that is different from "Run example".
+      if (aiPromptEl && !String(aiPromptEl.value || "").trim()){
+        const dr = aiFutureDatesRange(7);
+        aiPromptEl.value =
+          "What games are scheduled for this week?\n" +
+          "\n" +
+          `dates=${dr}\n` +
+          "limit=6\n" +
+          "tool_only=true\n" +
+          "\n" +
+          "Return a compact list. Do NOT include any internal reasoning.\n";
+        aiUpdatePromptStats();
+      }
       renderAiConversation();
       jwtLoad();
 

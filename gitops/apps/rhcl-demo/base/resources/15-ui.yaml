@@ -19,16 +19,18 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginxinc/nginx-unprivileged:1.27-alpine
+          image: registry.redhat.io/ubi10/nginx-126:10.1
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
           ports:
             - containerPort: 8080
               name: http
           volumeMounts:
             - name: html
-              mountPath: /usr/share/nginx/html
+              mountPath: /opt/app-root/src
               readOnly: true
             - name: nginx-conf
-              mountPath: /etc/nginx/conf.d
+              mountPath: /opt/app-root/etc/nginx.default.d
               readOnly: true
       volumes:
         - name: html
@@ -46,24 +48,21 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "11"
 data:
-  default.conf: |
-    server {
-      listen 8080;
-      etag off;
+  ui.conf: |
+    # Included in the default server block by the UBI nginx image.
+    etag off;
+    add_header Cache-Control "no-store" always;
+
+    location = /logout {
+      add_header Content-Type "text/plain" always;
       add_header Cache-Control "no-store" always;
+      add_header Set-Cookie "rhcl_token=; Max-Age=0; Path=/; SameSite=Lax" always;
+      add_header Set-Cookie "target=; Max-Age=0; Path=/; SameSite=Lax" always;
+      return 200 "logged out\n";
+    }
 
-      location = /logout {
-        add_header Content-Type "text/plain" always;
-        add_header Cache-Control "no-store" always;
-        add_header Set-Cookie "rhcl_token=; Max-Age=0; Path=/; SameSite=Lax" always;
-        add_header Set-Cookie "target=; Max-Age=0; Path=/; SameSite=Lax" always;
-        return 200 "logged out\n";
-      }
-
-      location / {
-        root /usr/share/nginx/html;
-        try_files $uri /index.html =404;
-      }
+    location / {
+      try_files $uri /index.html =404;
     }
 ---
 apiVersion: v1

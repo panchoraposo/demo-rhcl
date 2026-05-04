@@ -10,6 +10,9 @@ spec:
   dnsNames:
     - rhcl-workshop.sandbox1529.opentlc.com
     - oidc-rhcl-workshop.sandbox1529.opentlc.com
+    - mcp.sandbox1529.opentlc.com
+    - external.sandbox1529.opentlc.com
+    - external-api.sandbox1529.opentlc.com
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
