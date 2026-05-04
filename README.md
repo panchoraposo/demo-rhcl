@@ -37,7 +37,8 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 - **Policies**: `TokenRateLimitPolicy`
 - **Benefit**: rate limiting based on **token usage** (not just requests), which maps better to LLM cost and abuse prevention.
   - Demo budget is intentionally small (currently **400 tokens / 15s**) so you can trigger `429` reliably.
-  - The bot calls MCP tools via a **same-origin bridge** (`/mcp-tools`) and can switch tools (NBA/EPL/LaLiga/NFL/NHL).
+  - The bot calls tools via the **RHCL MCP Gateway** using a **same-origin bridge** (`/mcp-tools`) and can switch tools (NBA/EPL/LaLiga/NFL/NHL).
+  - If you need to install the MCP Gateway, see [Installing the MCP Gateway](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html/installing_the_mcp_gateway/mcp-gateway-install).
 
 ### AuthPolicy (Keycloak JWT) — token, decode, call with/without
 - **Policies**: `AuthPolicy` (JWT validation)
@@ -211,6 +212,7 @@ oc -n demo set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KEY'
 ## References
 
 - Red Hat Connectivity Link install: [Installing Connectivity Link on OpenShift](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html-single/installing_on_openshift_container_platform/index)
+- MCP Gateway: [Installing the MCP Gateway](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html/installing_the_mcp_gateway/mcp-gateway-install)
 - Policies: [Configuring and deploying Gateway policies](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html-single/configuring_and_deploying_gateway_policies/configuring_and_deploying_gateway_policies)
 - Observability: [Observability and Troubleshooting](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html/observability_and_troubleshooting/index)
 
