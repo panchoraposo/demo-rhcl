@@ -28,6 +28,7 @@ spec:
     metadata:
       labels:
         app: keycloak-db
+        istio.io/dataplane-mode: none
     spec:
       containers:
         - name: postgres
