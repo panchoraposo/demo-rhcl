@@ -68,7 +68,9 @@ public class EspnTool {
   private JsonNode scoreboard(String preset, String spanName, String datesRange) throws Exception {
     // Dates range example: 20260420-20260502
     String qs = (datesRange == null || datesRange.isBlank()) ? "" : ("?dates=" + encode(datesRange));
-    URI uri = URI.create(baseUrl + "/external/" + preset + qs);
+    String root = (baseUrl == null) ? "" : baseUrl.trim();
+    if (root.endsWith("/")) root = root.substring(0, root.length() - 1);
+    URI uri = URI.create(root + "/" + preset + qs);
     Tracer tracer = otel.getTracer("rhcl-ai-bot");
     Span span = tracer.spanBuilder(spanName == null || spanName.isBlank() ? "espn.scoreboard" : spanName)
         .setSpanKind(SpanKind.CLIENT)
