@@ -1,0 +1,415 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rhcl-workshop
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: {{ repo_url }}
+    targetRevision: {{ revision }}
+    path: {{ app_path }}
+    kustomize:
+      patches:
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: Gateway
+            name: rhcl-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: rhcl-gw
+              namespace: openshift-ingress
+            spec:
+              listeners:
+                - name: http
+                  port: 80
+                  protocol: HTTP
+                  allowedRoutes:
+                    namespaces:
+                      from: All
+                - name: https-main
+                  port: 443
+                  protocol: HTTPS
+                  hostname: {{ demo_hostname }}
+                  tls:
+                    mode: Terminate
+                    certificateRefs:
+                      - group: ""
+                        kind: Secret
+                        name: {{ default_ingress_cert_secret }}
+                  allowedRoutes:
+                    namespaces:
+                      from: All
+                - name: https-oidc
+                  port: 443
+                  protocol: HTTPS
+                  hostname: {{ oidc_hostname }}
+                  tls:
+                    mode: Terminate
+                    certificateRefs:
+                      - group: ""
+                        kind: Secret
+                        name: {{ default_ingress_cert_secret }}
+                  allowedRoutes:
+                    namespaces:
+                      from: All
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: Gateway
+            name: rhcl-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: rhcl-gw
+              namespace: openshift-ingress
+            spec:
+              listeners:
+                - name: https-external-public
+                  hostname: {{ external_api_hostname }}
+                - name: https-main-public
+                  hostname: {{ demo_public_hostname }}
+                - name: https-oidc-public
+                  hostname: {{ oidc_public_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: Gateway
+            name: rhcl-ai-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: rhcl-ai-gw
+              namespace: openshift-ingress
+            spec:
+              listeners:
+                - name: https-ai
+                  hostname: {{ ai_hostname }}
+
+        - target:
+            group: cert-manager.io
+            version: v1
+            kind: Certificate
+            name: rhcl-gw-public-tls
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: cert-manager.io/v1
+            kind: Certificate
+            metadata:
+              name: rhcl-gw-public-tls
+              namespace: openshift-ingress
+            spec:
+              dnsNames:
+                - {{ demo_public_hostname }}
+                - {{ oidc_public_hostname }}
+                - {{ mcp_public_hostname }}
+                - {{ external_public_hostname }}
+                - {{ external_api_hostname }}
+              issuerRef:
+                name: {{ cluster_issuer }}
+
+        - target:
+            group: route.openshift.io
+            version: v1
+            kind: Route
+            name: rhcl-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: route.openshift.io/v1
+            kind: Route
+            metadata:
+              name: rhcl-gw
+              namespace: openshift-ingress
+            spec:
+              host: {{ demo_hostname }}
+
+        - target:
+            group: route.openshift.io
+            version: v1
+            kind: Route
+            name: rhcl-gw-oidc
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: route.openshift.io/v1
+            kind: Route
+            metadata:
+              name: rhcl-gw-oidc
+              namespace: openshift-ingress
+            spec:
+              host: {{ oidc_hostname }}
+
+        - target:
+            group: grafana.integreatly.org
+            version: v1beta1
+            kind: Grafana
+            name: rhcl-grafana
+            namespace: monitoring
+          patch: |-
+            apiVersion: grafana.integreatly.org/v1beta1
+            kind: Grafana
+            metadata:
+              name: rhcl-grafana
+              namespace: monitoring
+            spec:
+              route:
+                spec:
+                  host: {{ grafana_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: demo-api
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: demo-api
+              namespace: demo
+            spec:
+              hostnames:
+                - {{ demo_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: rhcl-ui
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: rhcl-ui
+              namespace: demo
+            spec:
+              hostnames:
+                - {{ demo_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: ai-bot
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: ai-bot
+              namespace: demo
+            spec:
+              hostnames:
+                - {{ demo_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: jwt-demo
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: jwt-demo
+              namespace: demo
+            spec:
+              hostnames:
+                - {{ demo_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: ab-demo
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: ab-demo
+              namespace: demo
+            spec:
+              hostnames:
+                - {{ demo_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: secure-demo
+            namespace: rhcl-oidc-portal
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: secure-demo
+              namespace: rhcl-oidc-portal
+            spec:
+              hostnames:
+                - {{ oidc_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: oidc-portal
+            namespace: rhcl-oidc-portal
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: oidc-portal
+              namespace: rhcl-oidc-portal
+            spec:
+              hostnames:
+                - {{ oidc_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: external-proxy-public
+            namespace: demo
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: external-proxy-public
+              namespace: demo
+            spec:
+              hostnames:
+                - {{ external_api_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: oidc-callback
+            namespace: rhcl-oidc-portal
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: oidc-callback
+              namespace: rhcl-oidc-portal
+            spec:
+              hostnames:
+                - {{ oidc_hostname }}
+                - {{ oidc_public_hostname }}
+
+        - target:
+            group: apps
+            version: v1
+            kind: Deployment
+            name: rhcl-ai-bot
+            namespace: rhcl-ai-bot
+          patch: |-
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: rhcl-ai-bot
+              namespace: rhcl-ai-bot
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: app
+                      env:
+                        - name: RHCL_AI_ESPN_BASE_URL
+                          value: https://{{ external_api_hostname }}
+
+      patchesJson6902:
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: ai-bot
+            namespace: rhcl-ai-bot
+          patch: |-
+            - op: replace
+              path: /spec/rules/0/filters/0/responseHeaderModifier/set/1/value
+              value: "https://{{ demo_hostname }}"
+
+        - target:
+            group: extensions.kuadrant.io
+            version: v1alpha1
+            kind: OIDCPolicy
+            name: secure-demo-oidc
+            namespace: rhcl-oidc-portal
+          patch: |-
+            apiVersion: extensions.kuadrant.io/v1alpha1
+            kind: OIDCPolicy
+            metadata:
+              name: secure-demo-oidc
+              namespace: rhcl-oidc-portal
+            spec:
+              provider:
+                issuerURL: https://{{ oidc_hostname }}/auth/realms/rhcl
+                authorizationEndpoint: https://{{ oidc_hostname }}/auth/realms/rhcl/protocol/openid-connect/auth
+                tokenEndpoint: https://{{ oidc_hostname }}/auth/realms/rhcl/protocol/openid-connect/token
+                redirectURI: https://{{ oidc_hostname }}/auth/callback
+
+        - target:
+            group: kuadrant.io
+            version: v1
+            kind: AuthPolicy
+            name: secure-demo-jwt
+            namespace: rhcl-oidc-portal
+          patch: |-
+            apiVersion: kuadrant.io/v1
+            kind: AuthPolicy
+            metadata:
+              name: secure-demo-jwt
+              namespace: rhcl-oidc-portal
+            spec:
+              defaults:
+                rules:
+                  authentication:
+                    jwt:
+                      jwt:
+                        issuerUrl: https://{{ oidc_hostname }}/auth/realms/rhcl
+
+        - target:
+            group: kuadrant.io
+            version: v1
+            kind: AuthPolicy
+            name: jwt-demo-jwt
+            namespace: demo
+          patch: |-
+            apiVersion: kuadrant.io/v1
+            kind: AuthPolicy
+            metadata:
+              name: jwt-demo-jwt
+              namespace: demo
+            spec:
+              defaults:
+                rules:
+                  authentication:
+                    jwt:
+                      jwt:
+                        issuerUrl: https://{{ oidc_hostname }}/auth/realms/rhcl
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+

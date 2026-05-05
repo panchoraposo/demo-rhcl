@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - httproute-api.yaml
+  - httproute-ui.yaml
+  - httproute-ab-canary-external.yaml
+  - httproute-keycloak.yaml
+  - httproute-oidc-portal.yaml
+  - httproute-ai-bot.yaml
+  - httproute-ai-bot-main.yaml
+  - httproute-mcp-tools-local.yaml
+  - httproute-jwt-demo.yaml
+  - httproute-external-proxy.yaml
+  - httproute-external-proxy-public.yaml
+  - referencegrant-oidc-to-external-proxy.yaml
+  - referencegrant-jwt-to-external-proxy.yaml
+

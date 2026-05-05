@@ -26,7 +26,7 @@ spec:
               containerPort: 8080
           env:
             - name: RHCL_AI_ESPN_BASE_URL
-              value: https://external-api.sandbox1529.opentlc.com
+              value: https://external-api.REPLACE_ME_BASE_DOMAIN
             - name: RHCL_AI_TRACE_BASE_URL
               value: http://rhcl-trace-svc.demo.svc.cluster.local
             # Ensure LLM is not required for tool serving.

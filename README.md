@@ -57,7 +57,7 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 - **Connectivity Link / Kuadrant** applies policies to:
   - the **Gateway** (guardrails like deny-by-default)
   - individual **HTTPRoutes** (auth, rate limits, traffic shaping)
-- TLS is handled via `TLSPolicy` + `cert-manager` (ClusterIssuer required).
+- TLS is handled via `cert-manager` (Certificates/ClusterIssuer) and Gateway listener Secrets.
 
 ### Connectivity Link changes in this repo (demo wiring)
 
@@ -80,7 +80,8 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 
 - You are logged into the cluster with **cluster-admin**
 - `oc` CLI available
-- OpenShift GitOps installed (namespace `openshift-gitops`)
+- `python3` available
+- OpenShift GitOps **will be installed automatically** if missing (by the installer)
 - A working `ClusterIssuer` in your cluster (the installer can auto-pick one; or set it explicitly)
 
 ## Install (recommended)
@@ -90,8 +91,10 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 Run:
 
 ```bash
-./tools/install-rhcl-workshop.sh
+./install.sh
 ```
+
+Compatibility: `./tools/install-rhcl-workshop.sh` still exists and just delegates to `./install.sh`.
 
 Defaults:
 - **main demo host**: `rhcl-workshop.<appsDomain>`
@@ -99,15 +102,22 @@ Defaults:
 - **Grafana host**: `grafana-<DEMO_HOSTNAME>` (anonymous)
 
 Useful overrides:
+- **`APPS_DOMAIN`**: set the cluster apps domain (if autodiscovery fails)
 - **`DEMO_HOSTNAME`**: set the main hostname
 - **`OIDC_HOSTNAME`**: set the OIDC portal hostname
+- **`AI_HOSTNAME`**: set the AI Gateway hostname (`ai-<DEMO_HOSTNAME>` by default)
 - **`GRAFANA_HOSTNAME`**: set the Grafana hostname (optional)
 - **`CLUSTER_ISSUER`**: set the cert-manager `ClusterIssuer` name
+- **`DEFAULT_INGRESS_CERT_SECRET`**: set the wildcard cert secret used for `*.appsDomain` listeners
+- **`EXTERNAL_BASE_DOMAIN`**: base domain for dedicated public hosts (defaults to last 2–3 labels of `APPS_DOMAIN`)
+- **`EXTERNAL_API_HOSTNAME`**: override the external API hostname (defaults to `external-api.<EXTERNAL_BASE_DOMAIN>`)
 - **`REPO_URL` / `REVISION` / `APP_PATH`**: point Argo CD to a fork/branch/path
 
 ### Optional: Route53 DNS automation (DNSPolicy)
 
-If you want `DNSPolicy` to manage Route53 records, export:
+If you want `DNSPolicy` to manage Route53 records:
+- Ensure the **AWS CLI is installed** and your environment is already configured so `aws sts get-caller-identity` works.
+- Export:
 
 ```bash
 export AWS_ACCESS_KEY_ID=...
@@ -115,7 +125,7 @@ export AWS_SECRET_ACCESS_KEY=...
 export AWS_REGION=...
 ```
 
-Then rerun the installer; it will create/update `Secret/route53-credentials` (type `kuadrant.io/aws`) in `openshift-ingress`.
+Then rerun the installer; it will validate AWS auth and create/update `Secret/route53-credentials` (type `kuadrant.io/aws`) in `openshift-ingress` (and `demo`).
 
 ## Post-install: enable the Connectivity Link console plugin
 

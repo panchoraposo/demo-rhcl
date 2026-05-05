@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - console-banner.yaml
+  - demo-api.yaml
+  - ui.yaml
+  - oidc-ui.yaml
+  - ab-canary.yaml
+  - external-proxy.yaml
+  - keycloak.yaml
+  - rhbk-operator.yaml
+  - oidc-callback.yaml
+  - ai-bot.yaml
+  - trace-svc.yaml
+

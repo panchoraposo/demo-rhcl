@@ -1,0 +1,42 @@
+---
+- name: Determine if Route53 credentials are provided
+  ansible.builtin.set_fact:
+    route53_enabled: "{{ (aws_access_key_id | trim != '') or (aws_secret_access_key | trim != '') or (aws_region | trim != '') }}"
+
+- name: Fail if partial Route53 env vars are set
+  ansible.builtin.fail:
+    msg: "To configure Route53 credentials, set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_REGION."
+  when: route53_enabled and ((aws_access_key_id | trim == '') or (aws_secret_access_key | trim == '') or (aws_region | trim == ''))
+
+- name: Check aws CLI is installed (required for Route53 mode)
+  ansible.builtin.command: aws --version
+  register: aws_version
+  changed_when: false
+  when: route53_enabled
+
+- name: Validate AWS credentials (sts)
+  ansible.builtin.command: aws sts get-caller-identity
+  register: aws_sts
+  changed_when: false
+  when: route53_enabled
+
+- name: Create/update route53-credentials secret (demo + openshift-ingress)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    for ns in demo openshift-ingress; do
+      oc -n "$ns" create secret generic route53-credentials \
+        --type=kuadrant.io/aws \
+        --from-literal=AWS_ACCESS_KEY_ID="{{ aws_access_key_id }}" \
+        --from-literal=AWS_SECRET_ACCESS_KEY="{{ aws_secret_access_key }}" \
+        --from-literal=AWS_REGION="{{ aws_region }}" \
+        --dry-run=client -o yaml | oc apply -f -
+    done
+  args:
+    executable: /bin/bash
+  when: route53_enabled
+
+- name: Route53 not configured
+  ansible.builtin.debug:
+    msg: "Route53 secret not configured (AWS_* env vars not set). DNSPolicy remains inactive until you create it."
+  when: not route53_enabled
+

@@ -1,8 +1,8 @@
 apiVersion: kuadrant.io/v1
 kind: AuthPolicy
 metadata:
-  name: jwt-demo-jwt
-  namespace: demo-jwt
+  name: secure-demo-jwt
+  namespace: rhcl-oidc-portal
   annotations:
     argocd.argoproj.io/sync-wave: "32"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
@@ -10,16 +10,18 @@ spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: HTTPRoute
-    name: jwt-demo
+    name: secure-demo
   defaults:
     rules:
       authentication:
         jwt:
           jwt:
-            issuerUrl: https://oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com/auth/realms/rhcl
+            issuerUrl: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl
           credentials:
             authorizationHeader:
               prefix: "Bearer"
+            cookie:
+              name: rhcl_token
       authorization:
         allow-all:
           opa:

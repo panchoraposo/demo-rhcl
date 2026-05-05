@@ -8,13 +8,13 @@ metadata:
 spec:
   secretName: rhcl-gw-public-tls
   dnsNames:
-    - rhcl-workshop.sandbox1529.opentlc.com
-    - oidc-rhcl-workshop.sandbox1529.opentlc.com
-    - mcp.sandbox1529.opentlc.com
-    - external.sandbox1529.opentlc.com
-    - external-api.sandbox1529.opentlc.com
+    - rhcl-workshop.REPLACE_ME_BASE_DOMAIN
+    - oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN
+    - mcp.REPLACE_ME_BASE_DOMAIN
+    - external.REPLACE_ME_BASE_DOMAIN
+    - external-api.REPLACE_ME_BASE_DOMAIN
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: letsencrypt-route53-sandbox1529
+    name: REPLACE_ME_CLUSTER_ISSUER
 

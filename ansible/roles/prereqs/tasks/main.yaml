@@ -1,0 +1,13 @@
+---
+- name: Check oc is logged in
+  ansible.builtin.command: oc whoami
+  register: oc_whoami
+  changed_when: false
+  failed_when: oc_whoami.rc != 0
+
+- name: Check cluster-admin privileges
+  ansible.builtin.command: oc auth can-i '*' '*' --all-namespaces
+  register: oc_can_i
+  changed_when: false
+  failed_when: oc_can_i.stdout | trim != 'yes'
+

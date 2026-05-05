@@ -1,0 +1,136 @@
+---
+- name: Detect cluster apps domain
+  ansible.builtin.command: oc get ingresses.config/cluster -o jsonpath='{.spec.domain}'
+  register: detected_apps_domain
+  changed_when: false
+  when: apps_domain_override | trim == ''
+
+- name: Set apps_domain
+  ansible.builtin.set_fact:
+    apps_domain: "{{ (apps_domain_override | trim) if (apps_domain_override | trim != '') else (detected_apps_domain.stdout | trim) }}"
+
+- name: Fail if apps_domain is empty
+  ansible.builtin.fail:
+    msg: "Could not detect apps domain. Set APPS_DOMAIN manually."
+  when: apps_domain | trim == ''
+
+- name: Detect default ingress certificate secret
+  ansible.builtin.command: oc -n openshift-ingress-operator get ingresscontroller default -o jsonpath='{.spec.defaultCertificate.name}'
+  register: detected_default_ingress_cert_secret
+  changed_when: false
+  when: default_ingress_cert_secret_override | trim == ''
+
+- name: Set default_ingress_cert_secret
+  ansible.builtin.set_fact:
+    default_ingress_cert_secret: >-
+      {{ (default_ingress_cert_secret_override | trim)
+         if (default_ingress_cert_secret_override | trim != '')
+         else (detected_default_ingress_cert_secret.stdout | trim) }}
+
+- name: Fail if default_ingress_cert_secret is empty
+  ansible.builtin.fail:
+    msg: "Could not detect default ingress certificate secret. Set DEFAULT_INGRESS_CERT_SECRET manually."
+  when: default_ingress_cert_secret | trim == ''
+
+- name: Detect best ClusterIssuer (if not provided)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    oc get clusterissuer -o json | python3 - <<'PY'
+    import json,sys
+    j=json.load(sys.stdin)
+    names=[x["metadata"]["name"] for x in j.get("items",[])]
+    def score(n:str)->int:
+      nl=n.lower()
+      s=0
+      if "letsencrypt" in nl: s+=10
+      if ("prod" in nl or "production" in nl): s+=10
+      if "staging" in nl: s-=20
+      return s
+    names=sorted(names, key=lambda n:(-score(n), n))
+    print(names[0] if names else "")
+    PY
+  args:
+    executable: /bin/bash
+  register: detected_cluster_issuer
+  changed_when: false
+  when: cluster_issuer_override | trim == ''
+
+- name: Set cluster_issuer
+  ansible.builtin.set_fact:
+    cluster_issuer: "{{ (cluster_issuer_override | trim) if (cluster_issuer_override | trim != '') else (detected_cluster_issuer.stdout | trim) }}"
+
+- name: Fail if cluster_issuer is empty
+  ansible.builtin.fail:
+    msg: "No ClusterIssuer found. Set CLUSTER_ISSUER to an existing ClusterIssuer name."
+  when: cluster_issuer | trim == ''
+
+- name: Derive demo_hostname
+  ansible.builtin.set_fact:
+    demo_hostname: "{{ (demo_hostname_override | trim) if (demo_hostname_override | trim != '') else ('rhcl-workshop.' ~ apps_domain) }}"
+
+- name: Derive oidc_hostname
+  ansible.builtin.set_fact:
+    oidc_hostname: >-
+      {{ (oidc_hostname_override | trim)
+         if (oidc_hostname_override | trim != '')
+         else ('oidc-' ~ (demo_hostname.split('.')[0]) ~ '.' ~ apps_domain) }}
+
+- name: Derive grafana_hostname
+  ansible.builtin.set_fact:
+    grafana_hostname: "{{ (grafana_hostname_override | trim) if (grafana_hostname_override | trim != '') else ('grafana-' ~ demo_hostname) }}"
+
+- name: Derive external_base_domain (for external-api.<base-domain>)
+  ansible.builtin.set_fact:
+    external_base_domain: >-
+      {% set override = external_base_domain_override | trim %}
+      {% if override != '' %}
+      {{ override }}
+      {% else %}
+      {% set parts = (apps_domain | trim).split('.') %}
+      {% if parts | length >= 3 %}
+      {{ parts[-3:] | join('.') }}
+      {% else %}
+      {{ parts[-2:] | join('.') }}
+      {% endif %}
+      {% endif %}
+
+- name: Derive external_api_hostname
+  ansible.builtin.set_fact:
+    external_api_hostname: >-
+      {% set override = external_api_hostname_override | trim %}
+      {% if override != '' %}
+      {{ override }}
+      {% else %}
+      external-api.{{ external_base_domain }}
+      {% endif %}
+
+- name: Derive public hostnames (Route53 / dedicated hostnames)
+  ansible.builtin.set_fact:
+    demo_public_hostname: "rhcl-workshop.{{ external_base_domain }}"
+    oidc_public_hostname: "oidc-rhcl-workshop.{{ external_base_domain }}"
+    mcp_public_hostname: "mcp.{{ external_base_domain }}"
+    external_public_hostname: "external.{{ external_base_domain }}"
+
+- name: Derive ai_hostname
+  ansible.builtin.set_fact:
+    ai_hostname: >-
+      {% set override = ai_hostname_override | trim %}
+      {% if override != '' %}
+      {{ override }}
+      {% else %}
+      ai-{{ demo_hostname }}
+      {% endif %}
+
+- name: Print computed installation values
+  ansible.builtin.debug:
+    msg:
+      - "DEMO_HOSTNAME={{ demo_hostname }}"
+      - "OIDC_HOSTNAME={{ oidc_hostname }}"
+      - "GRAFANA_HOSTNAME={{ grafana_hostname }}"
+      - "AI_HOSTNAME={{ ai_hostname }}"
+      - "EXTERNAL_API_HOSTNAME={{ external_api_hostname }}"
+      - "DEMO_PUBLIC_HOSTNAME={{ demo_public_hostname }}"
+      - "OIDC_PUBLIC_HOSTNAME={{ oidc_public_hostname }}"
+      - "CLUSTER_ISSUER={{ cluster_issuer }}"
+      - "DEFAULT_INGRESS_CERT_SECRET={{ default_ingress_cert_secret }}"
+

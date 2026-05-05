@@ -1,0 +1,33 @@
+---
+- name: Install RHCL workshop (GitOps)
+  hosts: localhost
+  gather_facts: false
+  connection: local
+
+  vars:
+    # Allow environment overrides (keep naming aligned with existing bash installer)
+    repo_url: "{{ lookup('env', 'REPO_URL') | default('https://github.com/panchoraposo/demo-rhcl.git', true) }}"
+    revision: "{{ lookup('env', 'REVISION') | default('main', true) }}"
+    app_path: "{{ lookup('env', 'APP_PATH') | default('gitops/apps/rhcl-demo/overlays/full-install', true) }}"
+
+    apps_domain_override: "{{ lookup('env', 'APPS_DOMAIN') | default('', true) }}"
+    demo_hostname_override: "{{ lookup('env', 'DEMO_HOSTNAME') | default('', true) }}"
+    oidc_hostname_override: "{{ lookup('env', 'OIDC_HOSTNAME') | default('', true) }}"
+    grafana_hostname_override: "{{ lookup('env', 'GRAFANA_HOSTNAME') | default('', true) }}"
+    cluster_issuer_override: "{{ lookup('env', 'CLUSTER_ISSUER') | default('', true) }}"
+    default_ingress_cert_secret_override: "{{ lookup('env', 'DEFAULT_INGRESS_CERT_SECRET') | default('', true) }}"
+    external_base_domain_override: "{{ lookup('env', 'EXTERNAL_BASE_DOMAIN') | default('', true) }}"
+    external_api_hostname_override: "{{ lookup('env', 'EXTERNAL_API_HOSTNAME') | default('', true) }}"
+    ai_hostname_override: "{{ lookup('env', 'AI_HOSTNAME') | default('', true) }}"
+
+    aws_access_key_id: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') | default('', true) }}"
+    aws_secret_access_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') | default('', true) }}"
+    aws_region: "{{ lookup('env', 'AWS_REGION') | default('', true) }}"
+
+  roles:
+    - role: prereqs
+    - role: discover
+    - role: gitops
+    - role: route53
+    - role: deploy
+

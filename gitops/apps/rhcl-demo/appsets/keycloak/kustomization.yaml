@@ -2,9 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base/resources/00-namespace-keycloak.yaml
-  - ../../base/resources/18-rhbk-operator.yaml
-  - ../../base/resources/17-oidc-keycloak.yaml
-  - ../../base/resources/33-httproute-keycloak.yaml
-  - ../../base/resources/64-keycloak-authpolicy.yaml
+  - ../../base/resources/namespaces/namespace-rhcl-keycloak.yaml
+  - ../../base/resources/apps/rhbk-operator.yaml
+  - ../../base/resources/apps/keycloak.yaml
+  - ../../base/resources/routes/httproute-keycloak.yaml
+  - ../../base/resources/policies/keycloak-authpolicy.yaml
 

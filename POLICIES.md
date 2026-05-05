@@ -10,12 +10,12 @@ This document summarizes the policies used in the demo, what problems they solve
 
 ## Policies included
 
-### `TLSPolicy` — TLS termination on the Gateway
+### `Certificate` — TLS for dedicated public hostnames
 
-- **File**: `gitops/apps/rhcl-demo/base/resources/25-gateway-tlspolicy.yaml`
-- **Resource**: `openshift-ingress/TLSPolicy rhcl-gw-tls`
-- **Target**: `Gateway/rhcl-gw` listener `https`
-- **Issuer**: `spec.issuerRef` points to a `ClusterIssuer` (set per environment via GitOps overlay)
+- **File**: `gitops/apps/rhcl-demo/base/resources/gateway/gateway-public-certificate.yaml`
+- **Resource**: `openshift-ingress/Certificate rhcl-gw-public-tls`
+- **Used by**: `Gateway/rhcl-gw` public listeners (`https-*-public`) via `tls.certificateRefs`
+- **Issuer**: `spec.issuerRef.name` points to a `ClusterIssuer` (set per environment by the installer)
 
 **What it does**
 
@@ -27,15 +27,16 @@ This document summarizes the policies used in the demo, what problems they solve
 - Enables automated certificate rotation/renewal via `cert-manager`.
 - Makes HTTPS configuration **declarative and repeatable** across ephemeral environments.
 
-Related object:
+Related objects:
 
-- `openshift-ingress/Certificate rhcl-gw-tls` (`gitops/apps/rhcl-demo/base/resources/24-gateway-certificate.yaml`) requests the certificate and stores it in the Secret referenced by the Gateway listener.
+- `openshift-ingress/Gateway rhcl-gw` (`gitops/apps/rhcl-demo/base/resources/gateway/gateway.yaml`) references the Secret created by this Certificate.
+- `openshift-ingress/DNSPolicy ...` (`gitops/apps/rhcl-demo/base/resources/gateway/gateway-dnspolicy.yaml`) can publish Route53 records for those dedicated hosts.
 
 ---
 
 ### `AuthPolicy` (Gateway) — default deny-all (zero-trust)
 
-- **File**: `gitops/apps/rhcl-demo/base/resources/40-gateway-authpolicy.yaml`
+- **File**: `gitops/apps/rhcl-demo/base/resources/policies/gateway-authpolicy.yaml`
 - **Resource**: `openshift-ingress/AuthPolicy rhcl-gw-auth`
 - **Target**: `Gateway/rhcl-gw`
 
@@ -51,7 +52,7 @@ Related object:
 
 ### `AuthPolicy` (HTTPRoute) — API keys for the API
 
-- **File**: `gitops/apps/rhcl-demo/base/resources/60-route-authpolicy.yaml`
+- **File**: `gitops/apps/rhcl-demo/base/resources/policies/route-authpolicy.yaml`
 - **Resource**: `demo/AuthPolicy demo-api-auth`
 - **Target**: `demo/HTTPRoute demo-api`
 
@@ -64,7 +65,7 @@ Related object:
 
 ### `RateLimitPolicy` (HTTPRoute) — per-user rate limiting (Alice vs Bob)
 
-- **File**: `gitops/apps/rhcl-demo/base/resources/70-route-ratelimitpolicy.yaml`
+- **File**: `gitops/apps/rhcl-demo/base/resources/policies/route-ratelimitpolicy.yaml`
 - **Resource**: `demo/RateLimitPolicy demo-api-rlp`
 - **Target**: `demo/HTTPRoute demo-api`
 
@@ -78,7 +79,7 @@ Related object:
 
 ### `AuthPolicy` (HTTPRoute) — public UI (allow-all)
 
-- **File**: `gitops/apps/rhcl-demo/base/resources/62-ui-authpolicy.yaml`
+- **File**: `gitops/apps/rhcl-demo/base/resources/policies/ui-authpolicy.yaml`
 - **Resource**: `demo/AuthPolicy rhcl-ui-allow`
 - **Target**: `demo/HTTPRoute rhcl-ui`
 

@@ -11,49 +11,49 @@ spec:
         elements:
           - name: storage
             path: gitops/apps/rhcl-demo/appsets/storage
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: infra
             path: gitops/apps/rhcl-demo/appsets/infra
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: demo
             path: gitops/apps/rhcl-demo/appsets/demo
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: bot
             path: gitops/apps/rhcl-demo/appsets/bot
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: keycloak
             path: gitops/apps/rhcl-demo/appsets/keycloak
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: oidc-portal
             path: gitops/apps/rhcl-demo/appsets/oidc-portal
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: tracing
             path: gitops/apps/rhcl-demo/appsets/tracing
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: lightspeed
             path: gitops/apps/rhcl-demo/appsets/lightspeed
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: mcp
             path: gitops/apps/rhcl-demo/appsets/mcp
-            demoHostname: rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            oidcHostname: oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-            clusterIssuer: letsencrypt-route53-sandbox1529
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
   template:
     metadata:
       name: rhcl-workshop-{{.name}}
@@ -246,7 +246,7 @@ spec:
                     - name: https-main-public
                       port: 443
                       protocol: HTTPS
-                      hostname: rhcl-workshop.sandbox1529.opentlc.com
+                      hostname: rhcl-workshop.REPLACE_ME_BASE_DOMAIN
                       tls:
                         mode: Terminate
                         certificateRefs:
@@ -259,7 +259,7 @@ spec:
                     - name: https-oidc-public
                       port: 443
                       protocol: HTTPS
-                      hostname: oidc-rhcl-workshop.sandbox1529.opentlc.com
+                      hostname: oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN
                       tls:
                         mode: Terminate
                         certificateRefs:
@@ -302,7 +302,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
-                    - rhcl-workshop.sandbox1529.opentlc.com
+                    - rhcl-workshop.REPLACE_ME_BASE_DOMAIN
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -318,7 +318,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
-                    - rhcl-workshop.sandbox1529.opentlc.com
+                    - rhcl-workshop.REPLACE_ME_BASE_DOMAIN
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -334,7 +334,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
-                    - rhcl-workshop.sandbox1529.opentlc.com
+                    - rhcl-workshop.REPLACE_ME_BASE_DOMAIN
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -350,7 +350,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.demoHostname}}
-                    - rhcl-workshop.sandbox1529.opentlc.com
+                    - rhcl-workshop.REPLACE_ME_BASE_DOMAIN
             - target:
                 group: kuadrant.io
                 version: v1
@@ -388,8 +388,8 @@ spec:
                   hostnames:
                     - {{.demoHostname}}
                     - {{.oidcHostname}}
-                    - rhcl-workshop.sandbox1529.opentlc.com
-                    - oidc-rhcl-workshop.sandbox1529.opentlc.com
+                    - rhcl-workshop.REPLACE_ME_BASE_DOMAIN
+                    - oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN
           {{- end }}
           {{- if eq .name "bot" }}
             - target:
@@ -424,7 +424,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.oidcHostname}}
-                    - oidc-rhcl-workshop.sandbox1529.opentlc.com
+                    - oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
@@ -440,7 +440,7 @@ spec:
                 spec:
                   hostnames:
                     - {{.oidcHostname}}
-                    - oidc-rhcl-workshop.sandbox1529.opentlc.com
+                    - oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN
             - target:
                 group: extensions.kuadrant.io
                 version: v1alpha1
@@ -455,10 +455,10 @@ spec:
                   namespace: rhcl-oidc-portal
                 spec:
                   provider:
-                    issuerURL: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl
-                    authorizationEndpoint: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl/protocol/openid-connect/auth
-                    tokenEndpoint: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl/protocol/openid-connect/token
-                    redirectURI: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/callback
+                    issuerURL: https://oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN/auth/realms/rhcl
+                    authorizationEndpoint: https://oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN/auth/realms/rhcl/protocol/openid-connect/auth
+                    tokenEndpoint: https://oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN/auth/realms/rhcl/protocol/openid-connect/token
+                    redirectURI: https://oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN/auth/callback
             - target:
                 group: kuadrant.io
                 version: v1
@@ -477,6 +477,6 @@ spec:
                       authentication:
                         jwt:
                           jwt:
-                            issuerUrl: https://oidc-rhcl-workshop.sandbox1529.opentlc.com/auth/realms/rhcl
+                            issuerUrl: https://oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN/auth/realms/rhcl
           {{- end }}
 

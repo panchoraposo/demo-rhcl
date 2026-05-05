@@ -1,0 +1,23 @@
+---
+- name: Render Argo CD Application manifest
+  ansible.builtin.template:
+    src: rhcl-workshop-application.yaml.j2
+    dest: /tmp/rhcl-workshop-application.yaml
+    mode: "0644"
+
+- name: Apply Argo CD Application
+  ansible.builtin.command: oc apply -f /tmp/rhcl-workshop-application.yaml
+  register: apply_app
+  changed_when: "'configured' in (apply_app.stdout | lower) or 'created' in (apply_app.stdout | lower)"
+
+- name: Wait for Argo CD Application to exist
+  ansible.builtin.command: oc -n openshift-gitops get application rhcl-workshop
+  register: get_app
+  changed_when: false
+
+- name: Print URLs
+  ansible.builtin.debug:
+    msg:
+      - "Open: https://{{ demo_hostname }}/"
+      - "Open: https://{{ oidc_hostname }}/"
+

@@ -84,7 +84,7 @@ spec:
                   optional: true
             # ESPN is consumed via the Gateway-published external API hostname.
             - name: RHCL_AI_ESPN_BASE_URL
-              value: https://external-api.sandbox1529.opentlc.com
+              value: https://external-api.REPLACE_ME_BASE_DOMAIN
             - name: RHCL_AI_TRACE_BASE_URL
               value: http://rhcl-trace-svc.demo.svc.cluster.local
             # Tool calls go through the same-origin /mcp-tools bridge (stable across environments).

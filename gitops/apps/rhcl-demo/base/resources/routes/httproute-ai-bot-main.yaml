@@ -1,17 +1,17 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: rhcl-ui
-  namespace: demo
+  name: ai-bot-main
+  namespace: rhcl-ai-bot
   labels:
-    app: rhcl-ui
-    service: rhcl-ui
-    deployment: rhcl-ui
+    app: rhcl-ai-bot
+    service: rhcl-ai-bot
+    deployment: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:
   hostnames:
-    - rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+    - REPLACE_ME_DEMO_HOSTNAME
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
@@ -19,26 +19,18 @@ spec:
       namespace: openshift-ingress
   rules:
     - matches:
-        - method: GET
+        - method: POST
           path:
             type: PathPrefix
-            value: /
-        - method: HEAD
+            value: /ai
+        - method: OPTIONS
           path:
             type: PathPrefix
-            value: /
-        - method: GET
-          path:
-            type: PathPrefix
-            value: /logout
-        - method: HEAD
-          path:
-            type: PathPrefix
-            value: /logout
+            value: /ai
       backendRefs:
         - group: ""
           kind: Service
-          name: rhcl-ui
+          name: rhcl-ai-bot
           port: 80
           weight: 1
 

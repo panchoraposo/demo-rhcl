@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - gateway-authpolicy.yaml
+  - api-keys.yaml
+  - route-authpolicy.yaml
+  - ui-authpolicy.yaml
+  - ab-authpolicy.yaml
+  - keycloak-authpolicy.yaml
+  - jwt-demo-authpolicy.yaml
+  - external-proxy-authpolicy.yaml
+  - mcp-tools-local-authpolicy.yaml
+  - secure-jwt-authpolicy.yaml
+  - secure-oidcpolicy.yaml
+  - oidc-portal-authpolicy.yaml
+  - ai-bot-authpolicy.yaml
+  - ai-bot-main-authpolicy.yaml
+  - ai-bot-tokenratelimitpolicy.yaml
+  - ai-bot-main-tokenratelimitpolicy.yaml
+  - route-ratelimitpolicy.yaml
+  - ai-gateway-authpolicy.yaml
+  - ai-gateway-ratelimitpolicy.yaml
+

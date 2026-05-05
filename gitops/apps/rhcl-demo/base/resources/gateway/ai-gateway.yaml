@@ -13,7 +13,7 @@ spec:
     - name: https-ai
       port: 443
       protocol: HTTPS
-      hostname: ai-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+      hostname: REPLACE_ME_AI_HOSTNAME
       tls:
         mode: Terminate
         certificateRefs:

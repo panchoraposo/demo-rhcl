@@ -66,8 +66,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "30"
 spec:
   hostnames:
-    - oidc-rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
-    - oidc-rhcl-workshop.sandbox1529.opentlc.com
+    - REPLACE_ME_OIDC_HOSTNAME
+    - oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway

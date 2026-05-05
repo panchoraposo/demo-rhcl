@@ -1,17 +1,17 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: demo-api
-  namespace: demo
+  name: jwt-demo
+  namespace: demo-jwt
   labels:
-    app: demo-api
-    service: demo-api
-    deployment: demo-api
+    app: jwt-demo
+    service: external-proxy
+    deployment: external-proxy
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:
   hostnames:
-    - rhcl-workshop.apps.cluster-lmc6n.lmc6n.sandbox1529.opentlc.com
+    - REPLACE_ME_DEMO_HOSTNAME
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
@@ -19,18 +19,20 @@ spec:
       namespace: openshift-ingress
   rules:
     - matches:
-        - method: GET
-          path:
+        - path:
             type: PathPrefix
-            value: /hello
-        - method: GET
-          path:
-            type: PathPrefix
-            value: /health
+            value: /jwt/secure
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /external
       backendRefs:
         - group: ""
           kind: Service
-          name: demo-api
+          name: external-proxy
+          namespace: demo
           port: 80
           weight: 1
 

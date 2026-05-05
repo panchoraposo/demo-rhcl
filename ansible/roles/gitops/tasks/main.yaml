@@ -1,0 +1,64 @@
+---
+- name: Detect if Argo CD Applications CRD exists
+  ansible.builtin.command: oc get crd applications.argoproj.io
+  register: gitops_crd
+  changed_when: false
+  failed_when: false
+
+- name: Detect if openshift-gitops namespace exists
+  ansible.builtin.command: oc get namespace openshift-gitops
+  register: gitops_ns
+  changed_when: false
+  failed_when: false
+
+- name: Set gitops_installed fact
+  ansible.builtin.set_fact:
+    gitops_installed: "{{ (gitops_crd.rc == 0) and (gitops_ns.rc == 0) }}"
+
+- name: Install OpenShift GitOps operator (if missing)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    cat <<'YAML' | oc apply -f -
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: openshift-gitops
+    ---
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: openshift-gitops-operator
+      namespace: openshift-operators
+    spec:
+      channel: latest
+      installPlanApproval: Automatic
+      name: openshift-gitops-operator
+      source: redhat-operators
+      sourceNamespace: openshift-marketplace
+    YAML
+  args:
+    executable: /bin/bash
+  changed_when: true
+  when: not gitops_installed
+
+- name: Wait for openshift-gitops namespace to exist
+  ansible.builtin.command: oc get namespace openshift-gitops
+  register: wait_gitops_ns
+  changed_when: false
+  retries: 60
+  delay: 10
+  until: wait_gitops_ns.rc == 0
+
+- name: Wait for OpenShift GitOps server deployment to be created
+  ansible.builtin.command: oc -n openshift-gitops get deployment openshift-gitops-server
+  register: wait_gitops_deploy
+  changed_when: false
+  retries: 60
+  delay: 10
+  until: wait_gitops_deploy.rc == 0
+
+- name: Wait for OpenShift GitOps server rollout
+  ansible.builtin.command: oc -n openshift-gitops rollout status deployment/openshift-gitops-server --timeout=10m
+  register: gitops_rollout
+  changed_when: false
+

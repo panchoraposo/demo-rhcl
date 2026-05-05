@@ -2,29 +2,29 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base/resources/00-namespace.yaml
-  - ../../base/resources/00-namespace-demo-ab.yaml
-  - ../../base/resources/00-namespace-demo-jwt.yaml
-  - ../../base/resources/10-demo-api.yaml
-  - ../../base/resources/15-ui.yaml
-  - ../../base/resources/16-ab-canary.yaml
-  - ../../base/resources/17-external-proxy.yaml
-  - ../../base/resources/30-httproute-api.yaml
-  - ../../base/resources/31-httproute-ui.yaml
-  - ../../base/resources/32-httproute-ab-canary-external.yaml
-  - ../../base/resources/36-httproute-jwt-demo.yaml
-  - ../../base/resources/37-trace-svc.yaml
-  - ../../base/resources/34c-httproute-mcp-tools-local.yaml
-  - ../../base/resources/39-httproute-external-proxy.yaml
-  - ../../base/resources/41-referencegrant-jwt-to-external-proxy.yaml
-  - ../../base/resources/50-api-keys.yaml
-  - ../../base/resources/60-route-authpolicy.yaml
-  - ../../base/resources/62-ui-authpolicy.yaml
-  - ../../base/resources/63-ab-authpolicy.yaml
-  - ../../base/resources/64-mcp-tools-local-authpolicy.yaml
-  - ../../base/resources/69-jwt-demo-authpolicy.yaml
-  - ../../base/resources/70-route-ratelimitpolicy.yaml
-  - ../../base/resources/71-external-proxy-authpolicy.yaml
+  - ../../base/resources/namespaces/namespace-demo.yaml
+  - ../../base/resources/namespaces/namespace-demo-ab.yaml
+  - ../../base/resources/namespaces/namespace-demo-jwt.yaml
+  - ../../base/resources/apps/demo-api.yaml
+  - ../../base/resources/apps/ui.yaml
+  - ../../base/resources/apps/ab-canary.yaml
+  - ../../base/resources/apps/external-proxy.yaml
+  - ../../base/resources/apps/trace-svc.yaml
+  - ../../base/resources/routes/httproute-api.yaml
+  - ../../base/resources/routes/httproute-ui.yaml
+  - ../../base/resources/routes/httproute-ab-canary-external.yaml
+  - ../../base/resources/routes/httproute-jwt-demo.yaml
+  - ../../base/resources/routes/httproute-mcp-tools-local.yaml
+  - ../../base/resources/routes/httproute-external-proxy.yaml
+  - ../../base/resources/routes/referencegrant-jwt-to-external-proxy.yaml
+  - ../../base/resources/policies/api-keys.yaml
+  - ../../base/resources/policies/route-authpolicy.yaml
+  - ../../base/resources/policies/ui-authpolicy.yaml
+  - ../../base/resources/policies/ab-authpolicy.yaml
+  - ../../base/resources/policies/mcp-tools-local-authpolicy.yaml
+  - ../../base/resources/policies/jwt-demo-authpolicy.yaml
+  - ../../base/resources/policies/route-ratelimitpolicy.yaml
+  - ../../base/resources/policies/external-proxy-authpolicy.yaml
 
 configMapGenerator:
   - name: rhcl-ui

@@ -1668,125 +1668,6 @@ spec:
       when:
         - predicate: "auth.identity.userid == 'bob'"
 ` },
-          { name: "Gateway (MCP hostname)", yaml: `apiVersion: gateway.networking.k8s.io/v1
-kind: Gateway
-metadata:
-  name: rhcl-mcp-gw
-  namespace: openshift-ingress
-spec:
-  gatewayClassName: openshift-default
-  listeners:
-    - name: https-mcp-public
-      port: 443
-      protocol: HTTPS
-      hostname: REPLACE_ME_MCP_HOSTNAME
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - group: ""
-            kind: Secret
-            name: rhcl-gw-public-tls
-      allowedRoutes:
-        namespaces:
-          from: All
-` },
-          { name: "DNSPolicy (Route53 for MCP hostname)", yaml: `apiVersion: kuadrant.io/v1
-kind: DNSPolicy
-metadata:
-  name: rhcl-mcp-public-dns
-  namespace: openshift-ingress
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: Gateway
-    name: rhcl-mcp-gw
-    sectionName: https-mcp-public
-  providerRefs:
-    - name: route53-credentials
-` },
-          { name: "MCPGatewayExtension", yaml: `apiVersion: mcp.kuadrant.io/v1alpha1
-kind: MCPGatewayExtension
-metadata:
-  name: rhcl-mcp
-  namespace: mcp-system
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: Gateway
-    name: rhcl-mcp-gw
-    namespace: openshift-ingress
-    sectionName: https-mcp-public
-  httpRouteManagement: Disabled
-` },
-          { name: "HTTPRoute (public /mcp)", yaml: `apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: rhcl-mcp-gateway
-  namespace: mcp-system
-spec:
-  parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: rhcl-mcp-gw
-      namespace: openshift-ingress
-      sectionName: https-mcp-public
-  hostnames:
-    - REPLACE_ME_MCP_HOSTNAME
-  rules:
-    - matches:
-        - method: POST
-          path: { type: PathPrefix, value: /mcp }
-        - method: OPTIONS
-          path: { type: PathPrefix, value: /mcp }
-      backendRefs:
-        - kind: Service
-          name: mcp-gateway
-          port: 8080
-          weight: 1
-` },
-          { name: "HTTPRoute (tool server via /tools/rhcl-mcp-tools)", yaml: `apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: rhcl-mcp-tools
-  namespace: mcp-system
-spec:
-  parentRefs:
-    - name: rhcl-mcp-gw
-      namespace: openshift-ingress
-      sectionName: https-mcp-public
-  hostnames:
-    - REPLACE_ME_MCP_HOSTNAME
-  rules:
-    - matches:
-        - path: { type: PathPrefix, value: /tools/rhcl-mcp-tools }
-      filters:
-        - type: URLRewrite
-          urlRewrite:
-            path: { type: ReplacePrefixMatch, replacePrefixMatch: /mcp }
-        - type: RequestHeaderModifier
-          requestHeaderModifier:
-            set:
-              - name: accept
-                value: "application/json, text/event-stream"
-      backendRefs:
-        - name: rhcl-mcp-tools-bridge
-          port: 8080
-` },
-          { name: "mcp-gateway-config (upstream servers)", yaml: `apiVersion: v1
-kind: Secret
-metadata:
-  name: mcp-gateway-config
-  namespace: mcp-system
-type: Opaque
-stringData:
-  config.yaml: |
-    servers:
-      - enabled: true
-        hostname: REPLACE_ME_MCP_HOSTNAME
-        name: mcp-system/rhcl-mcp-tools
-        toolPrefix: tools_
-        url: https://REPLACE_ME_MCP_HOSTNAME/tools/rhcl-mcp-tools
-` },
         ],
         "mcp": [
           { name: "MCP Gateway (Gateway + listeners)", yaml: `apiVersion: gateway.networking.k8s.io/v1
@@ -3451,9 +3332,17 @@ spec:
         }
         const h = (location && location.host) ? String(location.host) : "example.com";
         // Prefer publishing/using the Route53-managed public zone to avoid wildcard *.apps.cluster.* conflicts.
-        // If we're on a sandbox apps.* hostname, open the OIDC portal on the public base domain.
-        if (h.includes(".apps.cluster-") && h.includes(".sandbox1529.opentlc.com")){
-          return "oidc-rhcl-workshop.sandbox1529.opentlc.com";
+        // If we're on an OpenShift *.apps.* hostname, infer the public base domain and open the portal there.
+        {
+          const parts = h.split(".").filter(Boolean);
+          if (parts.includes("apps")){
+            const last3 = parts.slice(-3).join(".");
+            const thirdFromEnd = parts.length >= 3 ? parts[parts.length - 3] : "";
+            const bad = new Set(["apps", "cluster", "clusters", "openshift"]);
+            if (thirdFromEnd && !bad.has(thirdFromEnd)) return `oidc-rhcl-workshop.${last3}`;
+            const last2 = parts.slice(-2).join(".");
+            if (last2) return `oidc-rhcl-workshop.${last2}`;
+          }
         }
         if (h.startsWith("oidc-")) return h;
         const configured = "REPLACE_ME_OIDC_HOSTNAME";
@@ -3518,7 +3407,7 @@ spec:
         if (configured && !configured.includes("REPLACE_ME")) return configured;
         const parts = h.split(".").filter(Boolean);
         // If we're on an OpenShift *.apps.* route, try to infer the public base domain.
-        // Example: rhcl-workshop.apps.cluster-xxxx.yyyy.sandbox1529.opentlc.com -> mcp.sandbox1529.opentlc.com
+        // Example: rhcl-workshop.apps.cluster-xxxx.yyyy.example.com -> mcp.example.com
         if (parts.includes("apps")){
           const last3 = parts.slice(-3).join(".");
           const thirdFromEnd = parts.length >= 3 ? parts[parts.length - 3] : "";
@@ -3551,7 +3440,7 @@ spec:
         if (!h) return "external-api.local";
         const parts = h.split(".").filter(Boolean);
 
-        // Example: rhcl-workshop.apps.cluster-xxxx.yyyy.sandbox1529.opentlc.com -> external-api.sandbox1529.opentlc.com
+        // Example: rhcl-workshop.apps.cluster-xxxx.yyyy.example.com -> external-api.example.com
         if (parts.includes("apps")){
           const last3 = parts.slice(-3).join(".");
           const thirdFromEnd = parts.length >= 3 ? parts[parts.length - 3] : "";

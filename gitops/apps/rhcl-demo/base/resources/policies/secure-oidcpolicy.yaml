@@ -1,0 +1,24 @@
+apiVersion: extensions.kuadrant.io/v1alpha1
+kind: OIDCPolicy
+metadata:
+  name: secure-demo-oidc
+  namespace: rhcl-oidc-portal
+  annotations:
+    argocd.argoproj.io/sync-wave: "32"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: secure-demo
+  provider:
+    clientID: rhcl-ui
+    issuerURL: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl
+    authorizationEndpoint: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/auth
+    tokenEndpoint: https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl/protocol/openid-connect/token
+    redirectURI: https://REPLACE_ME_OIDC_HOSTNAME/auth/callback
+  auth:
+    tokenSource:
+      cookie:
+        name: rhcl_token
+
