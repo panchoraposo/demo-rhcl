@@ -46,53 +46,6 @@
   register: get_app
   changed_when: false
 
-- name: Fix OIDC callback redirect scheme (Kuadrant-managed AuthConfig)
-  ansible.builtin.shell: |
-    set -euo pipefail
-    oc -n kuadrant-system get authconfig.authorino.kuadrant.io -o json | python3 - <<'PY'
-    import json, subprocess
-
-    data = json.load(__import__("sys").stdin)
-    items = data.get("items", [])
-
-    def needs_patch(rego: str) -> bool:
-      return 'concat("", ["http:", cookies.target])' in rego or 'location := "http:" { input.auth.metadata.token.id_token; not cookies.target }' in rego
-
-    def patched_rego(rego: str) -> str:
-      rego = rego.replace('concat("", ["http:", cookies.target])', 'concat("", ["https:", cookies.target])')
-      rego = rego.replace('location := "http:" { input.auth.metadata.token.id_token; not cookies.target }', 'location := "/" { input.auth.metadata.token.id_token; not cookies.target }')
-      return rego
-
-    changed = 0
-    for it in items:
-      meta = it.get("metadata", {}) or {}
-      ann = (meta.get("annotations", {}) or {}).get("HTTPRouteRule.gateway.networking.k8s.io", "")
-      if "secure-demo-oidc-callback" not in str(ann):
-        continue
-      name = meta.get("name")
-      if not name:
-        continue
-      rego = (((it.get("spec", {}) or {}).get("authorization", {}) or {}).get("location", {}) or {}).get("opa", {}) or {}
-      rego_txt = rego.get("rego", "")
-      if not isinstance(rego_txt, str) or not rego_txt.strip():
-        continue
-      if not needs_patch(rego_txt):
-        continue
-      new_txt = patched_rego(rego_txt)
-      patch = [{"op": "replace", "path": "/spec/authorization/location/opa/rego", "value": new_txt}]
-      subprocess.check_call([
-        "oc","-n","kuadrant-system","patch","authconfig.authorino.kuadrant.io",name,
-        "--type=json","-p",json.dumps(patch)
-      ])
-      changed += 1
-
-    print(f"patched_authconfigs={changed}")
-    PY
-  args:
-    executable: /bin/bash
-  register: oidc_authconfig_fix
-  changed_when: "'patched_authconfigs=0' not in (oidc_authconfig_fix.stdout | default(''))"
-
 - name: Print URLs
   ansible.builtin.debug:
     msg:
