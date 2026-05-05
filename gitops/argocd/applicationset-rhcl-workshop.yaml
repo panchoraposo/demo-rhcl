@@ -193,8 +193,8 @@ spec:
 
   templatePatch: |
     {{- $parts := splitList "." .demoHostname -}}
-    {{- $n := len $parts -}}
-    {{- $baseDomain := join "." (slice $parts (sub $n 3) $n) -}}
+    {{- $rev := reverse $parts -}}
+    {{- $baseDomain := join "." (reverse (list (index $rev 2) (index $rev 1) (index $rev 0))) -}}
     spec:
       source:
         kustomize:
