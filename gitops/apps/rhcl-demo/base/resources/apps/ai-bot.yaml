@@ -40,6 +40,7 @@ metadata:
     app: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "13"
+    argocd.argoproj.io/sync-options: Replace=true
     image.openshift.io/triggers: |
       [{"from":{"kind":"ImageStreamTag","name":"rhcl-ai-bot:latest","namespace":"rhcl-ai-bot"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]
 spec:

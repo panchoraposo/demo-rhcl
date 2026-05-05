@@ -16,6 +16,7 @@ resources:
   - ../../base/resources/routes/httproute-jwt-demo.yaml
   - ../../base/resources/routes/httproute-mcp-tools-local.yaml
   - ../../base/resources/routes/httproute-external-proxy.yaml
+  - ../../base/resources/routes/httproute-external-proxy-public.yaml
   - ../../base/resources/routes/referencegrant-jwt-to-external-proxy.yaml
   - ../../base/resources/policies/api-keys.yaml
   - ../../base/resources/policies/route-authpolicy.yaml
