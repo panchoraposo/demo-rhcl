@@ -57,7 +57,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: rhcl-ai-bot:latest
+          image: image-registry.openshift-image-registry.svc:5000/rhcl-ai-bot/rhcl-ai-bot:latest
           imagePullPolicy: Always
           ports:
             - name: http
