@@ -42,6 +42,16 @@ spec:
                 ("grafana-business-user", "business_user.json"),
               ]
 
+              def cm_exists(name: str) -> bool:
+                try:
+                  oc("-n", "monitoring", "get", "cm", name)
+                  return True
+                except Exception as e:
+                  msg = str(e)
+                  if "NotFound" in msg or "not found" in msg.lower():
+                    return False
+                  raise
+
               def ensure_ns(expr: str) -> str:
                 for metric in ("istio_requests_total", "istio_request_duration_milliseconds_bucket"):
                   expr = expr.replace(f"{metric}{{}}", f'{metric}{{destination_service_namespace="demo"}}')
@@ -327,6 +337,9 @@ spec:
                 j["panels"] = keep + [traffic, totals]
 
               for cm, key in CMS:
+                if not cm_exists(cm):
+                  print(f"skip: ConfigMap {cm} not found (dashboards not installed).")
+                  continue
                 cm_raw = oc("-n", "monitoring", "get", "cm", cm, "-o", "json")
                 cm_obj = json.loads(cm_raw)
                 raw = (cm_obj.get("data", {}) or {}).get(key, "")
@@ -358,6 +371,11 @@ spec:
                 }
                 oc("apply", "-f", "-", input_text=json.dumps(out))
                 print(f"patched {cm}/{key}")
+
+              # If dashboards aren't installed, don't fail the sync.
+              if not any(cm_exists(cm) for cm, _ in CMS):
+                print("No Kuadrant dashboard ConfigMaps found; skipping patch step.")
+                raise SystemExit(0)
 
               # Force GrafanaDashboard re-import (some operator versions don't react to ConfigMap updates reliably)
               oc("-n", "monitoring", "delete", "grafanadashboard",
@@ -405,8 +423,11 @@ spec:
                 oc("-n", "monitoring", "apply", "-f", "-", input_text=json.dumps(d))
 
               # Nudge Grafana to reload dashboards quickly
-              oc("-n", "monitoring", "rollout", "restart", "deployment/rhcl-grafana-deployment")
-              oc("-n", "monitoring", "rollout", "status", "deployment/rhcl-grafana-deployment", "--timeout=120s")
+              try:
+                oc("-n", "monitoring", "rollout", "restart", "deployment/rhcl-grafana-deployment")
+                oc("-n", "monitoring", "rollout", "status", "deployment/rhcl-grafana-deployment", "--timeout=120s")
+              except Exception as e:
+                print(f"warn: grafana rollout restart failed: {e}")
               print("OK")
               PY
               echo "Done."

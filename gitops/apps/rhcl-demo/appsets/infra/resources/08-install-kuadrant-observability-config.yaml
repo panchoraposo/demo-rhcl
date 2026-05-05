@@ -21,7 +21,13 @@ spec:
             - |
               set -euo pipefail
               echo "Applying Kuadrant observability configuration (ServiceMonitors/PodMonitors templates)…"
-              oc apply -k "https://github.com/Kuadrant/kuadrant-operator/config/install/configure/observability?ref=v1.2.0"
+              if oc -n monitoring get servicemonitor kuadrant-operator-metrics >/dev/null 2>&1; then
+                echo "Kuadrant observability config already present."
+              else
+                if ! oc apply -k "https://github.com/Kuadrant/kuadrant-operator/config/install/configure/observability?ref=v1.2.0"; then
+                  echo "WARN: failed to apply Kuadrant observability config (egress to GitHub may be blocked). Continuing without failing the sync."
+                fi
+              fi
               echo "Ensuring Grafana Operator install plan is auto-approved…"
               oc -n openshift-operators patch subscription grafana-operator --type=merge -p '{"spec":{"installPlanApproval":"Automatic"}}' || true
               ip="$(oc -n openshift-operators get subscription grafana-operator -o jsonpath='{.status.installPlanRef.name}' 2>/dev/null || true)"

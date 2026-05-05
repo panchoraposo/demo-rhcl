@@ -21,6 +21,12 @@ spec:
             - |
               set -euo pipefail
               echo "Applying Kuadrant example Grafana dashboards and alerts…"
-              oc -n monitoring apply -k "https://github.com/Kuadrant/kuadrant-operator/examples/dashboards?ref=v1.3.0"
+              if oc -n monitoring get cm grafana-app-developer >/dev/null 2>&1; then
+                echo "Kuadrant example dashboards already present."
+              else
+                if ! oc -n monitoring apply -k "https://github.com/Kuadrant/kuadrant-operator/examples/dashboards?ref=v1.3.0"; then
+                  echo "WARN: failed to apply Kuadrant example dashboards (egress to GitHub may be blocked). Continuing without failing the sync."
+                fi
+              fi
               echo "OK"
 
