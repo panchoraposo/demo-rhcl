@@ -6,6 +6,7 @@ resources:
   - resources/05-namespace-monitoring.yaml
   - ../../base/resources/apps/console-banner.yaml
   - ../../base/resources/gateway/gateway.yaml
+  - ../../base/resources/routes/httproute-http-to-https.yaml
   - ../../base/resources/gateway/gateway-public-certificate.yaml
   - ../../base/resources/gateway/gateway-dnspolicy.yaml
   - ../../base/resources/gateway/gateway-public-dnspolicy-main.yaml
