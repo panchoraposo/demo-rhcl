@@ -320,9 +320,9 @@ def main() -> int:
     if not operations:
         raise SystemExit("OpenAPI spec contains no operations under 'paths'.")
 
-    _dump_yaml(out_dir / "30-httproute.yaml", _make_httproute(cfg, operations))
-    _dump_yaml(out_dir / "60-authpolicy.yaml", _make_authpolicy(cfg))
-    _dump_yaml(out_dir / "70-ratelimitpolicy.yaml", _make_ratelimitpolicy(cfg))
+    _dump_yaml(out_dir / "httproute.yaml", _make_httproute(cfg, operations))
+    _dump_yaml(out_dir / "authpolicy.yaml", _make_authpolicy(cfg))
+    _dump_yaml(out_dir / "ratelimitpolicy.yaml", _make_ratelimitpolicy(cfg))
     return 0
 
 

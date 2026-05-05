@@ -53,6 +53,7 @@ spec:
       labels:
         app: rhcl-trace-svc
         version: v1
+        istio.io/dataplane-mode: none
     spec:
       containers:
         - name: app
