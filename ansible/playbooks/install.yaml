@@ -20,6 +20,12 @@
     external_api_hostname_override: "{{ lookup('env', 'EXTERNAL_API_HOSTNAME') | default('', true) }}"
     ai_hostname_override: "{{ lookup('env', 'AI_HOSTNAME') | default('', true) }}"
 
+    # Optional: enable the LLM-backed chatbot (kept out of git)
+    llm_api_key: >-
+      {{ lookup('env', 'RHCL_AI_OPENAI_API_KEY')
+         | default(lookup('env', 'OPENAI_API_KEY'), true)
+         | default('', true) }}
+
     aws_access_key_id: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') | default('', true) }}"
     aws_secret_access_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') | default('', true) }}"
     aws_region: "{{ lookup('env', 'AWS_REGION') | default('', true) }}"

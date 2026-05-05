@@ -97,6 +97,114 @@ spec:
                   hostname: {{ ai_hostname }}
 
         - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: Gateway
+            name: rhcl-mcp-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: rhcl-mcp-gw
+              namespace: openshift-ingress
+            spec:
+              listeners:
+                - name: http-mcp
+                  hostname: {{ mcp_public_hostname }}
+                - name: https-mcp-public
+                  hostname: {{ mcp_public_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: rhcl-mcp-gateway
+            namespace: mcp-system
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: rhcl-mcp-gateway
+              namespace: mcp-system
+            spec:
+              hostnames:
+                - {{ mcp_public_hostname }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: HTTPRoute
+            name: rhcl-mcp-tools
+            namespace: mcp-system
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: HTTPRoute
+            metadata:
+              name: rhcl-mcp-tools
+              namespace: mcp-system
+            spec:
+              hostnames:
+                - {{ mcp_public_hostname }}
+
+        - target:
+            group: mcp.kuadrant.io
+            version: v1alpha1
+            kind: MCPGatewayExtension
+            name: rhcl-mcp
+            namespace: mcp-system
+          patch: |-
+            apiVersion: mcp.kuadrant.io/v1alpha1
+            kind: MCPGatewayExtension
+            metadata:
+              name: rhcl-mcp
+              namespace: mcp-system
+            spec:
+              publicHost: {{ mcp_public_hostname }}
+
+        - target:
+            group: ""
+            version: v1
+            kind: Secret
+            name: mcp-gateway-config
+            namespace: mcp-system
+          patch: |-
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: mcp-gateway-config
+              namespace: mcp-system
+            stringData:
+              config.yaml: |
+                servers:
+                  - enabled: true
+                    hostname: {{ mcp_public_hostname }}
+                    name: mcp-system/rhcl-mcp-tools
+                    toolPrefix: tools_
+                    url: https://{{ mcp_public_hostname }}/tools/rhcl-mcp-tools
+
+        - target:
+            group: apps
+            version: v1
+            kind: Deployment
+            name: rhcl-mcp-tools
+            namespace: mcp-system
+          patch: |-
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: rhcl-mcp-tools
+              namespace: mcp-system
+            spec:
+              template:
+                spec:
+                  containers:
+                    - name: app
+                      env:
+                        - name: RHCL_AI_ESPN_BASE_URL
+                          value: https://{{ external_api_hostname }}
+
+        - target:
             group: cert-manager.io
             version: v1
             kind: Certificate

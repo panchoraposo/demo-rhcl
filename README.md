@@ -147,18 +147,27 @@ The AI bot uses an OpenAI-compatible endpoint (LiteLLM) and a model.
 
 ### Set the API key (GitOps-friendly)
 
-Create a secret in `demo`:
+Create a secret in `rhcl-ai-bot`:
 
 ```bash
-oc -n demo create secret generic rhcl-ai-bot-llm \
+oc -n rhcl-ai-bot create secret generic rhcl-ai-bot-llm \
   --from-literal=apiKey='YOUR_KEY' \
   --dry-run=client -o yaml | oc apply -f -
+```
+
+### Via the installer (recommended)
+
+Export an environment variable before running `./install.sh`:
+
+```bash
+export RHCL_AI_OPENAI_API_KEY='YOUR_KEY'
+./install.sh
 ```
 
 ### Direct env var (quick for testing)
 
 ```bash
-oc -n demo set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KEY'
+oc -n rhcl-ai-bot set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KEY'
 ```
 
 ## URLs

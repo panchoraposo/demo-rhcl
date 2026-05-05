@@ -29,9 +29,6 @@ spec:
               value: https://external-api.REPLACE_ME_BASE_DOMAIN
             - name: RHCL_AI_TRACE_BASE_URL
               value: http://rhcl-trace-svc.demo.svc.cluster.local
-            # Ensure LLM is not required for tool serving.
-            - name: RHCL_AI_OPENAI_API_KEY
-              value: ""
           readinessProbe:
             httpGet:
               path: /q/health/ready

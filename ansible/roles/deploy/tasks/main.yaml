@@ -10,10 +10,88 @@
   register: apply_app
   changed_when: "'configured' in (apply_app.stdout | lower) or 'created' in (apply_app.stdout | lower)"
 
+- name: Ensure rhcl-ai-bot namespace exists (for optional secrets)
+  ansible.builtin.command: oc get namespace rhcl-ai-bot
+  register: ns_ai_bot
+  changed_when: false
+  failed_when: false
+
+- name: Create rhcl-ai-bot namespace if missing
+  ansible.builtin.command: oc create namespace rhcl-ai-bot
+  when: ns_ai_bot.rc != 0
+  register: create_ns_ai_bot
+  changed_when: "'created' in (create_ns_ai_bot.stdout | lower)"
+
+- name: Create LLM API key secret (optional)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    oc -n rhcl-ai-bot apply -f - <<'EOF'
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: rhcl-ai-bot-llm
+      namespace: rhcl-ai-bot
+    type: Opaque
+    stringData:
+      apiKey: "{{ llm_api_key }}"
+    EOF
+  args:
+    executable: /bin/bash
+  when: (llm_api_key | default('') | length) > 0
+  register: llm_secret
+  changed_when: "'configured' in (llm_secret.stdout | lower) or 'created' in (llm_secret.stdout | lower)"
+
 - name: Wait for Argo CD Application to exist
   ansible.builtin.command: oc -n openshift-gitops get application rhcl-workshop
   register: get_app
   changed_when: false
+
+- name: Fix OIDC callback redirect scheme (Kuadrant-managed AuthConfig)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    oc -n kuadrant-system get authconfig.authorino.kuadrant.io -o json | python3 - <<'PY'
+    import json, subprocess
+
+    data = json.load(__import__("sys").stdin)
+    items = data.get("items", [])
+
+    def needs_patch(rego: str) -> bool:
+      return 'concat("", ["http:", cookies.target])' in rego or 'location := "http:" { input.auth.metadata.token.id_token; not cookies.target }' in rego
+
+    def patched_rego(rego: str) -> str:
+      rego = rego.replace('concat("", ["http:", cookies.target])', 'concat("", ["https:", cookies.target])')
+      rego = rego.replace('location := "http:" { input.auth.metadata.token.id_token; not cookies.target }', 'location := "/" { input.auth.metadata.token.id_token; not cookies.target }')
+      return rego
+
+    changed = 0
+    for it in items:
+      meta = it.get("metadata", {}) or {}
+      ann = (meta.get("annotations", {}) or {}).get("HTTPRouteRule.gateway.networking.k8s.io", "")
+      if "secure-demo-oidc-callback" not in str(ann):
+        continue
+      name = meta.get("name")
+      if not name:
+        continue
+      rego = (((it.get("spec", {}) or {}).get("authorization", {}) or {}).get("location", {}) or {}).get("opa", {}) or {}
+      rego_txt = rego.get("rego", "")
+      if not isinstance(rego_txt, str) or not rego_txt.strip():
+        continue
+      if not needs_patch(rego_txt):
+        continue
+      new_txt = patched_rego(rego_txt)
+      patch = [{"op": "replace", "path": "/spec/authorization/location/opa/rego", "value": new_txt}]
+      subprocess.check_call([
+        "oc","-n","kuadrant-system","patch","authconfig.authorino.kuadrant.io",name,
+        "--type=json","-p",json.dumps(patch)
+      ])
+      changed += 1
+
+    print(f"patched_authconfigs={changed}")
+    PY
+  args:
+    executable: /bin/bash
+  register: oidc_authconfig_fix
+  changed_when: "'patched_authconfigs=0' not in (oidc_authconfig_fix.stdout | default(''))"
 
 - name: Print URLs
   ansible.builtin.debug:

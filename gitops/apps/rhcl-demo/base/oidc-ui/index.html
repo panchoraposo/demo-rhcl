@@ -315,7 +315,7 @@
       let lastEvents = [];
 
       function ensureTargetCookie(){
-        // Kuadrant's OIDC callback builds a redirect as "http:" + cookies.target.
+        // Kuadrant's OIDC callback builds a redirect as "https:" + cookies.target.
         // Ensure the cookie exists for any login path (button-driven or gateway-driven).
         const host = String(location.host || "");
         if (!host) return;
