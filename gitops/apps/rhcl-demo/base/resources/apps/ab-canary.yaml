@@ -8,6 +8,7 @@ metadata:
     version: a
   annotations:
     argocd.argoproj.io/sync-wave: "12"
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   replicas: 1
   selector:
@@ -79,6 +80,7 @@ metadata:
     version: b
   annotations:
     argocd.argoproj.io/sync-wave: "12"
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   replicas: 1
   selector:
@@ -150,6 +152,7 @@ metadata:
     version: v1
   annotations:
     argocd.argoproj.io/sync-wave: "12"
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   replicas: 1
   selector:
@@ -221,6 +224,7 @@ metadata:
     version: v2
   annotations:
     argocd.argoproj.io/sync-wave: "12"
+    argocd.argoproj.io/sync-options: Replace=true
 spec:
   replicas: 1
   selector:
