@@ -38,6 +38,7 @@ metadata:
   namespace: demo
   labels:
     app: rhcl-trace-svc
+    version: v1
   annotations:
     argocd.argoproj.io/sync-wave: "13"
     image.openshift.io/triggers: |
@@ -51,6 +52,7 @@ spec:
     metadata:
       labels:
         app: rhcl-trace-svc
+        version: v1
     spec:
       containers:
         - name: app

@@ -14,6 +14,7 @@ resources:
   - resources/06-enable-kuadrant-console-plugin.yaml
   - resources/07-enable-user-workload-monitoring.yaml
   - resources/08-install-kuadrant-observability-config.yaml
+  - resources/45-istio-telemetry-tracing.yaml
   - resources/10-grafana-rbac.yaml
   - resources/11-grafana-thanos-token.yaml
   - resources/12-grafana.yaml

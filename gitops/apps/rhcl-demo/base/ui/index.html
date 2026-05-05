@@ -139,6 +139,10 @@
       }
       @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
 
+      .grid.tightTop{
+        align-items:stretch;
+      }
+
       .module{display:none}
       .module.active{display:block}
       .moduleHero{
@@ -1322,7 +1326,7 @@
                 Connectivity Link exposes metrics you can explore in Grafana dashboards and the OpenShift Console Query Browser. Use this module to jump straight to the right view depending on your audience.
               </div>
             </div>
-            <div class="grid">
+            <div class="grid tightTop">
               <div class="card">
                 <h2>Grafana dashboards</h2>
                 <div class="sub">Role-focused dashboards (open directly in the cluster Grafana).</div>
@@ -1334,6 +1338,31 @@
                 <div class="footer">
                   Default Grafana: <span class="mono">https://grafana-&lt;demo-host&gt;</span> (anonymous). Dashboards live in folder <b>RHCL Workshop</b>.
                 </div>
+              </div>
+
+              <div class="card">
+                <h2>Demo cockpit</h2>
+                <div class="sub">
+                  Use this panel live while you demo. It’s designed to “fill the screen” with the most useful next actions.
+                </div>
+                <div class="btnGrid" style="margin-top:10px">
+                  <a class="btnLink primary" id="ocLinkTraces" target="_blank" rel="noreferrer">Open Traces (Console)</a>
+                  <a class="btnLink" id="ocLinkTempo" target="_blank" rel="noreferrer">TempoStack (Console)</a>
+                  <button onclick="obsGenerateTraffic()">Generate traffic</button>
+                  <button onclick="setConsoleUrl()">Change console URL</button>
+                </div>
+                <div class="kpi" style="margin-top:12px">
+                  <div class="box wide">
+                    <div class="label">Key metric (for demo)</div>
+                    <div class="value mono">istio_requests_total</div>
+                    <div class="subv">Requests, errors, A/B splits, canary splits — all from Envoy metrics.</div>
+                  </div>
+                </div>
+                <ul class="sub" style="margin:12px 0 0 18px; line-height:1.55">
+                  <li><b>East–west</b>: use <b>Service Mesh / Kiali</b> to show service-to-service flows (mesh telemetry).</li>
+                  <li><b>North–south</b>: use Connectivity Link policies on the Gateway to control external traffic (auth + rate limits).</li>
+                  <li><b>Tracing</b>: open <b>Observe → Traces</b> in Console (distributed tracing plugin).</li>
+                </ul>
               </div>
 
               <div class="card" style="grid-column: 1 / -1;">
@@ -2619,6 +2648,7 @@ spec:
         });
         refreshConsoleUrlPill();
         refreshOcLinks();
+        refreshTracingLinks();
         refreshKialiLinks();
         // AI prompt stats should update as you type.
         if (aiPromptEl){
@@ -4240,6 +4270,33 @@ spec:
         }
       }
 
+      function refreshTracingLinks(){
+        const base = consoleBaseUrl();
+        const aTraces = document.getElementById("ocLinkTraces");
+        const aTempo = document.getElementById("ocLinkTempo");
+        const apply = (el, url) => {
+          if (!el) return;
+          el.setAttribute("href", url || "#");
+          if (!url){
+            el.setAttribute("aria-disabled", "true");
+            el.style.opacity = "0.55";
+            el.style.pointerEvents = "none";
+          }else{
+            el.removeAttribute("aria-disabled");
+            el.style.opacity = "";
+            el.style.pointerEvents = "";
+          }
+        };
+        if (!base){
+          apply(aTraces, "");
+          apply(aTempo, "");
+          return;
+        }
+        // Best-effort deep links. If the cluster UI differs, the user still lands in the right area quickly.
+        apply(aTraces, base + "/observe/traces");
+        apply(aTempo, base + "/k8s/ns/rhcl-observability/tempostacks/tempo.grafana.com~v1alpha1~TempoStack");
+      }
+
       // Initial link refresh
       refreshLightspeedLinks();
 
@@ -4251,6 +4308,7 @@ spec:
         else localStorage.removeItem("rhcl_console_url");
         refreshConsoleUrlPill();
         refreshOcLinks();
+        refreshTracingLinks();
         refreshLightspeedLinks();
         toast(`Console URL set to: ${consoleBaseUrl() || "(unknown)"}`);
       }

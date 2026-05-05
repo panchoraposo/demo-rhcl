@@ -5,6 +5,10 @@ resources:
   - ../../base/resources/namespaces/namespace-demo.yaml
   - ../../base/resources/namespaces/namespace-demo-ab.yaml
   - ../../base/resources/namespaces/namespace-demo-jwt.yaml
+  - ../../base/resources/istio/istio-waypoint-demo.yaml
+  - ../../base/resources/istio/istio-waypoint-demo-ab.yaml
+  - ../../base/resources/istio/istio-waypoint-demo-jwt.yaml
+  - ../../base/resources/istio/istio-serviceentry-espn.yaml
   - ../../base/resources/apps/demo-api.yaml
   - ../../base/resources/apps/ui.yaml
   - ../../base/resources/apps/ab-canary.yaml

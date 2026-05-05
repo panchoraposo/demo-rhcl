@@ -319,6 +319,7 @@ metadata:
   namespace: demo
   labels:
     app: secure-api
+    version: v1
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
@@ -330,6 +331,7 @@ spec:
     metadata:
       labels:
         app: secure-api
+        version: v1
     spec:
       containers:
         - name: httpbin

@@ -30,6 +30,11 @@ spec:
       discoverySelectors:
         - matchLabels:
             istio-discovery: enabled
+      extensionProviders:
+        - name: otel
+          opentelemetry:
+            service: otel-collector.rhcl-observability.svc.cluster.local
+            port: 4317
     pilot:
       trustedZtunnelNamespace: ztunnel
 ---

@@ -4,18 +4,21 @@ metadata:
   name: ab-a
   namespace: demo-ab
   labels:
-    app: ab-a
+    app: ab
+    version: a
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ab-a
+      app: ab
+      version: a
   template:
     metadata:
       labels:
-        app: ab-a
+        app: ab
+        version: a
     spec:
       containers:
         - name: nginx
@@ -58,7 +61,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   selector:
-    app: ab-a
+    app: ab
+    version: a
   ports:
     - name: http
       port: 80
@@ -71,18 +75,21 @@ metadata:
   name: ab-b
   namespace: demo-ab
   labels:
-    app: ab-b
+    app: ab
+    version: b
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ab-b
+      app: ab
+      version: b
   template:
     metadata:
       labels:
-        app: ab-b
+        app: ab
+        version: b
     spec:
       containers:
         - name: nginx
@@ -125,7 +132,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   selector:
-    app: ab-b
+    app: ab
+    version: b
   ports:
     - name: http
       port: 80
@@ -138,18 +146,21 @@ metadata:
   name: canary-v1
   namespace: demo-ab
   labels:
-    app: canary-v1
+    app: canary
+    version: v1
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: canary-v1
+      app: canary
+      version: v1
   template:
     metadata:
       labels:
-        app: canary-v1
+        app: canary
+        version: v1
     spec:
       containers:
         - name: nginx
@@ -192,7 +203,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   selector:
-    app: canary-v1
+    app: canary
+    version: v1
   ports:
     - name: http
       port: 80
@@ -205,18 +217,21 @@ metadata:
   name: canary-v2
   namespace: demo-ab
   labels:
-    app: canary-v2
+    app: canary
+    version: v2
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: canary-v2
+      app: canary
+      version: v2
   template:
     metadata:
       labels:
-        app: canary-v2
+        app: canary
+        version: v2
     spec:
       containers:
         - name: nginx
@@ -259,7 +274,8 @@ metadata:
     argocd.argoproj.io/sync-wave: "12"
 spec:
   selector:
-    app: canary-v2
+    app: canary
+    version: v2
   ports:
     - name: http
       port: 80

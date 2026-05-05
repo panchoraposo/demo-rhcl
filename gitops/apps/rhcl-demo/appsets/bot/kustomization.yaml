@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base/resources/namespaces/namespace-rhcl-ai-bot.yaml
+  - ../../base/resources/istio/istio-waypoint-rhcl-ai-bot.yaml
   - ../../base/resources/gateway/ai-gateway.yaml
   - ../../base/resources/gateway/ai-gateway-dnspolicy.yaml
   - ../../base/resources/routes/httproute-ai-bot.yaml

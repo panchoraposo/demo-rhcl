@@ -7,5 +7,5 @@ metadata:
   labels:
     istio-discovery: enabled
     rhcl.demo/gateway-access: ai
-    # Ambient enrollment is enabled in the optional module to avoid breaking the base demo
+    istio.io/dataplane-mode: ambient
 

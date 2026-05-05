@@ -50,4 +50,8 @@ spec:
       internal_url: http://rhcl-grafana-service.monitoring.svc:3000
       auth:
         type: none
+    tracing:
+      enabled: true
+      # TempoStack exposes a Jaeger Query API when jaegerQuery is enabled.
+      in_cluster_url: http://tempo-simplest-query-frontend.rhcl-observability.svc.cluster.local:3200
 

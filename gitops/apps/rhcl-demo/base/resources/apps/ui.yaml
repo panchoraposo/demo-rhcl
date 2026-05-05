@@ -5,6 +5,7 @@ metadata:
   namespace: demo
   labels:
     app: rhcl-ui
+    version: v1
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:
@@ -16,6 +17,7 @@ spec:
     metadata:
       labels:
         app: rhcl-ui
+        version: v1
     spec:
       containers:
         - name: nginx

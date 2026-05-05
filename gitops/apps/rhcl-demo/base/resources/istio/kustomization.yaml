@@ -3,5 +3,10 @@ kind: Kustomization
 
 resources:
   - istio-waypoint-demo.yaml
+  - istio-waypoint-demo-ab.yaml
+  - istio-waypoint-demo-jwt.yaml
+  - istio-waypoint-rhcl-ai-bot.yaml
+  - istio-waypoint-rhcl-keycloak.yaml
+  - istio-waypoint-rhcl-oidc-portal.yaml
   - istio-serviceentry-espn.yaml
 
