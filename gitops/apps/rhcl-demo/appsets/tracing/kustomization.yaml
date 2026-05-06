@@ -12,5 +12,6 @@ resources:
   - resources/networkpolicy-allow-mcp-to-tempo-distributor.yaml
   - resources/tempo-tenant-rbac.yaml
   - resources/otel-collector.yaml
+  - resources/cluster-observability-operator.yaml
   - resources/uiplugin-distributed-tracing.yaml
 
