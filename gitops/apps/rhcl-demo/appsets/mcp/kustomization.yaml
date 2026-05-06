@@ -17,6 +17,8 @@ resources:
   - resources/httproute-rhcl-mcp-tools.yaml
   - resources/httproute-rhcl-mcp-tools-internal.yaml
   - resources/authpolicy-rhcl-mcp-tools-internal.yaml
+  - resources/httproute-rhcl-mcp-tools-upstream.yaml
+  - resources/authpolicy-rhcl-mcp-tools-upstream.yaml
   - resources/rhcl-mcp-tools-bridge.yaml
   - resources/referencegrant-demo-to-mcp-tools-bridge.yaml
   - resources/mcp-otel-collector.yaml
