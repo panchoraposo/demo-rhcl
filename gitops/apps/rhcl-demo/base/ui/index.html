@@ -3401,7 +3401,7 @@ spec:
         };
         const r = await fetch(`${mcpBaseUrl()}${path}`, {
           method: "POST",
-          headers: { "content-type": "application/json", "accept": "application/json" },
+          headers: { "content-type": "application/json", "accept": "application/json, text/event-stream" },
           body: JSON.stringify(init),
           cache: "no-store",
         });
@@ -3418,7 +3418,7 @@ spec:
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "accept": "application/json",
+            "accept": "application/json, text/event-stream",
             ...(sid ? { "mcp-session-id": sid } : {}),
           },
           body: JSON.stringify(req),

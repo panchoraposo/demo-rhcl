@@ -135,7 +135,7 @@ public class McpGatewayClient {
     HttpRequest.Builder b = HttpRequest.newBuilder(uri)
         .timeout(Duration.ofSeconds(Math.max(3, timeoutSeconds)))
         .header("Content-Type", "application/json")
-        .header("Accept", "application/json");
+        .header("Accept", "application/json, text/event-stream");
     if (sessionId != null && !sessionId.isBlank()) {
       b.header("mcp-session-id", sessionId);
     }
