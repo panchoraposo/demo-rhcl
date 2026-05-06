@@ -79,6 +79,9 @@ data:
     const handler = async (req, res) => {
       try {
         const url = new URL(req.url || "/", "http://localhost");
+        // Be liberal in what we accept: some clients treat the server URL as the host:port
+        // and POST to "/" for streamable HTTP. Normalize "/" to "/mcp".
+        if (url.pathname === "/") url.pathname = "/mcp";
         if (!url.pathname.startsWith("/mcp")) {
           res.statusCode = 404;
           res.end();
