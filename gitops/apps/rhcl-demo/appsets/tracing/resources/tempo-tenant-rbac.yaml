@@ -24,4 +24,10 @@ subjects:
   - kind: Group
     apiGroup: rbac.authorization.k8s.io
     name: system:authenticated
+  - kind: ServiceAccount
+    name: otel
+    namespace: rhcl-observability
+  - kind: ServiceAccount
+    name: mcp-otel
+    namespace: mcp-system
 
