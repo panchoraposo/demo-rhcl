@@ -203,7 +203,7 @@ spec:
               containerPort: 8080
           env:
             - name: UPSTREAM_URL
-              value: http://rhcl-mcp-tools.mcp-system.svc.cluster.local:8080/mcp
+              value: http://rhcl-mcp-tools-upstream.mcp-system.svc.cluster.local:8080/mcp
           volumeMounts:
             - name: app
               mountPath: /app
