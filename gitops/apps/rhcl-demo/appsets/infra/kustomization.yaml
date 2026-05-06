@@ -22,4 +22,5 @@ resources:
   - resources/grafana-dashboards.yaml
   - resources/gateway-metrics-services.yaml
   - resources/gateway-metrics-servicemonitor.yaml
+  - resources/gatewayapi-state-metrics.yaml
 
