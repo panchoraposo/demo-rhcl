@@ -438,6 +438,8 @@ spec:
                       env:
                         - name: RHCL_AI_ESPN_BASE_URL
                           value: https://{{ external_api_hostname }}
+                        - name: RHCL_AI_MCP_BASE_URL
+                          value: https://{{ demo_hostname }}
 
       patchesJson6902:
         - target:

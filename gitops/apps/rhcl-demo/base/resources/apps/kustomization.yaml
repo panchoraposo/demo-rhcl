@@ -12,5 +12,4 @@ resources:
   - rhbk-operator.yaml
   - oidc-callback.yaml
   - ai-bot.yaml
-  - trace-svc.yaml
 

@@ -742,7 +742,6 @@
           <button data-module="ai">AI chatbot</button>
           <button data-module="keycloakjwt">AuthPolicy (Keycloak JWT)</button>
           <button data-module="oidc">OIDC portal</button>
-          <button data-module="mesh">Service Mesh</button>
           <button data-module="lightspeed">OpenShift Lightspeed</button>
           <button data-module="observability">Observability</button>
         </div>
@@ -1274,49 +1273,7 @@
             </div>
           </section>
 
-          <section class="module" id="mesh" data-module="mesh">
-            <div class="moduleHero">
-              <div class="k">Module</div>
-              <div class="t"><b>Service Mesh</b> — topology and request flows</div>
-              <div class="d">
-                Use Kiali to visualize how traffic goes through the Gateway and reaches your services. This complements the policy demos with an easy “flow” story.
-              </div>
-            </div>
-            <div class="grid">
-              <div class="card">
-                <h2>Kiali</h2>
-                <div class="sub">
-                  Open pre-filtered graphs that show <b>cross-namespace</b> traffic between workshop components.
-                </div>
-                <div class="btnGrid">
-                  <a class="btnLink primary" id="kialiLinkHome" target="_blank" rel="noreferrer">Graph (workshop)</a>
-                  <a class="btnLink" id="kialiLinkGraph" target="_blank" rel="noreferrer">Graph (gateway → apps)</a>
-                  <a class="btnLink" id="kialiLinkWorkloads" target="_blank" rel="noreferrer">Graph (traffic shaping)</a>
-                  <a class="btnLink" id="kialiLinkApps" target="_blank" rel="noreferrer">Graph (auth flows)</a>
-                  <button class="wide" id="meshTrafficBtn" onclick="meshGenerateTraffic()">Generate traffic (60s)</button>
-                  <button class="wide" onclick="setKialiUrl()">Change Kiali URL</button>
-                </div>
-                <div class="toolRow" style="margin-top:10px">
-                  <div class="left">
-                    <span class="pill"><span class="dot"></span> <span id="meshTrafficStatus">traffic: idle</span></span>
-                  </div>
-                </div>
-                <div class="log" id="meshTrafficLog" style="height:120px; margin-top:10px"></div>
-                <div class="footer">
-                  Default guess: <span class="mono">https://kiali-istio-system.&lt;appsDomain&gt;</span>
-                </div>
-              </div>
-
-              <div class="card">
-                <h2>What to show (quick)</h2>
-                <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
-                  <li><b>Graph</b>: gateway → <span class="mono">demo</span> (UI + API + external proxy), <span class="mono">demo-ab</span> (A/B + canary), <span class="mono">rhcl-ai-bot</span> (AI)</li>
-                  <li><b>HTTP codes</b>: show spikes when you demo <span class="mono">401/403</span> (auth), <span class="mono">429</span> (rate limit)</li>
-                  <li><b>Namespace focus</b>: start with <span class="mono">demo</span>, then switch to <span class="mono">demo-ab</span> and <span class="mono">demo-jwt</span> to explain policy isolation</li>
-                </ul>
-              </div>
-            </div>
-          </section>
+          <!-- Service Mesh module removed -->
 
           <section class="module" id="observability" data-module="observability">
             <div class="moduleHero">
@@ -1346,55 +1303,37 @@
                   Use this panel live while you demo. It’s designed to “fill the screen” with the most useful next actions.
                 </div>
                 <div class="btnGrid" style="margin-top:10px">
-                  <a class="btnLink primary" id="ocLinkTraces" target="_blank" rel="noreferrer">Open Traces (Console)</a>
-                  <a class="btnLink" id="ocLinkTempo" target="_blank" rel="noreferrer">TempoStack (Console)</a>
-                  <button onclick="obsGenerateTraffic()">Generate traffic</button>
+                  <button class="primary" onclick="obsGenerateTraffic()">Generate traffic</button>
                   <button onclick="setConsoleUrl()">Change console URL</button>
                 </div>
                 <div class="kpi" style="margin-top:12px">
                   <div class="box wide">
-                    <div class="label">Key metric (for demo)</div>
-                    <div class="value mono">istio_requests_total</div>
-                    <div class="subv">Requests, errors, A/B splits, canary splits — all from Envoy metrics.</div>
+                    <div class="label">Key metrics (for demo)</div>
+                    <div class="subv">
+                      Focus on <span class="mono">kuadrant_*</span> and <span class="mono">gatewayapi_*</span metrics in Grafana and the OpenShift Console Query Browser.
+                    </div>
                   </div>
                 </div>
                 <ul class="sub" style="margin:12px 0 0 18px; line-height:1.55">
-                  <li><b>East–west</b>: use <b>Service Mesh / Kiali</b> to show service-to-service flows (mesh telemetry).</li>
                   <li><b>North–south</b>: use Connectivity Link policies on the Gateway to control external traffic (auth + rate limits).</li>
-                  <li><b>Tracing</b>: open <b>Observe → Traces</b> in Console (distributed tracing plugin).</li>
                 </ul>
-              </div>
-
-              <div class="card" style="grid-column: 1 / -1;">
-                <h2>OpenShift Console graphs (auto)</h2>
-                <div class="sub">Open <span class="mono">/monitoring/query-browser</span> with PromQL prefilled.</div>
-                <div class="btnGrid">
-                  <a class="btnLink primary" id="ocLinkRps" target="_blank" rel="noreferrer">RPS by service</a>
-                  <a class="btnLink" id="ocLinkErr" target="_blank" rel="noreferrer">Errors (4xx+5xx) by service</a>
-                  <a class="btnLink" id="ocLinkP95" target="_blank" rel="noreferrer">p95 latency (ms) by service</a>
-                  <a class="btnLink" id="ocLinkAb" target="_blank" rel="noreferrer">A/B split</a>
-                  <a class="btnLink" id="ocLinkCanary" target="_blank" rel="noreferrer">Canary split</a>
-                </div>
-                <div class="toolRow">
-                  <div class="left">
-                    <span class="pill"><span class="dot"></span> <span class="mono" id="consoleUrlPill">console: auto</span></span>
-                    <span class="pill"><span class="dot"></span> <span id="obsTrafficStatus">traffic: idle</span></span>
-                  </div>
-                  <div class="right">
-                    <button onclick="obsGenerateTraffic()">Generate sample traffic</button>
-                    <button onclick="setConsoleUrl()">Change console URL</button>
-                  </div>
-                </div>
-                <div class="log" id="obsTrafficLog" style="height:140px; margin-top:10px"></div>
               </div>
 
               <div class="card" style="grid-column: 1 / -1;">
                 <h2>Quick checks</h2>
                 <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
-                  <li><b>Monitors exist</b>: <span class="mono">oc get servicemonitor,podmonitor -A -l kuadrant.io/observability=true</span></li>
                   <li><b>Generate traffic</b> for each module: <span class="mono">demo</span> (UI/API/external), <span class="mono">demo-ab</span> (A/B + canary), <span class="mono">demo-jwt</span> (JWT), <span class="mono">rhcl-ai-bot</span> (AI).</li>
-                  <li><b>Most useful metric</b> for the live demo: <span class="mono">istio_requests_total</span> (requests, errors, splits).</li>
+                  <li><b>Dashboards</b>: open Grafana and use the <b>RHCL Workshop</b> folder for role-based views.</li>
                 </ul>
+                <div class="toolRow" style="margin-top:10px">
+                  <div class="left">
+                    <span class="pill"><span class="dot"></span> <span id="obsTrafficStatus">traffic: idle</span></span>
+                  </div>
+                  <div class="right">
+                    <button class="primary" onclick="obsGenerateTraffic()">Generate sample traffic</button>
+                  </div>
+                </div>
+                <div class="log" id="obsTrafficLog" style="height:140px; margin-top:10px"></div>
               </div>
             </div>
           </section>
@@ -1583,21 +1522,9 @@
       const jsonDlg = el("jsonDlg");
       const jsonTitleEl = el("jsonTitle");
       const jsonPreEl = el("jsonPre");
-      const consoleUrlPillEl = el("consoleUrlPill");
       const obsTrafficStatusEl = el("obsTrafficStatus");
       const obsTrafficLogEl = el("obsTrafficLog");
-      const meshTrafficStatusEl = el("meshTrafficStatus");
-      const meshTrafficLogEl = el("meshTrafficLog");
-      const meshTrafficBtnEl = el("meshTrafficBtn");
-      const ocLinkRpsEl = el("ocLinkRps");
-      const ocLinkErrEl = el("ocLinkErr");
-      const ocLinkP95El = el("ocLinkP95");
-      const ocLinkAbEl = el("ocLinkAb");
-      const ocLinkCanaryEl = el("ocLinkCanary");
-      const kialiLinkHomeEl = el("kialiLinkHome");
-      const kialiLinkGraphEl = el("kialiLinkGraph");
-      const kialiLinkWorkloadsEl = el("kialiLinkWorkloads");
-      const kialiLinkAppsEl = el("kialiLinkApps");
+      // (Service mesh / Kiali removed)
 
       let lastBurst = [];
       let trafficSample = [];
@@ -2640,16 +2567,12 @@ spec:
           b.addEventListener("click", () => showModule(b.getAttribute("data-module")));
         }
         const fromHash = (location.hash || "").replace("#","").trim();
-        const allowed = new Set(["policies","traffic","external","ai","keycloakjwt","oidc","mesh","observability"]);
+        const allowed = new Set(["policies","traffic","external","ai","keycloakjwt","oidc","observability","lightspeed"]);
         showModule(allowed.has(fromHash) ? fromHash : "policies");
         window.addEventListener("hashchange", () => {
           const h = (location.hash || "").replace("#","").trim();
           showModule(allowed.has(h) ? h : "policies");
         });
-        refreshConsoleUrlPill();
-        refreshOcLinks();
-        refreshTracingLinks();
-        refreshKialiLinks();
         // AI prompt stats should update as you type.
         if (aiPromptEl){
           aiPromptEl.addEventListener("input", aiUpdatePromptStats);
@@ -4123,81 +4046,7 @@ spec:
         toast(`Grafana URL set to: ${grafanaBaseUrl()}`);
       }
 
-      function kialiGuessUrl(){
-        const parts = String(location.host || "").split(".");
-        const appsDomain = parts.length > 1 ? parts.slice(1).join(".") : "";
-        if (!appsDomain) return "";
-        return `https://kiali-istio-system.${appsDomain}`;
-      }
-
-      function openKiali(){
-        const url = kialiGuessUrl();
-        if (!url) return toast("Could not guess Kiali URL from current host.");
-        window.open(url, "_blank", "noopener,noreferrer");
-      }
-
-      function kialiBaseUrl(){
-        let url = String(localStorage.getItem("rhcl_kiali_url") || "").trim();
-        if (!url) url = kialiGuessUrl();
-        if (!url) return "";
-        if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
-        // If the user pasted a deep link (path/query/hash), keep only the origin.
-        try{
-          const u = new URL(url);
-          return `${u.protocol}//${u.host}`;
-        } catch {
-          return String(url).replace(/\/+$/g, "");
-        }
-      }
-
-      function refreshKialiLinks(){
-        const base = kialiBaseUrl();
-        const apply = (el, url) => {
-          if (!el) return;
-          if (!url){
-            el.setAttribute("href", "#");
-            el.style.opacity = "0.55";
-            el.style.pointerEvents = "none";
-          }else{
-            el.setAttribute("href", url);
-            el.style.opacity = "";
-            el.style.pointerEvents = "";
-          }
-        };
-        if (!base){
-          apply(kialiLinkHomeEl, "");
-          apply(kialiLinkGraphEl, "");
-          apply(kialiLinkWorkloadsEl, "");
-          apply(kialiLinkAppsEl, "");
-          return;
-        }
-        const traffic = "ambient%2CambientTotal%2Cgrpc%2CgrpcRequest%2Ctcp%2CtcpSent";
-        // Kiali expects duration with a unit suffix (e.g. 10m, 600s). Numeric durations can break graphs.
-        // Use 10 minutes + fast refresh so the UI opens with “Last 10m / Every 10s”.
-        const common = `traffic=${traffic}&graphType=versionedApp&duration=600s&refresh=10000&layout=dagre&animation=true`;
-        const g = (namespaces) => base + `/console/graph/namespaces?${common}&namespaces=${encodeURIComponent(namespaces)}`;
-
-        // Multi-namespace workshop views.
-        // Avoid including namespaces that may produce no telemetry (can cause "Empty Graph").
-        apply(kialiLinkHomeEl, g("demo,demo-ab,demo-jwt,rhcl-keycloak,rhcl-ai-bot"));
-        apply(kialiLinkGraphEl, g("demo,demo-ab,demo-jwt,rhcl-ai-bot"));
-        apply(kialiLinkWorkloadsEl, g("demo-ab"));
-        apply(kialiLinkAppsEl, g("demo-jwt,rhcl-keycloak,demo"));
-      }
-
-      function meshGenerateTraffic(){
-        return obsGenerateTraffic({ statusEl: meshTrafficStatusEl, logEl: meshTrafficLogEl, buttonEl: meshTrafficBtnEl });
-      }
-
-      function setKialiUrl(){
-        const v = prompt("Kiali base URL (example: https://kiali-istio-system.apps.<cluster>)", kialiBaseUrl());
-        if (v === null) return;
-        const s = String(v || "").trim();
-        if (s) localStorage.setItem("rhcl_kiali_url", s);
-        else localStorage.removeItem("rhcl_kiali_url");
-        refreshKialiLinks();
-        toast(`Kiali URL set to: ${kialiBaseUrl() || "(unknown)"}`);
-      }
+      // (Service mesh / Kiali removed)
 
       function consoleBaseUrl(){
         let url = String(localStorage.getItem("rhcl_console_url") || "").trim();
@@ -4208,12 +4057,6 @@ spec:
         }
         if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
         return url.replace(/\/+$/g, "");
-      }
-
-      function refreshConsoleUrlPill(){
-        if (!consoleUrlPillEl) return;
-        const u = consoleBaseUrl();
-        consoleUrlPillEl.textContent = u ? `console: ${u.replace(/^https?:\/\//i,"")}` : "console: (unknown)";
       }
 
       function refreshLightspeedLinks(){
@@ -4239,63 +4082,7 @@ spec:
         toast("Prompt copied. Paste it into Lightspeed in the Console.");
       }
 
-      function buildOcQueryUrl(promql){
-        const base = consoleBaseUrl();
-        if (!base) return "";
-        const q = String(promql || "").trim();
-        return `${base}/monitoring/query-browser?units=short&query0=${encodeURIComponent(q)}`;
-      }
-
-      function refreshOcLinks(){
-        const links = [
-          [ocLinkRpsEl, 'sum(rate(istio_requests_total{destination_service_namespace=\"demo\"}[5m])) by (destination_service_name)'],
-          [ocLinkErrEl, 'sum(rate(istio_requests_total{destination_service_namespace=\"demo\",response_code=~\"4..|5..\"}[5m])) by (destination_service_name)'],
-          [ocLinkP95El, 'histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_namespace=\"demo\"}[5m])) by (le, destination_service_name))'],
-          [ocLinkAbEl, 'sum(rate(istio_requests_total{destination_service_name=~\"ab-a|ab-b\"}[1m])) by (destination_service_name)'],
-          [ocLinkCanaryEl, 'sum(rate(istio_requests_total{destination_service_name=~\"canary-v1|canary-v2\"}[1m])) by (destination_service_name)'],
-        ];
-        for (const [el, q] of links){
-          if (!el) continue;
-          const url = buildOcQueryUrl(q);
-          el.setAttribute("href", url || "#");
-          if (!url){
-            el.setAttribute("aria-disabled", "true");
-            el.style.opacity = "0.55";
-            el.style.pointerEvents = "none";
-          }else{
-            el.removeAttribute("aria-disabled");
-            el.style.opacity = "";
-            el.style.pointerEvents = "";
-          }
-        }
-      }
-
-      function refreshTracingLinks(){
-        const base = consoleBaseUrl();
-        const aTraces = document.getElementById("ocLinkTraces");
-        const aTempo = document.getElementById("ocLinkTempo");
-        const apply = (el, url) => {
-          if (!el) return;
-          el.setAttribute("href", url || "#");
-          if (!url){
-            el.setAttribute("aria-disabled", "true");
-            el.style.opacity = "0.55";
-            el.style.pointerEvents = "none";
-          }else{
-            el.removeAttribute("aria-disabled");
-            el.style.opacity = "";
-            el.style.pointerEvents = "";
-          }
-        };
-        if (!base){
-          apply(aTraces, "");
-          apply(aTempo, "");
-          return;
-        }
-        // Best-effort deep links. If the cluster UI differs, the user still lands in the right area quickly.
-        apply(aTraces, base + "/observe/traces");
-        apply(aTempo, base + "/k8s/ns/rhcl-observability/tempostacks/tempo.grafana.com~v1alpha1~TempoStack");
-      }
+      // (Distributed tracing removed)
 
       // Initial link refresh
       refreshLightspeedLinks();
@@ -4306,17 +4093,8 @@ spec:
         const s = String(v || "").trim();
         if (s) localStorage.setItem("rhcl_console_url", s);
         else localStorage.removeItem("rhcl_console_url");
-        refreshConsoleUrlPill();
-        refreshOcLinks();
-        refreshTracingLinks();
         refreshLightspeedLinks();
         toast(`Console URL set to: ${consoleBaseUrl() || "(unknown)"}`);
-      }
-
-      function openOcQuery(promql){
-        const url = buildOcQueryUrl(promql);
-        if (!url) return toast("Could not guess console URL. Click “Change console URL”.");
-        location.href = url;
       }
 
       async function obsGenerateTraffic(opts){

@@ -7,7 +7,5 @@ resources:
   - resources/kuadrant-cr.yaml
   - resources/observability-and-grafana.yaml
   - resources/patch-dashboards.yaml
-  - resources/ossm-ambient.yaml
-  - resources/kiali.yaml
-  - resources/kiali-monitoring-rbac.yaml
+  # (Service mesh removed)
 

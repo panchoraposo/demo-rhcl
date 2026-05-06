@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - ../../base/resources/namespaces/namespace-rhcl-oidc-portal.yaml
-  - ../../base/resources/istio/istio-waypoint-rhcl-oidc-portal.yaml
   - ../../base/resources/apps/oidc-ui.yaml
   - ../../base/resources/apps/oidc-callback.yaml
   - ../../base/resources/routes/httproute-oidc-portal.yaml

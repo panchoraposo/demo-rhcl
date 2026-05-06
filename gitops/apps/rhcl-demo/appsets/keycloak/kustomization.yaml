@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - ../../base/resources/namespaces/namespace-rhcl-keycloak.yaml
-  - ../../base/resources/istio/istio-waypoint-rhcl-keycloak.yaml
   - ../../base/resources/apps/rhbk-operator.yaml
   - ../../base/resources/apps/keycloak.yaml
   - ../../base/resources/routes/httproute-keycloak.yaml

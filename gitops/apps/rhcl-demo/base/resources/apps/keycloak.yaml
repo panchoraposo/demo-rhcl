@@ -10,6 +10,20 @@ stringData:
   username: keycloak
   password: keycloak
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-db-data
+  namespace: rhcl-keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,7 +42,6 @@ spec:
     metadata:
       labels:
         app: keycloak-db
-        istio.io/dataplane-mode: none
     spec:
       containers:
         - name: postgres
@@ -64,7 +77,8 @@ spec:
               mountPath: /var/lib/pgsql/data
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: keycloak-db-data
 ---
 apiVersion: v1
 kind: Service
@@ -113,8 +127,12 @@ spec:
   additionalOptions:
     - name: http-relative-path
       value: /auth
+    - name: db-url-properties
+      value: "?sslmode=disable"
   unsupported:
     podTemplate:
+      metadata:
+        labels: {}
       spec:
         volumes:
           - name: rhcl-theme
@@ -263,7 +281,7 @@ data:
 apiVersion: k8s.keycloak.org/v2alpha1
 kind: KeycloakRealmImport
 metadata:
-  name: rhcl-realm
+  name: rhcl-realm-v2
   namespace: rhcl-keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "14"
@@ -351,6 +369,8 @@ metadata:
   namespace: demo
   annotations:
     argocd.argoproj.io/sync-wave: "12"
+  labels:
+    app: secure-api
 spec:
   selector:
     app: secure-api

@@ -14,16 +14,12 @@ resources:
   - resources/enable-kuadrant-console-plugin.yaml
   - resources/enable-user-workload-monitoring.yaml
   - resources/install-kuadrant-observability-config.yaml
-  - resources/istio-telemetry-tracing.yaml
   - resources/grafana-rbac.yaml
   - resources/grafana-thanos-token.yaml
   - resources/grafana.yaml
   - resources/grafana-datasource-thanos.yaml
   - resources/grafana-dashboard-configmaps.yaml
   - resources/grafana-dashboards.yaml
-  - resources/kiali.yaml
-  - resources/ossm-ambient.yaml
-  - resources/kiali-monitoring-rbac.yaml
   - resources/gateway-metrics-services.yaml
   - resources/gateway-metrics-servicemonitor.yaml
 

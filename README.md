@@ -27,11 +27,7 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
   - **Developer**: requests by HTTP code (200/401/403/404/429/5xx) + latency percentiles (P90/P95/P99)
   - **Platform**: top services, requests-by-code, latency (simple “SRE view”)
   - **Business**: traffic summary + total requests over a selected time range
-- The main UI also includes **one-click OpenShift Query Browser links** (PromQL prefilled).
-
-### Service Mesh (Kiali)
-- **Objects**: Kiali (installed via `kiali-ossm` Operator, anonymous auth)
-- **Benefit**: show an easy **topology/flow** story (Gateway → services), complementing policy enforcement with a visual request graph.
+- The main UI focuses on **Grafana dashboards** for quick, audience-friendly observability.
 
 ### AI chatbot (ESPN tool + token budget)
 - **Policies**: `TokenRateLimitPolicy`
@@ -46,7 +42,7 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
   - The UI can fetch a token, show/decode it, and call a protected endpoint **with and without** the token.
 
 ### OIDC portal (separate hostname, browser login)
-- **Policies**: `OIDCPolicy` (browser login), `TLSPolicy` (TLS), `DNSPolicy` (optional Route53 record)
+- **Policies**: `OIDCPolicy` (browser login), `DNSPolicy` (optional Route53 record)
 - **Benefit**: a clean “browser login through the Gateway” story:
   - unauthenticated → **302 to Keycloak**
   - authenticated → cookie set → portal can fetch protected content
@@ -175,7 +171,6 @@ oc -n rhcl-ai-bot set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KE
 - Main UI: `https://<DEMO_HOSTNAME>/`
 - OIDC portal: `https://<OIDC_HOSTNAME>/`
 - Grafana (anonymous): `https://<GRAFANA_HOSTNAME>/`
-- Kiali: `https://kiali-istio-system.<appsDomain>/`
 - External API hostname: `https://external-api.<appsDomain>/epl` (also `/nba`, `/laliga`, `/nfl`, `/nhl`)
 
 ## Suggested live-demo flow (5–8 minutes)
@@ -207,16 +202,12 @@ oc -n rhcl-ai-bot set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KE
 - In the main UI → **Observability**:
   - Click **Generate sample traffic** (creates a short burst so graphs move immediately)
   - Open **Developer / Platform / Business** dashboards and refresh
-- Optional: open the **OpenShift Query Browser** links (PromQL prefilled) for a “native console” view.
-
-### 7) Service Mesh (Kiali)
-- In the main UI → **Service Mesh** → open Kiali and focus on namespace `demo` to show Gateway → services request flow.
 
 ## GitOps layout
 
 - Base: `gitops/apps/rhcl-demo/base`
 - Overlays:
-  - `gitops/apps/rhcl-demo/overlays/ephemeral` (demo app only; assumes RHCL + Service Mesh ambient are already installed)
+  - `gitops/apps/rhcl-demo/overlays/ephemeral` (demo app only; assumes Connectivity Link is already installed)
   - `gitops/apps/rhcl-demo/overlays/full-install` (installs RHCL via OLM and deploys the demo)
 - Example Argo CD Application: `gitops/argocd/application-rhcl-demo.yaml`
 - **ApplicationSet (multi-app split)**: `gitops/argocd/applicationset-rhcl-workshop.yaml`
@@ -225,8 +216,8 @@ oc -n rhcl-ai-bot set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KE
 
 ## Notes (why the dashboards work)
 
-- **Metrics source**: dashboards use Prometheus (OpenShift monitoring + user workload monitoring) and Istio request metrics like `istio_requests_total`.
-- **No tracing required**: Tempo/OpenTelemetry are optional (only needed if you want distributed traces). Metrics and dashboards work without them.
+- **Metrics source**: dashboards use Prometheus (OpenShift monitoring + user workload monitoring) and Connectivity Link / Kuadrant metrics.
+- **No tracing required**: this demo does not depend on distributed tracing.
 
 ## References
 

@@ -7,7 +7,6 @@ resources:
   - resources/gateway
   - resources/routes
   - resources/policies
-  - resources/istio
 
 configMapGenerator:
   - name: rhcl-ui

@@ -45,12 +45,6 @@ spec:
             oidcHostname: REPLACE_ME_OIDC_HOSTNAME
             baseDomain: REPLACE_ME_BASE_DOMAIN
             clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
-          - name: tracing
-            path: gitops/apps/rhcl-demo/appsets/tracing
-            demoHostname: REPLACE_ME_DEMO_HOSTNAME
-            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
-            baseDomain: REPLACE_ME_BASE_DOMAIN
-            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
           - name: lightspeed
             path: gitops/apps/rhcl-demo/appsets/lightspeed
             demoHostname: REPLACE_ME_DEMO_HOSTNAME
@@ -83,22 +77,10 @@ spec:
           - CreateNamespace=true
           - ServerSideApply=true
       ignoreDifferences:
-        - group: ""
-          kind: Namespace
-          name: istio-system
-          jsonPointers:
-            - /metadata/annotations
-            - /metadata/labels
         - group: apps
           kind: Deployment
           name: rhcl-ai-bot
           namespace: rhcl-ai-bot
-          jsonPointers:
-            - /spec/template/spec/containers/0/image
-        - group: apps
-          kind: Deployment
-          name: rhcl-trace-svc
-          namespace: demo
           jsonPointers:
             - /spec/template/spec/containers/0/image
         - group: cert-manager.io
@@ -107,14 +89,6 @@ spec:
           namespace: openshift-ingress
           jsonPointers:
             - /metadata/annotations
-            - /status
-        - group: tempo.grafana.com
-          kind: TempoStack
-          name: simplest
-          namespace: rhcl-observability
-          jsonPointers:
-            - /metadata/annotations
-            - /spec
             - /status
         - group: grafana.integreatly.org
           kind: Grafana
@@ -136,13 +110,6 @@ spec:
           jsonPointers:
             - /metadata/annotations
             - /status
-        - group: kiali.io
-          kind: Kiali
-          name: kiali
-          namespace: istio-system
-          jsonPointers:
-            - /metadata/annotations
-            - /status
         - group: kuadrant.io
           kind: AuthPolicy
           name: rhcl-gw-auth
@@ -157,24 +124,7 @@ spec:
           jsonPointers:
             - /metadata/annotations
             - /status
-        - group: sailoperator.io
-          kind: Istio
-          name: default
-          jsonPointers:
-            - /metadata/annotations
-            - /status
-        - group: sailoperator.io
-          kind: IstioCNI
-          name: default
-          jsonPointers:
-            - /metadata/annotations
-            - /status
-        - group: sailoperator.io
-          kind: ZTunnel
-          name: default
-          jsonPointers:
-            - /metadata/annotations
-            - /status
+        # (Service mesh / Kiali removed)
         - group: ""
           kind: ServiceAccount
           name: rhcl-grafana

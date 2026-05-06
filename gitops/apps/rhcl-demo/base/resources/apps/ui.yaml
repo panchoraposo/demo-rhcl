@@ -72,6 +72,9 @@ kind: Service
 metadata:
   name: rhcl-ui
   namespace: demo
+  labels:
+    app: rhcl-ui
+    istio.io/use-waypoint: demo-waypoint
   annotations:
     argocd.argoproj.io/sync-wave: "12"
 spec:

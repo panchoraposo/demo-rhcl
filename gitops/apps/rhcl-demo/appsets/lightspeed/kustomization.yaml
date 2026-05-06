@@ -3,11 +3,7 @@ kind: Kustomization
 
 resources:
   - resources/namespace-openshift-lightspeed.yaml
-  - resources/namespace-istio-system.yaml
   - resources/lightspeed-operator.yaml
   - resources/olsconfig.yaml
-
-  # Kiali MCP server (Kubernetes MCP server configured for Kiali)
-  - resources/kiali-mcp-config.yaml
-  - resources/kiali-mcp-server.yaml
+  # (Service mesh / Kiali removed)
 
