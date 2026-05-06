@@ -393,8 +393,8 @@ spec:
                   hostnames:
                     - {{.demoHostname}}
                     - {{.oidcHostname}}
-                    - rhcl-workshop.REPLACE_ME_BASE_DOMAIN
-                    - oidc-rhcl-workshop.REPLACE_ME_BASE_DOMAIN
+                    - rhcl-workshop.{{$baseDomain}}
+                    - oidc-rhcl-workshop.{{$baseDomain}}
           {{- end }}
           {{- if eq .name "mcp" }}
             - target:
@@ -412,9 +412,25 @@ spec:
                 spec:
                   listeners:
                     - name: http-mcp
+                      port: 80
+                      protocol: HTTP
                       hostname: mcp.{{$baseDomain}}
+                      allowedRoutes:
+                        namespaces:
+                          from: All
                     - name: https-mcp-public
+                      port: 443
+                      protocol: HTTPS
                       hostname: mcp.{{$baseDomain}}
+                      tls:
+                        mode: Terminate
+                        certificateRefs:
+                          - group: ""
+                            kind: Secret
+                            name: rhcl-gw-public-tls
+                      allowedRoutes:
+                        namespaces:
+                          from: All
             - target:
                 group: gateway.networking.k8s.io
                 version: v1
