@@ -50,13 +50,30 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rhcl-mcp-tools-upstream
+  name: rhcl-mcp-tools-app
   namespace: mcp-system
   annotations:
     argocd.argoproj.io/sync-wave: "31"
 spec:
   selector:
     app: rhcl-mcp-tools
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rhcl-mcp-tools-upstream
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "31"
+spec:
+  selector:
+    # Some gateway components resolve the tools server by Service name and
+    # send a strict Accept header. Route through the bridge to normalize.
+    app: rhcl-mcp-tools-bridge
   ports:
     - name: http
       port: 8080

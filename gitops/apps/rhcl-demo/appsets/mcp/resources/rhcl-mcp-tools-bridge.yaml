@@ -12,7 +12,7 @@ data:
     import { URL } from "node:url";
     import { Readable } from "node:stream";
     
-    const upstream = process.env.UPSTREAM_URL || "http://rhcl-mcp-tools.mcp-system.svc.cluster.local:8080/mcp";
+    const upstream = process.env.UPSTREAM_URL || "http://rhcl-mcp-tools-app.mcp-system.svc.cluster.local:8080/mcp";
     const upstreamUrl = new URL(upstream);
     const upstreamPrefix = upstreamUrl.pathname && upstreamUrl.pathname !== "/" ? upstreamUrl.pathname : "/mcp";
     const listenPort = Number(process.env.PORT || "8080");
@@ -252,7 +252,7 @@ spec:
               containerPort: 8080
           env:
             - name: UPSTREAM_URL
-              value: http://rhcl-mcp-tools-upstream.mcp-system.svc.cluster.local:8080/mcp
+              value: http://rhcl-mcp-tools-app.mcp-system.svc.cluster.local:8080/mcp
           volumeMounts:
             - name: app
               mountPath: /app
