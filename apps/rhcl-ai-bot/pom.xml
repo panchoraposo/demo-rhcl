@@ -16,7 +16,7 @@
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.version>3.27.3.redhat-00001</quarkus.platform.version>
-    <quarkus.mcp.server.version>1.7.3</quarkus.mcp.server.version>
+    <quarkus.mcp.server.version>1.8.1</quarkus.mcp.server.version>
   </properties>
 
   <dependencyManagement>
