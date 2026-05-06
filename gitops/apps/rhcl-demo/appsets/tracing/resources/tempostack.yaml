@@ -18,7 +18,7 @@ spec:
         memory: 2Gi
         cpu: 2000m
   tenants:
-    mode: openshift
+    mode: static
     authentication:
       - tenantName: dev
         tenantId: "1610b0c3-c509-4592-a256-a1871353dbfb"
@@ -26,7 +26,7 @@ spec:
     gateway:
       enabled: true
       rbac:
-        enabled: true
+        enabled: false
     queryFrontend:
       jaegerQuery:
         enabled: false
