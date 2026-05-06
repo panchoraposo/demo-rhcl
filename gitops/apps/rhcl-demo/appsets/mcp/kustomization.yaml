@@ -13,6 +13,7 @@ resources:
   - resources/mcp-gateway-referencegrant.yaml
   - resources/mcp-gateway-extension.yaml
   - resources/mcp-gateway-public-httproute.yaml
+  - resources/mcp-tools-tls.yaml
   - resources/rhcl-mcp-tools.yaml
   - resources/httproute-rhcl-mcp-tools.yaml
   - resources/httproute-rhcl-mcp-tools-internal.yaml

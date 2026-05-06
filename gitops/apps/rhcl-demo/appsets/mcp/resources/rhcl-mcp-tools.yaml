@@ -24,6 +24,8 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            - name: https
+              containerPort: 8443
           env:
             - name: RHCL_AI_ESPN_BASE_URL
               value: https://external-api.REPLACE_ME_BASE_DOMAIN
@@ -31,6 +33,14 @@ spec:
               value: "true"
             - name: QUARKUS_HTTP_ACCESS_LOG_PATTERN
               value: '%h "%r" %s %b "%{i,accept}" "%{i,content-type}"'
+            - name: QUARKUS_HTTP_SSL_PORT
+              value: "8443"
+            - name: QUARKUS_HTTP_SSL_CERTIFICATE_FILES
+              value: /var/run/secrets/rhcl-mcp-tools-tls/tls.crt
+            - name: QUARKUS_HTTP_SSL_CERTIFICATE_KEY_FILES
+              value: /var/run/secrets/rhcl-mcp-tools-tls/tls.key
+            - name: QUARKUS_HTTP_INSECURE_REQUESTS
+              value: enabled
             # Traces (OTLP) - exported to the MCP namespace collector.
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://mcp-otel-collector.mcp-system.svc.cluster.local:4318
@@ -38,6 +48,10 @@ spec:
               value: "true"
             - name: OTEL_SERVICE_NAME
               value: rhcl-mcp-tools
+          volumeMounts:
+            - name: rhcl-mcp-tools-tls
+              mountPath: /var/run/secrets/rhcl-mcp-tools-tls
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /q/health/ready
@@ -50,6 +64,10 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 10
+      volumes:
+        - name: rhcl-mcp-tools-tls
+          secret:
+            secretName: rhcl-mcp-tools-tls
 ---
 apiVersion: v1
 kind: Service
@@ -65,6 +83,9 @@ spec:
     - name: http
       port: 8080
       targetPort: 8080
+    - name: https
+      port: 8443
+      targetPort: 8443
 ---
 apiVersion: v1
 kind: Service

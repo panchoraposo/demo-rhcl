@@ -1,0 +1,29 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: rhcl-mcp-tools-selfsigned
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "29"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rhcl-mcp-tools-tls
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "29"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  secretName: rhcl-mcp-tools-tls
+  issuerRef:
+    name: rhcl-mcp-tools-selfsigned
+    kind: Issuer
+  dnsNames:
+    - rhcl-mcp-tools-app.mcp-system.svc
+    - rhcl-mcp-tools-app.mcp-system.svc.cluster.local
+    - rhcl-mcp-tools-app
+
