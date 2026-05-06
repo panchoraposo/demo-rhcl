@@ -11,7 +11,7 @@ spec:
       kind: Gateway
       name: rhcl-mcp-gw
       namespace: openshift-ingress
-      sectionName: https-mcp-public
+      sectionName: http-mcp
   hostnames:
     - rhcl-mcp-tools.mcp.local
   rules:
