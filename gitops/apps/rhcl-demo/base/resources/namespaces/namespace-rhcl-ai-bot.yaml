@@ -4,7 +4,5 @@ metadata:
   name: rhcl-ai-bot
   annotations:
     argocd.argoproj.io/sync-wave: "10"
-  labels:
-    rhcl.demo/gateway-access: ai
-    
+  labels: {}
 

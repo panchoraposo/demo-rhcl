@@ -18,7 +18,6 @@
     default_ingress_cert_secret_override: "{{ lookup('env', 'DEFAULT_INGRESS_CERT_SECRET') | default('', true) }}"
     external_base_domain_override: "{{ lookup('env', 'EXTERNAL_BASE_DOMAIN') | default('', true) }}"
     external_api_hostname_override: "{{ lookup('env', 'EXTERNAL_API_HOSTNAME') | default('', true) }}"
-    ai_hostname_override: "{{ lookup('env', 'AI_HOSTNAME') | default('', true) }}"
 
     # Optional: enable the LLM-backed chatbot (kept out of git)
     llm_api_key: >-

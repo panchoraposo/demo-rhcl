@@ -13,7 +13,6 @@ resources:
   - ../../base/resources/routes/httproute-ui.yaml
   - ../../base/resources/routes/httproute-ab-canary-external.yaml
   - ../../base/resources/routes/httproute-jwt-demo.yaml
-  - ../../base/resources/routes/httproute-mcp-tools-local.yaml
   - ../../base/resources/routes/httproute-external-proxy.yaml
   - ../../base/resources/routes/httproute-external-proxy-public.yaml
   - ../../base/resources/routes/referencegrant-jwt-to-external-proxy.yaml
@@ -21,7 +20,6 @@ resources:
   - ../../base/resources/policies/route-authpolicy.yaml
   - ../../base/resources/policies/ui-authpolicy.yaml
   - ../../base/resources/policies/ab-authpolicy.yaml
-  - ../../base/resources/policies/mcp-tools-local-authpolicy.yaml
   - ../../base/resources/policies/jwt-demo-authpolicy.yaml
   - ../../base/resources/policies/route-ratelimitpolicy.yaml
   - ../../base/resources/policies/external-proxy-authpolicy.yaml

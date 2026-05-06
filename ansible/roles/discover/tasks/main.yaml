@@ -111,23 +111,12 @@
     mcp_public_hostname: "mcp.{{ external_base_domain }}"
     external_public_hostname: "external.{{ external_base_domain }}"
 
-- name: Derive ai_hostname
-  ansible.builtin.set_fact:
-    ai_hostname: >-
-      {% set override = ai_hostname_override | trim %}
-      {% if override != '' %}
-      {{ override }}
-      {% else %}
-      ai-{{ demo_hostname }}
-      {% endif %}
-
 - name: Print computed installation values
   ansible.builtin.debug:
     msg:
       - "DEMO_HOSTNAME={{ demo_hostname }}"
       - "OIDC_HOSTNAME={{ oidc_hostname }}"
       - "GRAFANA_HOSTNAME={{ grafana_hostname }}"
-      - "AI_HOSTNAME={{ ai_hostname }}"
       - "EXTERNAL_API_HOSTNAME={{ external_api_hostname }}"
       - "DEMO_PUBLIC_HOSTNAME={{ demo_public_hostname }}"
       - "OIDC_PUBLIC_HOSTNAME={{ oidc_public_hostname }}"

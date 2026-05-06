@@ -22,14 +22,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rhcl-ai-gw
+  name: rhcl-mcp-gw
   namespace: openshift-ingress
   labels:
     app: rhcl-gateway-metrics
-    gateway: rhcl-ai-gw
+    gateway: rhcl-mcp-gw
 spec:
   selector:
-    gateway.networking.k8s.io/gateway-name: rhcl-ai-gw
+    gateway.networking.k8s.io/gateway-name: rhcl-mcp-gw
   ports:
     - name: metrics
       port: 15020

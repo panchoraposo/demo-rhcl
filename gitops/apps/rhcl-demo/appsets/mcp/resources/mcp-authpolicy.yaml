@@ -1,7 +1,7 @@
 apiVersion: kuadrant.io/v1
 kind: AuthPolicy
 metadata:
-  name: kuadrant-mcp-allow
+  name: rhcl-mcp-allow
   namespace: mcp-system
   annotations:
     argocd.argoproj.io/sync-wave: "32"
@@ -10,7 +10,7 @@ spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: HTTPRoute
-    name: kuadrant-mcp
+    name: rhcl-mcp-gateway
   defaults:
     rules:
       authorization:

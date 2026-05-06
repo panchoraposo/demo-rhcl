@@ -3,15 +3,8 @@ kind: Kustomization
 
 resources:
   - ../../base/resources/namespaces/namespace-rhcl-ai-bot.yaml
-  - ../../base/resources/gateway/ai-gateway.yaml
-  - ../../base/resources/gateway/ai-gateway-dnspolicy.yaml
-  - ../../base/resources/routes/httproute-ai-bot.yaml
   - ../../base/resources/routes/httproute-ai-bot-main.yaml
   - ../../base/resources/apps/ai-bot.yaml
-  - ../../base/resources/policies/ai-gateway-authpolicy.yaml
-  - ../../base/resources/policies/ai-bot-authpolicy.yaml
   - ../../base/resources/policies/ai-bot-main-authpolicy.yaml
-  - ../../base/resources/policies/ai-bot-tokenratelimitpolicy.yaml
   - ../../base/resources/policies/ai-bot-main-tokenratelimitpolicy.yaml
-  - ../../base/resources/policies/ai-gateway-ratelimitpolicy.yaml
 

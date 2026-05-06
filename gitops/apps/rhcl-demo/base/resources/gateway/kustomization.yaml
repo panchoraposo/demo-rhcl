@@ -3,11 +3,9 @@ kind: Kustomization
 
 resources:
   - gateway.yaml
-  - ai-gateway.yaml
   - gateway-public-certificate.yaml
   - gateway-dnspolicy.yaml
   - gateway-public-dnspolicy-main.yaml
-  - ai-gateway-dnspolicy.yaml
   - route-passthrough.yaml
   - route-oidc-passthrough.yaml
 

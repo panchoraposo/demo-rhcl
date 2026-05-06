@@ -66,9 +66,10 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
   - `AuthPolicy`: `demo/external-proxy-public-allow` (route-level allow) so the default deny-all does not block the demo
 
 - **MCP tools + UI/bot access (stable across environments)**:
-  - `HTTPRoute`: `demo/rhcl-mcp-tools-local` exposes same-origin `/mcp-tools` to the MCP tools bridge
-  - `AuthPolicy`: `demo/rhcl-mcp-tools-local-allow`
-  - The tool server (`rhcl-mcp-tools`) and bot consume ESPN via `https://external-api.<base-domain>`
+  - `Gateway`: `openshift-ingress/rhcl-mcp-gw` publishes a dedicated MCP hostname `mcp.<base-domain>`
+  - `HTTPRoute`: `mcp-system/rhcl-mcp-gateway` exposes `/mcp` on that hostname
+  - `AuthPolicy`: `openshift-ingress/rhcl-mcp-gw-auth` (deny-all) + `mcp-system/rhcl-mcp-allow` (allow `/mcp`)
+  - The bot calls tools through `https://mcp.<base-domain>/mcp`, and tools consume ESPN via `https://external-api.<base-domain>`
 
 > Note: NGINX is just an implementation detail for serving static UI / proxying upstream JSON. The workshop value is the **Gateway API + Kuadrant policies** wiring, not the web server choice.
 
@@ -101,7 +102,6 @@ Useful overrides:
 - **`APPS_DOMAIN`**: set the cluster apps domain (if autodiscovery fails)
 - **`DEMO_HOSTNAME`**: set the main hostname
 - **`OIDC_HOSTNAME`**: set the OIDC portal hostname
-- **`AI_HOSTNAME`**: set the AI Gateway hostname (`ai-<DEMO_HOSTNAME>` by default)
 - **`GRAFANA_HOSTNAME`**: set the Grafana hostname (optional)
 - **`CLUSTER_ISSUER`**: set the cert-manager `ClusterIssuer` name
 - **`DEFAULT_INGRESS_CERT_SECRET`**: set the wildcard cert secret used for `*.appsDomain` listeners

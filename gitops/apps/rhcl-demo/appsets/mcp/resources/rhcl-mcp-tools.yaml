@@ -27,8 +27,6 @@ spec:
           env:
             - name: RHCL_AI_ESPN_BASE_URL
               value: https://external-api.REPLACE_ME_BASE_DOMAIN
-            - name: RHCL_AI_TRACE_BASE_URL
-              value: http://rhcl-trace-svc.demo.svc.cluster.local
           readinessProbe:
             httpGet:
               path: /q/health/ready

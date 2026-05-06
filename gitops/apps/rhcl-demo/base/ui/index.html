@@ -1368,7 +1368,7 @@
                 <div class="sub">These prompts are designed to be demoable against the policies and resources in this workshop.</div>
                 <div class="btnGrid" style="margin-top:10px">
                   <button class="primary" onclick="olsCopyPrompt('Debug why RateLimitPolicy enforcement is not working for my demo endpoints. Focus on Gateway rhcl-gw in namespace openshift-ingress and routes in namespace demo. Give a short checklist of what to verify and likely root causes.')">Copy: Rate limits not enforced</button>
-                  <button class="primary" onclick="olsCopyPrompt('Explain the AuthPolicy rhcl-ai-gw-auth in namespace openshift-ingress. What does it block by default, and what is the smallest safe way to allow only the ai-bot HTTPRoute?')">Copy: AI gateway deny-all</button>
+                  <button class="primary" onclick="olsCopyPrompt('Explain the AuthPolicy rhcl-mcp-gw-auth in namespace openshift-ingress. What does it block by default, and what is the smallest safe way to allow only the /mcp HTTPRoute (rhcl-mcp-gateway)?')">Copy: MCP gateway deny-all</button>
                   <button onclick="olsCopyPrompt('Check for policy conflicts (defaults vs overrides) affecting demo namespace routes. If you find conflicts, propose the minimal change to make behavior deterministic.')">Copy: policy conflicts</button>
                   <button onclick="olsCopyPrompt('I am getting 429s during the AI demo. Explain whether this is request rate limiting or token-based rate limiting, and which policy controls it. Provide a practical way to demonstrate the difference live.')">Copy: 429 during AI demo</button>
                 </div>
@@ -1379,7 +1379,7 @@
                 <h2>Quick checks (optional)</h2>
                 <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
                   <li><b>OLS installed</b>: namespace <span class="mono">openshift-lightspeed</span> (Subscription/CSV) + <span class="mono">OLSConfig/cluster</span></li>
-                  <li><b>Kuadrant MCP</b>: namespace <span class="mono">mcp-system</span> running <span class="mono">kuadrant-mcp-server</span></li>
+                  <li><b>MCP Gateway</b>: dedicated hostname <span class="mono">mcp.&lt;base-domain&gt;</span> routing tool calls to <span class="mono">mcp-system/rhcl-mcp-tools</span></li>
                 </ul>
               </div>
             </div>
@@ -1690,16 +1690,33 @@ spec:
         - name: rhcl-mcp-tools-bridge
           port: 8080
 ` },
-          { name: "MCP AuthPolicy (allow Kuadrant MCP server)", yaml: `apiVersion: kuadrant.io/v1
+          { name: "MCP Gateway AuthPolicy (deny-all)", yaml: `apiVersion: kuadrant.io/v1
 kind: AuthPolicy
 metadata:
-  name: kuadrant-mcp-allow
+  name: rhcl-mcp-gw-auth
+  namespace: openshift-ingress
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: rhcl-mcp-gw
+  defaults:
+    rules:
+      authorization:
+        deny-all:
+          opa:
+            rego: "allow = false"
+` },
+          { name: "MCP HTTPRoute AuthPolicy (allow /mcp)", yaml: `apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: rhcl-mcp-allow
   namespace: mcp-system
 spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: HTTPRoute
-    name: kuadrant-mcp
+    name: rhcl-mcp-gateway
   defaults:
     rules:
       authorization:
@@ -1722,44 +1739,7 @@ stringData:
         toolPrefix: tools_
         url: https://REPLACE_ME_MCP_HOSTNAME/tools/rhcl-mcp-tools
 ` },
-          { name: "Same-origin bridge for the UI (/mcp-tools)", yaml: `apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: rhcl-mcp-tools-local
-  namespace: demo
-spec:
-  parentRefs:
-    - name: rhcl-gw
-      namespace: openshift-ingress
-  rules:
-    - matches:
-        - path: { type: PathPrefix, value: /mcp-tools }
-      filters:
-        - type: URLRewrite
-          urlRewrite:
-            path: { type: ReplacePrefixMatch, replacePrefixMatch: /mcp }
-      backendRefs:
-        - name: rhcl-mcp-tools-bridge
-          namespace: mcp-system
-          port: 8080
-` },
-          { name: "AuthPolicy allow (UI -> /mcp-tools)", yaml: `apiVersion: kuadrant.io/v1
-kind: AuthPolicy
-metadata:
-  name: rhcl-mcp-tools-local-allow
-  namespace: demo
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: rhcl-mcp-tools-local
-  defaults:
-    rules:
-      authorization:
-        allow-all:
-          opa:
-            rego: "allow = true"
-` },
+          // (same-origin /mcp-tools bridge removed; the bot uses the dedicated MCP hostname directly)
         ],
         "traffic": [
           { name: "HTTPRoute (A/B 80/20 + canary 90/10)", yaml: `apiVersion: gateway.networking.k8s.io/v1
@@ -1939,22 +1919,25 @@ data:
 ` },
         ],
         "ai": [
-          { name: "HTTPRoute (/ai + /mcp)", yaml: `apiVersion: gateway.networking.k8s.io/v1
+          { name: "HTTPRoute (/ai)", yaml: `apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: ai-bot
-  namespace: demo
+  name: ai-bot-main
+  namespace: rhcl-ai-bot
 spec:
   hostnames:
     - REPLACE_ME_DEMO_HOSTNAME
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: rhcl-gw
+      namespace: openshift-ingress
   rules:
     - matches:
         - method: POST
           path: { type: PathPrefix, value: /ai }
-        - method: GET
-          path: { type: PathPrefix, value: /mcp }
-        - method: POST
-          path: { type: PathPrefix, value: /mcp }
+        - method: OPTIONS
+          path: { type: PathPrefix, value: /ai }
       backendRefs:
         - kind: Service
           name: rhcl-ai-bot
@@ -3336,16 +3319,6 @@ spec:
         aiStatusEl.textContent = text || "—";
       }
 
-      function aiGatewayHost(){
-        const stored = String(localStorage.getItem("rhcl_ai_host") || "").trim();
-        if (stored) return stored.replace(/^https?:\/\//i,"").replace(/\/+$/g,"");
-        const h = (location && location.host) ? String(location.host) : "example.com";
-        if (h.startsWith("ai-")) return h;
-        const configured = "REPLACE_ME_AI_HOSTNAME";
-        if (configured && !configured.includes("REPLACE_ME")) return configured;
-        return `ai-${h}`;
-      }
-
       function aiBaseUrl(){
         // Prefer same-origin to avoid browser CORS issues. This is routed by Gateway to the bot.
         return (location && location.origin) ? String(location.origin).replace(/\/+$/g,"") : "";
@@ -3411,24 +3384,8 @@ spec:
         return `https://${externalApiHost()}`;
       }
 
-      function toolsBaseUrl(){
-        // Same-origin bridge to avoid browser CORS/TLS issues on the MCP listener.
-        // The Gateway routes /mcp-tools -> rhcl-mcp-tools-bridge (in mcp-system).
-        return (location && location.origin) ? String(location.origin).replace(/\/+$/g,"") : "";
-      }
-
-      function toolsAltUrl(){
-        // Cross-origin direct tool endpoint on the dedicated MCP hostname.
-        // Used only as a fallback if the same-origin bridge is not reachable.
-        return `${mcpBaseUrl()}/tools/rhcl-mcp-tools`;
-      }
-
       function mcpSessionId(){
         try{ return String(localStorage.getItem("rhcl_mcp_session_id") || "").trim(); } catch { return ""; }
-      }
-
-      function mcpToolsSessionId(){
-        try{ return String(localStorage.getItem("rhcl_mcp_tools_session_id") || "").trim(); } catch { return ""; }
       }
 
       async function mcpInitializeAt(path, storageKey){
@@ -3493,73 +3450,14 @@ spec:
         aiSetStatus("Listing tools…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          // For this demo we list tools via a same-origin bridge (/mcp-tools).
-          const primaryUrl = `${toolsBaseUrl()}/mcp-tools`;
-          const initPrimary = async () => {
-            const r = await fetch(primaryUrl, {
-              method: "POST",
-              headers: { "content-type": "application/json", "accept": "application/json" },
-              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
-              cache: "no-store",
-            });
-            const sid = r.headers.get("mcp-session-id") || "";
-            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
-            return r;
-          };
-
-          const callPrimary = async (sid) => {
-            const req = { jsonrpc: "2.0", id: Date.now(), method: "tools/list" };
-            return await fetch(primaryUrl, {
-              method: "POST",
-              headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
-              body: JSON.stringify(req),
-              cache: "no-store",
-            });
-          };
-
-          const initAlt = async () => {
-            const r = await fetch(toolsAltUrl(), {
-              method: "POST",
-              headers: { "content-type": "application/json", "accept": "application/json" },
-              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
-              cache: "no-store",
-            });
-            const sid = r.headers.get("mcp-session-id") || "";
-            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
-            return r;
-          };
-
-          const callAlt = async (sid) => {
-            const req = { jsonrpc: "2.0", id: Date.now(), method: "tools/list" };
-            return await fetch(toolsAltUrl(), {
-              method: "POST",
-              headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
-              body: JSON.stringify(req),
-              cache: "no-store",
-            });
-          };
-
-          let used = "same-origin";
-          let initStatus = 0;
-          let sid = mcpToolsSessionId();
+          // List tools through the MCP Gateway dedicated hostname (/mcp).
+          let sid = mcpSessionId();
           if (!sid){
-            const ir = await initPrimary();
-            initStatus = ir.status;
-            sid = mcpToolsSessionId();
+            const ir = await mcpInitializeAt("/mcp", "rhcl_mcp_session_id");
+            sid = ir.sid || mcpSessionId();
           }
-          let r = await callPrimary(sid);
-          let txt = await r.text();
-
-          if (r.status === 404 || initStatus === 404){
-            // If the same-origin bridge is missing in a given environment, fall back silently.
-            used = "direct";
-            try{ localStorage.removeItem("rhcl_mcp_tools_session_id"); } catch {}
-            const ir2 = await initAlt();
-            initStatus = ir2.status;
-            sid = mcpToolsSessionId();
-            r = await callAlt(sid);
-            txt = await r.text();
-          }
+          const r = await mcpRpc("tools/list");
+          const txt = await r.text();
 
           let obj=null;
           try{ obj = JSON.parse(txt); } catch {}
@@ -3571,18 +3469,12 @@ spec:
           aiLastToolJsonText = obj ? JSON.stringify(obj, null, 2) : txt;
           appendTo(aiLogEl, `(click “Tool JSON” to view)`, "muted");
           aiSetStatus(`HTTP ${r.status}`);
-          // Keep Meta stable and demo-friendly: show paths instead of full URLs.
           aiLastMetaObj = {
             ...(aiLastMetaObj || {}),
             tools: {
               list: {
-                used,
-                initStatus,
                 status: r.status,
-                primaryPath: "/mcp-tools",
-                primaryOrigin: (location && location.origin) ? String(location.origin) : "",
-                altHost: mcpHost(),
-                altPath: "/tools/rhcl-mcp-tools",
+                endpoint: `${mcpBaseUrl()}/mcp`,
               },
             },
           };
@@ -3598,64 +3490,16 @@ spec:
         aiSetStatus("Calling tool…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          const primaryUrl = `${toolsBaseUrl()}/mcp-tools`;
-          const initPrimary = async () => {
-            const r = await fetch(primaryUrl, {
-              method: "POST",
-              headers: { "content-type": "application/json", "accept": "application/json" },
-              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
-              cache: "no-store",
-            });
-            const sid = r.headers.get("mcp-session-id") || "";
-            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
-            return r;
-          };
-
-          const initAlt = async () => {
-            const r = await fetch(toolsAltUrl(), {
-              method: "POST",
-              headers: { "content-type": "application/json", "accept": "application/json" },
-              body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"initialize", params:{ protocolVersion:"2025-11-25", capabilities:{}, clientInfo:{ name:"rhcl-ui", version:"1" }}}),
-              cache: "no-store",
-            });
-            const sid = r.headers.get("mcp-session-id") || "";
-            if (sid) try{ localStorage.setItem("rhcl_mcp_tools_session_id", sid); } catch {}
-            return r;
-          };
-
-          let used = "same-origin";
-          let initStatus = 0;
-          let sid = mcpToolsSessionId();
-          if (!sid) {
-            const ir = await initPrimary();
-            initStatus = ir.status;
-            sid = mcpToolsSessionId();
-          }
           const toolName = aiSelectedToolName() || "nba_scoreboard";
           const params = { name: toolName, arguments: { dates: "" } };
-          const req = { jsonrpc: "2.0", id: Date.now(), method: "tools/call", params };
-          let r = await fetch(primaryUrl, {
-            method: "POST",
-            headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
-            body: JSON.stringify(req),
-            cache: "no-store",
-          });
-          let txt = await r.text();
-
-          if (r.status === 404){
-            used = "direct";
-            try{ localStorage.removeItem("rhcl_mcp_tools_session_id"); } catch {}
-            const ir2 = await initAlt();
-            initStatus = ir2.status;
-            sid = mcpToolsSessionId();
-            r = await fetch(toolsAltUrl(), {
-              method: "POST",
-              headers: { "content-type": "application/json", "accept": "application/json", ...(sid ? { "mcp-session-id": sid } : {}) },
-              body: JSON.stringify(req),
-              cache: "no-store",
-            });
-            txt = await r.text();
+          let sid = mcpSessionId();
+          if (!sid){
+            const ir = await mcpInitializeAt("/mcp", "rhcl_mcp_session_id");
+            sid = ir.sid || mcpSessionId();
           }
+
+          const r = await mcpRpc("tools/call", params);
+          const txt = await r.text();
 
           appendTo(aiLogEl, `[${now()}] tools/call ${toolName} -> ${r.status}`, r.ok ? "good" : "bad");
           let obj=null;
@@ -3677,14 +3521,9 @@ spec:
             tools: {
               ...((aiLastMetaObj && aiLastMetaObj.tools) ? aiLastMetaObj.tools : {}),
               call: {
-                used,
-                initStatus,
                 status: r.status,
                 toolName,
-                primaryPath: "/mcp-tools",
-                primaryOrigin: (location && location.origin) ? String(location.origin) : "",
-                altHost: mcpHost(),
-                altPath: "/tools/rhcl-mcp-tools",
+                endpoint: `${mcpBaseUrl()}/mcp`,
               },
             },
           };

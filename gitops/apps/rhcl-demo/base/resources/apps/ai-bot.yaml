@@ -95,12 +95,11 @@ spec:
             # ESPN is consumed via the Gateway-published external API hostname.
             - name: RHCL_AI_ESPN_BASE_URL
               value: https://external-api.REPLACE_ME_BASE_DOMAIN
-            # Tool calls go through the same-origin /mcp-tools bridge (stable across environments).
-            # This avoids cross-origin/TLS issues on the dedicated MCP hostname while still demonstrating Gateway routing.
+            # Tool calls go through the dedicated MCP Gateway hostname.
             - name: RHCL_AI_MCP_BASE_URL
-              value: https://REPLACE_ME_DEMO_HOSTNAME
+              value: https://mcp.REPLACE_ME_BASE_DOMAIN
             - name: RHCL_AI_MCP_PATH
-              value: /mcp-tools
+              value: /mcp
             - name: RHCL_AI_MCP_TOOL_SCOREBOARD
               value: nba_scoreboard
           readinessProbe:

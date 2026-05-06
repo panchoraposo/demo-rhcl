@@ -1,20 +1,20 @@
 apiVersion: kuadrant.io/v1
 kind: AuthPolicy
 metadata:
-  name: ai-bot-allow
-  namespace: rhcl-ai-bot
+  name: rhcl-mcp-gw-auth
+  namespace: openshift-ingress
   annotations:
-    argocd.argoproj.io/sync-wave: "32"
+    argocd.argoproj.io/sync-wave: "23"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   targetRef:
     group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: ai-bot
+    kind: Gateway
+    name: rhcl-mcp-gw
   defaults:
     rules:
       authorization:
-        allow-all:
+        deny-all:
           opa:
-            rego: "allow = true"
+            rego: "allow = false"
 

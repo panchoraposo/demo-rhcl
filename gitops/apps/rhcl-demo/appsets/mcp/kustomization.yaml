@@ -4,9 +4,8 @@ kind: Kustomization
 resources:
   - resources/namespace-mcp-system.yaml
   - resources/mcp-gateway-olm.yaml
-  - resources/kuadrant-mcp-server.yaml
   - resources/mcp-gateway-config-secret.yaml
-  - resources/httproute-mcp.yaml
+  - resources/mcp-gateway-authpolicy.yaml
   - resources/mcp-authpolicy.yaml
   - resources/mcp-gateway-gateway.yaml
   - resources/mcp-gateway-public-dnspolicy.yaml
