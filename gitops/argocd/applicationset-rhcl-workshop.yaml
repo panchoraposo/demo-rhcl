@@ -428,14 +428,12 @@ spec:
                     - name: http-mcp
                       port: 80
                       protocol: HTTP
-                      hostname: mcp.{{$baseDomain}}
                       allowedRoutes:
                         namespaces:
                           from: All
                     - name: https-mcp-public
                       port: 443
                       protocol: HTTPS
-                      hostname: mcp.{{$baseDomain}}
                       tls:
                         mode: Terminate
                         certificateRefs:
@@ -505,7 +503,7 @@ spec:
                   config.yaml: |
                     servers:
                       - enabled: true
-                        hostname: mcp.{{$baseDomain}}
+                        hostname: rhcl-mcp-tools.mcp.local
                         name: mcp-system/rhcl-mcp-tools
                         toolPrefix: tools_
                         url: http://rhcl-mcp-tools-bridge.mcp-system.svc.cluster.local:8080
