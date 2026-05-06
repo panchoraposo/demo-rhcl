@@ -13,7 +13,7 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
-      serviceAccountName: default
+      serviceAccountName: mcp-gateway-otel-patcher
       containers:
         - name: patch
           image: registry.redhat.io/openshift4/ose-cli:latest

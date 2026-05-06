@@ -17,5 +17,6 @@ resources:
   - resources/rhcl-mcp-tools-bridge.yaml
   - resources/referencegrant-demo-to-mcp-tools-bridge.yaml
   - resources/mcp-otel-collector.yaml
+  - resources/mcp-gateway-otel-rbac.yaml
   - resources/mcp-gateway-otel-env-job.yaml
 
