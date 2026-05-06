@@ -836,25 +836,7 @@
               </div>
             </div>
 
-            <div class="grid" style="margin-top:16px">
-              <div class="card" style="grid-column: 1 / -1;">
-                <h2>MCP module components (used by AI demo)</h2>
-                <div class="sub">
-                  These resources publish a stable MCP endpoint on a dedicated hostname and expose tools for AI agents.
-                </div>
-                <div class="row" style="margin-top:10px">
-                  <span class="pill"><span class="dot"></span> Gateway (MCP hostname)</span>
-                  <span class="pill"><span class="dot"></span> DNSPolicy (Route53 record)</span>
-                  <span class="pill"><span class="dot"></span> MCPGatewayExtension</span>
-                  <span class="pill"><span class="dot"></span> HTTPRoute (/mcp + /servers/*)</span>
-                  <span class="pill"><span class="dot"></span> mcp-gateway-config</span>
-                </div>
-                <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
-                  <button class="primary" onclick="openYamlSet('mcp')">View MCP Gateway YAML</button>
-                  <span class="pill"><span class="dot good"></span> demo tip: apply AuthPolicy + RateLimitPolicy here too</span>
-                </div>
-              </div>
-            </div>
+            <!-- MCP internals intentionally hidden (keep the module focused on demo outcomes) -->
           </section>
 
           <section class="module" id="roles" data-module="roles" style="display:none">
@@ -1297,30 +1279,13 @@
                 </div>
               </div>
 
-              <div class="card">
-                <h2>Demo cockpit</h2>
-                <div class="sub">
-                  Use this panel live while you demo. It’s designed to “fill the screen” with the most useful next actions.
-                </div>
-                <div class="btnGrid" style="margin-top:10px">
-                  <button class="primary" onclick="obsGenerateTraffic()">Generate traffic</button>
-                  <button onclick="setConsoleUrl()">Change console URL</button>
-                </div>
-                <div class="kpi" style="margin-top:12px">
-                  <div class="box wide">
-                    <div class="label">Key metrics (for demo)</div>
-                    <div class="subv">
-                      Focus on <span class="mono">kuadrant_*</span> and <span class="mono">gatewayapi_*</span metrics in Grafana and the OpenShift Console Query Browser.
-                    </div>
-                  </div>
-                </div>
-                <ul class="sub" style="margin:12px 0 0 18px; line-height:1.55">
-                  <li><b>North–south</b>: use Connectivity Link policies on the Gateway to control external traffic (auth + rate limits).</li>
-                </ul>
-              </div>
-
               <div class="card" style="grid-column: 1 / -1;">
                 <h2>Quick checks</h2>
+                <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
+                  <button class="primary" onclick="obsGenerateTraffic()">Generate sample traffic</button>
+                  <button onclick="setConsoleUrl()">Change console URL</button>
+                  <button onclick="copyText('sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\"}[5m])) by (destination_workload)')">Copy PromQL (gateway req/s)</button>
+                </div>
                 <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
                   <li><b>Generate traffic</b> for each module: <span class="mono">demo</span> (UI/API/external), <span class="mono">demo-ab</span> (A/B + canary), <span class="mono">demo-jwt</span> (JWT), <span class="mono">rhcl-ai-bot</span> (AI).</li>
                   <li><b>Dashboards</b>: open Grafana and use the <b>RHCL Workshop</b> folder for role-based views.</li>
@@ -1330,7 +1295,7 @@
                     <span class="pill"><span class="dot"></span> <span id="obsTrafficStatus">traffic: idle</span></span>
                   </div>
                   <div class="right">
-                    <button class="primary" onclick="obsGenerateTraffic()">Generate sample traffic</button>
+                    <button onclick="clearObsLog()">Clear</button>
                   </div>
                 </div>
                 <div class="log" id="obsTrafficLog" style="height:140px; margin-top:10px"></div>
@@ -3934,6 +3899,11 @@ spec:
         else localStorage.removeItem("rhcl_console_url");
         refreshLightspeedLinks();
         toast(`Console URL set to: ${consoleBaseUrl() || "(unknown)"}`);
+      }
+
+      function clearObsLog(){
+        if (obsTrafficStatusEl) obsTrafficStatusEl.textContent = "traffic: idle";
+        if (obsTrafficLogEl) obsTrafficLogEl.textContent = "";
       }
 
       async function obsGenerateTraffic(opts){
