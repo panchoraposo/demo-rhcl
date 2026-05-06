@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mcp-gateway-enable-otel
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "80"
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: default
+      containers:
+        - name: patch
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command:
+            - /bin/bash
+            - -lc
+            - |
+              set -euo pipefail
+
+              ns="mcp-system"
+              deploy="mcp-gateway"
+              collector="http://mcp-otel-collector.${ns}.svc.cluster.local:4318"
+
+              echo "Waiting for deployment/${deploy} in ${ns}..."
+              for i in $(seq 1 180); do
+                if oc -n "${ns}" get deploy "${deploy}" >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 2
+              done
+
+              echo "Setting OTEL env vars on deployment/${deploy}..."
+              oc -n "${ns}" set env "deployment/${deploy}" \
+                OTEL_EXPORTER_OTLP_ENDPOINT="${collector}" \
+                OTEL_EXPORTER_OTLP_INSECURE="true" \
+                OTEL_SERVICE_NAME="mcp-gateway"
+

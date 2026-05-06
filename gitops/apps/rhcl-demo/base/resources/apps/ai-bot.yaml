@@ -102,6 +102,13 @@ spec:
               value: /mcp
             - name: RHCL_AI_MCP_TOOL_SCOREBOARD
               value: nba_scoreboard
+            # Traces (OTLP) - exported to the workshop collector (Tempo).
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.rhcl-observability.svc.cluster.local:4318
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              value: "true"
+            - name: OTEL_SERVICE_NAME
+              value: rhcl-ai-bot
           readinessProbe:
             httpGet:
               path: /q/health/ready

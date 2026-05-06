@@ -27,6 +27,13 @@ spec:
           env:
             - name: RHCL_AI_ESPN_BASE_URL
               value: https://external-api.REPLACE_ME_BASE_DOMAIN
+            # Traces (OTLP) - exported to the MCP namespace collector.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://mcp-otel-collector.mcp-system.svc.cluster.local:4318
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              value: "true"
+            - name: OTEL_SERVICE_NAME
+              value: rhcl-mcp-tools
           readinessProbe:
             httpGet:
               path: /q/health/ready

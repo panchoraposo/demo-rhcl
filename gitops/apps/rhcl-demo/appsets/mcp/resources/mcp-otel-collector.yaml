@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-otel
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: mcp-otel
+  namespace: mcp-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "41"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  mode: deployment
+  serviceAccount: mcp-otel
+  config:
+    receivers:
+      otlp:
+        protocols:
+          http:
+            endpoint: 0.0.0.0:4318
+          grpc:
+            endpoint: 0.0.0.0:4317
+
+    exporters:
+      otlp/tempo:
+        auth:
+          authenticator: bearertokenauth
+        endpoint: tempo-simplest-gateway.rhcl-observability.svc.cluster.local:8090
+        headers:
+          X-Scope-OrgID: dev
+        tls:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          insecure: false
+      debug:
+        verbosity: basic
+
+    extensions:
+      bearertokenauth:
+        filename: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+    service:
+      extensions:
+        - bearertokenauth
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [otlp/tempo, debug]
+
