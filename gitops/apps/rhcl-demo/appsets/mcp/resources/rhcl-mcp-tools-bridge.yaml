@@ -85,6 +85,13 @@ data:
           return;
         }
     
+        // Minimal request logging for troubleshooting.
+        // (Do not log full bodies; keep logs bounded.)
+        const rid = typeof req.headers["x-request-id"] === "string" ? String(req.headers["x-request-id"]) : "";
+        const hAccept = typeof req.headers["accept"] === "string" ? String(req.headers["accept"]) : "";
+        const hSid = typeof req.headers["mcp-session-id"] === "string" ? String(req.headers["mcp-session-id"]) : "";
+        console.log(`[bridge] ${req.method} ${url.pathname} rid=${rid} accept="${hAccept}" mcp-session-id="${hSid}"`);
+
         // CORS preflight support (the browser will preflight cross-origin JSON POSTs).
         if (req.method === "OPTIONS") {
           res.statusCode = 204;
@@ -116,6 +123,7 @@ data:
         const method = String(msg && msg.method ? msg.method : "").trim();
         const incomingBrokerSid = typeof req.headers["mcp-session-id"] === "string" ? String(req.headers["mcp-session-id"]).trim() : "";
     
+        console.log(`[bridge] rid=${rid} mcp.method=${method} bodyHead=${JSON.stringify(raw.slice(0, 200))}`);
     
         // The Quarkiverse MCP server requires "notifications/initialized" after initialize.
         // mcp-gateway does not reliably send that to upstream servers today, so we normalize here.
@@ -130,6 +138,7 @@ data:
           res.setHeader("mcp-session-id", brokerSid);
           res.setHeader("content-type", init.contentType);
           res.end(init.body);
+          console.log(`[bridge] rid=${rid} upstream.initialize status=${init.status} brokerSid=${brokerSid} upstreamSid=${init.sid}`);
           return;
         }
     
@@ -152,6 +161,7 @@ data:
         if (!incomingBrokerSid) res.setHeader("mcp-session-id", brokerSid);
         res.setHeader("content-type", up.headers.get("content-type") || "application/json");
         res.end(upText);
+        console.log(`[bridge] rid=${rid} upstream.status=${up.status} brokerSid=${brokerSid} upstreamSid=${upstreamSid} ct=${up.headers.get("content-type") || ""}`);
       } catch (e) {
         res.statusCode = 500;
         res.setHeader("content-type", "text/plain");
