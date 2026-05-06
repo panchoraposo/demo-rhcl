@@ -10,6 +10,7 @@ data:
     import http from "node:http";
     import crypto from "node:crypto";
     import { URL } from "node:url";
+    import { Readable } from "node:stream";
     
     const upstream = process.env.UPSTREAM_URL || "http://rhcl-mcp-tools.mcp-system.svc.cluster.local:8080/mcp";
     const upstreamUrl = new URL(upstream);
@@ -111,8 +112,11 @@ data:
           if (url.pathname === "/mcp") url.pathname = "/mcp/sse";
           const brokerSid = typeof req.headers["mcp-session-id"] === "string" ? String(req.headers["mcp-session-id"]).trim() : "";
           const upstreamSid = brokerSid ? await ensureUpstreamSession(brokerSid) : "";
+          const ac = new AbortController();
+          res.on("close", () => ac.abort());
           const up = await fetch(upstreamTargetUrl(url), {
             method: "GET",
+            signal: ac.signal,
             headers: {
               "accept": typeof req.headers["accept"] === "string" ? String(req.headers["accept"]) : "text/event-stream",
               ...(upstreamSid ? { "mcp-session-id": upstreamSid } : {}),
@@ -120,9 +124,12 @@ data:
           });
           res.statusCode = up.status;
           res.setHeader("content-type", up.headers.get("content-type") || "text/event-stream");
-          const t = await up.text();
-          res.end(t);
-          console.log(`[bridge] rid=${rid} upstream.GET status=${up.status} url=${url.pathname} ct=${up.headers.get("content-type") || ""} bodyHead=${JSON.stringify(t.slice(0, 200))}`);
+          console.log(`[bridge] rid=${rid} upstream.GET status=${up.status} url=${url.pathname} ct=${up.headers.get("content-type") || ""}`);
+          if (!up.body) {
+            res.end();
+            return;
+          }
+          Readable.fromWeb(up.body).pipe(res);
           return;
         }
     
