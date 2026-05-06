@@ -7,6 +7,7 @@ resources:
   - resources/mcp-gateway-config-secret.yaml
   - resources/mcp-gateway-authpolicy.yaml
   - resources/mcp-authpolicy.yaml
+  - resources/mcp-tools-authpolicy.yaml
   - resources/mcp-gateway-gateway.yaml
   - resources/mcp-gateway-public-dnspolicy.yaml
   - resources/mcp-gateway-referencegrant.yaml
