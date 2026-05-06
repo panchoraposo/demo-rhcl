@@ -16,11 +16,6 @@ spec:
     - REPLACE_ME_MCP_HOSTNAME
   rules:
     - matches:
-        - method: OPTIONS
-          path:
-            type: PathPrefix
-            value: /tools/rhcl-mcp-tools
-        - method: POST
         - path:
             type: PathPrefix
             value: /tools/rhcl-mcp-tools
