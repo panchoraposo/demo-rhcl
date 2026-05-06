@@ -428,14 +428,14 @@ spec:
                     - name: http-mcp
                       port: 80
                       protocol: HTTP
-                      hostname: null
+                      hostname: mcp.{{$baseDomain}}
                       allowedRoutes:
                         namespaces:
                           from: All
                     - name: https-mcp-public
                       port: 443
                       protocol: HTTPS
-                      hostname: null
+                      hostname: mcp.{{$baseDomain}}
                       tls:
                         mode: Terminate
                         certificateRefs:
