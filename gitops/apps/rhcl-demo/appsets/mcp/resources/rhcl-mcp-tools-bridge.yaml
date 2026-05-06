@@ -24,7 +24,12 @@ data:
     function upstreamTargetPath(incomingPath) {
       const p = String(incomingPath || "");
       if (p === upstreamPrefix) return upstreamPrefix;
-      if (p.startsWith("/mcp/")) return upstreamPrefix + p.slice("/mcp".length);
+      if (p.startsWith("/mcp/")) {
+        // Normalize all POST message paths back to the MCP root endpoint.
+        // Some clients call /mcp/initialize or /mcp/messages/* but Quarkiverse' HTTP transport uses POST /mcp.
+        if (p === "/mcp/sse") return upstreamPrefix + "/sse";
+        return upstreamPrefix;
+      }
       if (p === "/mcp") return upstreamPrefix;
       return upstreamPrefix;
     }
