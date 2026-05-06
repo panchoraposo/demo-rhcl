@@ -26,22 +26,13 @@ spec:
 
     exporters:
       otlp/tempo:
-        auth:
-          authenticator: bearertokenauth
-        endpoint: tempo-simplest-gateway.rhcl-observability.svc.cluster.local:8090
+        endpoint: tempo-simplest-distributor.rhcl-observability.svc.cluster.local:4317
         headers:
           X-Scope-OrgID: dev
         tls:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
-          insecure: false
-
-    extensions:
-      bearertokenauth:
-        filename: /var/run/secrets/kubernetes.io/serviceaccount/token
+          insecure: true
 
     service:
-      extensions:
-        - bearertokenauth
       pipelines:
         traces:
           receivers:
