@@ -12,13 +12,11 @@ spec:
       name: rhcl-mcp-gw
       namespace: openshift-ingress
       sectionName: http-mcp
-  hostnames:
-    - rhcl-mcp-tools.mcp.local
   rules:
     - matches:
         - path:
             type: PathPrefix
-            value: /
+            value: /mcp
       backendRefs:
         - group: ""
           kind: Service
