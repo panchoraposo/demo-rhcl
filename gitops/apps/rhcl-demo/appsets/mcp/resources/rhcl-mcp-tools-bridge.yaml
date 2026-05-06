@@ -12,11 +12,28 @@ data:
     import { URL } from "node:url";
     
     const upstream = process.env.UPSTREAM_URL || "http://rhcl-mcp-tools.mcp-system.svc.cluster.local:8080/mcp";
+    const upstreamUrl = new URL(upstream);
+    const upstreamPrefix = upstreamUrl.pathname && upstreamUrl.pathname !== "/" ? upstreamUrl.pathname : "/mcp";
     const listenPort = Number(process.env.PORT || "8080");
     const DEFAULT_BROKER_SESSION = "default";
     
     // brokerSessionId -> upstreamSessionId
     const sessions = new Map();
+
+    function upstreamTargetPath(incomingPath) {
+      const p = String(incomingPath || "");
+      if (p === upstreamPrefix) return upstreamPrefix;
+      if (p.startsWith("/mcp/")) return upstreamPrefix + p.slice("/mcp".length);
+      if (p === "/mcp") return upstreamPrefix;
+      return upstreamPrefix;
+    }
+
+    function upstreamTargetUrl(incomingUrl) {
+      const u = new URL(upstreamUrl.toString());
+      u.pathname = upstreamTargetPath(incomingUrl.pathname);
+      u.search = incomingUrl.search || "";
+      return u.toString();
+    }
     
     async function upstreamInitialize(params) {
       const init = {
@@ -30,7 +47,7 @@ data:
         },
       };
     
-      const r = await fetch(upstream, {
+      const r = await fetch(upstreamTargetUrl(new URL("/mcp", "http://local")), {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -48,7 +65,7 @@ data:
     }
     
     async function upstreamInitialized(upstreamSid) {
-      await fetch(upstream, {
+      await fetch(upstreamTargetUrl(new URL("/mcp", "http://local")), {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -85,6 +102,23 @@ data:
         if (!url.pathname.startsWith("/mcp")) {
           res.statusCode = 404;
           res.end();
+          return;
+        }
+    
+        // Proxy GETs (SSE transport uses GET /mcp/sse, and may keep the stream open).
+        if (req.method === "GET") {
+          const brokerSid = typeof req.headers["mcp-session-id"] === "string" ? String(req.headers["mcp-session-id"]).trim() : "";
+          const upstreamSid = brokerSid ? await ensureUpstreamSession(brokerSid) : "";
+          const up = await fetch(upstreamTargetUrl(url), {
+            method: "GET",
+            headers: {
+              "accept": typeof req.headers["accept"] === "string" ? String(req.headers["accept"]) : "text/event-stream",
+              ...(upstreamSid ? { "mcp-session-id": upstreamSid } : {}),
+            },
+          });
+          res.statusCode = up.status;
+          res.setHeader("content-type", up.headers.get("content-type") || "text/event-stream");
+          res.end(await up.text());
           return;
         }
     
@@ -148,7 +182,7 @@ data:
         const brokerSid = incomingBrokerSid || DEFAULT_BROKER_SESSION;
         const upstreamSid = await ensureUpstreamSession(brokerSid);
     
-        const up = await fetch(upstream, {
+        const up = await fetch(upstreamTargetUrl(url), {
           method: "POST",
           headers: {
             "content-type": "application/json",
