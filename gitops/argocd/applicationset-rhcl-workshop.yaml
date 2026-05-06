@@ -508,7 +508,7 @@ spec:
                         hostname: mcp.{{$baseDomain}}
                         name: mcp-system/rhcl-mcp-tools
                         toolPrefix: tools_
-                        url: https://mcp.{{$baseDomain}}/tools/rhcl-mcp-tools
+                        url: http://rhcl-mcp-tools-bridge.mcp-system.svc.cluster.local:8080/mcp
             - target:
                 group: apps
                 version: v1
