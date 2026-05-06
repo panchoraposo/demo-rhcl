@@ -65,6 +65,14 @@ data:
       return { sid, status: r.status, contentType: r.headers.get("content-type") || "application/json", body: txt };
     }
     
+    function isBodyTimeoutError(e) {
+      const c = e && typeof e === "object" ? e.cause : undefined;
+      return Boolean(
+        (e && typeof e === "object" && String(e.name || "").includes("TypeError") && String(e.message || "").toLowerCase().includes("terminated")) ||
+        (c && typeof c === "object" && String(c.code || "") === "UND_ERR_BODY_TIMEOUT")
+      );
+    }
+    
     async function upstreamInitialized(upstreamSid) {
       await fetch(upstreamTargetUrl(new URL("/mcp", "http://local")), {
         method: "POST",
@@ -122,14 +130,26 @@ data:
           const upstreamSid = brokerSid ? await ensureUpstreamSession(brokerSid) : "";
           const ac = new AbortController();
           res.on("close", () => ac.abort());
-          const up = await fetch(upstreamTargetUrl(url), {
+          let up;
+          try {
+            up = await fetch(upstreamTargetUrl(url), {
             method: "GET",
             signal: ac.signal,
             headers: {
               "accept": typeof req.headers["accept"] === "string" ? String(req.headers["accept"]) : "text/event-stream",
               ...(upstreamSid ? { "mcp-session-id": upstreamSid } : {}),
             },
-          });
+            });
+          } catch (e) {
+            if (isBodyTimeoutError(e)) {
+              // Treat upstream body timeouts as a stream close, not a fatal error.
+              res.statusCode = 200;
+              res.setHeader("content-type", "text/event-stream");
+              res.end();
+              return;
+            }
+            throw e;
+          }
           res.statusCode = up.status;
           res.setHeader("content-type", up.headers.get("content-type") || "text/event-stream");
           console.log(`[bridge] rid=${rid} upstream.GET status=${up.status} url=${url.pathname} ct=${up.headers.get("content-type") || ""}`);
@@ -137,7 +157,15 @@ data:
             res.end();
             return;
           }
-          Readable.fromWeb(up.body).pipe(res);
+          const stream = Readable.fromWeb(up.body);
+          stream.on("error", (e) => {
+            if (isBodyTimeoutError(e)) {
+              try { res.end(); } catch { /* ignore */ }
+              return;
+            }
+            try { res.destroy(e); } catch { /* ignore */ }
+          });
+          stream.pipe(res);
           return;
         }
 
