@@ -27,6 +27,10 @@ spec:
           env:
             - name: RHCL_AI_ESPN_BASE_URL
               value: https://external-api.REPLACE_ME_BASE_DOMAIN
+            - name: QUARKUS_HTTP_ACCESS_LOG_ENABLED
+              value: "true"
+            - name: QUARKUS_HTTP_ACCESS_LOG_PATTERN
+              value: '%h "%r" %s %b "%{i,accept}" "%{i,content-type}"'
             # Traces (OTLP) - exported to the MCP namespace collector.
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://mcp-otel-collector.mcp-system.svc.cluster.local:4318
