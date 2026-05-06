@@ -6,6 +6,5 @@ resources:
   - resources/rhcl-operator.yaml
   - resources/kuadrant-cr.yaml
   - resources/observability-and-grafana.yaml
-  - resources/patch-dashboards.yaml
   # (Service mesh removed)
 

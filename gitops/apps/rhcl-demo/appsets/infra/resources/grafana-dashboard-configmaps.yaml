@@ -17,11 +17,24 @@ data:
       "templating": {
         "list": [
           {
+            "name": "ns",
+            "type": "query",
+            "datasource": null,
+            "query": {
+              "query": "label_values(istio_requests_total{destination_service_namespace=~\"demo|demo-ab|demo-jwt|rhcl-ai-bot|rhcl-oidc-portal|rhcl-keycloak\"}, destination_service_namespace)",
+              "refId": "StandardVariableQuery"
+            },
+            "includeAll": true,
+            "allValue": ".*",
+            "multi": true,
+            "current": { "selected": true, "text": "demo", "value": "demo" }
+          },
+          {
             "name": "svc",
             "type": "query",
             "datasource": null,
             "query": {
-              "query": "label_values(istio_requests_total{destination_service_namespace=\"demo\"}, destination_service_name)",
+              "query": "label_values(istio_requests_total{destination_service_namespace=~\"$ns\"}, destination_service_name)",
               "refId": "StandardVariableQuery"
             },
             "includeAll": true,
@@ -40,7 +53,7 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "sum(rate(istio_requests_total{destination_service_namespace=\"demo\",destination_service_name=~\"$svc\"}[1m])) by (destination_service_name)",
+              "expr": "sum(rate(istio_requests_total{destination_service_namespace=~\"$ns\",destination_service_name=~\"$svc\"}[1m])) by (destination_service_name)",
               "legendFormat": "{{destination_service_name}}"
             }
           ]
@@ -48,12 +61,12 @@ data:
         {
           "id": 2,
           "type": "timeseries",
-          "title": "Errors / second (4xx + 5xx)",
+          "title": "Errors / second (4xx + 5xx) — includes 429",
           "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
           "targets": [
             {
               "refId": "A",
-              "expr": "sum(rate(istio_requests_total{destination_service_namespace=\"demo\",destination_service_name=~\"$svc\",response_code=~\"4..|5..\"}[1m])) by (response_code)",
+              "expr": "sum(rate(istio_requests_total{destination_service_namespace=~\"$ns\",destination_service_name=~\"$svc\",response_code=~\"4..|5..\"}[1m])) by (response_code)",
               "legendFormat": "{{response_code}}"
             }
           ]
@@ -66,7 +79,7 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_namespace=\"demo\",destination_service_name=~\"$svc\"}[5m])) by (le))",
+              "expr": "histogram_quantile(0.95, sum(rate(istio_request_duration_milliseconds_bucket{destination_service_namespace=~\"$ns\",destination_service_name=~\"$svc\"}[5m])) by (le))",
               "legendFormat": "p95"
             }
           ]
@@ -160,6 +173,19 @@ data:
               "legendFormat": "{{response_code}}"
             }
           ]
+        },
+        {
+          "id": 14,
+          "type": "timeseries",
+          "title": "Rate limited / second (429)",
+          "gridPos": { "x": 0, "y": 16, "w": 24, "h": 6 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(istio_requests_total{reporter=\"source\",source_workload_namespace=\"openshift-ingress\",source_workload=~\"$gateway\",response_code=\"429\"}[1m]))",
+              "legendFormat": "429"
+            }
+          ]
         }
       ]
     }
@@ -189,8 +215,21 @@ data:
           "targets": [
             {
               "refId": "A",
-              "expr": "topk(6, sum(rate(istio_requests_total{destination_service_namespace=\"demo\"}[1m])) by (destination_service_name))",
+              "expr": "topk(6, sum(rate(istio_requests_total{destination_service_namespace=~\"demo|demo-ab|demo-jwt|rhcl-ai-bot|rhcl-oidc-portal|rhcl-keycloak\"}[1m])) by (destination_service_name))",
               "legendFormat": "{{destination_service_name}}"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "type": "timeseries",
+          "title": "Blocked traffic (req/s) — 401/403/429",
+          "gridPos": { "x": 0, "y": 8, "w": 24, "h": 7 },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(istio_requests_total{destination_service_namespace=~\"demo|demo-ab|demo-jwt|rhcl-ai-bot|rhcl-oidc-portal|rhcl-keycloak\",response_code=~\"401|403|429\"}[1m])) by (response_code)",
+              "legendFormat": "{{response_code}}"
             }
           ]
         },
@@ -198,11 +237,11 @@ data:
           "id": 21,
           "type": "table",
           "title": "Total requests (selected range)",
-          "gridPos": { "x": 0, "y": 8, "w": 24, "h": 10 },
+          "gridPos": { "x": 0, "y": 15, "w": 24, "h": 10 },
           "targets": [
             {
               "refId": "A",
-              "expr": "sum(increase(istio_requests_total{destination_service_namespace=\"demo\"}[$__range])) by (destination_service_name)",
+              "expr": "sum(increase(istio_requests_total{destination_service_namespace=~\"demo|demo-ab|demo-jwt|rhcl-ai-bot|rhcl-oidc-portal|rhcl-keycloak\"}[$__range])) by (destination_service_name)",
               "format": "table",
               "instant": true
             }
