@@ -89,6 +89,14 @@ spec:
           namespace: rhcl-ai-bot
           jsonPointers:
             - /spec/template/spec/containers/0/image
+        - group: tempo.grafana.com
+          kind: TempoStack
+          name: simplest
+          namespace: rhcl-observability
+          jsonPointers:
+            - /metadata/annotations
+            - /spec
+            - /status
         - group: cert-manager.io
           kind: Certificate
           name: rhcl-gw-tls
