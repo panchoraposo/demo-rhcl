@@ -107,6 +107,8 @@ data:
     
         // Proxy GETs (SSE transport uses GET /mcp/sse, and may keep the stream open).
         if (req.method === "GET") {
+          // mcp-gateway currently tries to open an event stream on /mcp; Quarkiverse uses /mcp/sse.
+          if (url.pathname === "/mcp") url.pathname = "/mcp/sse";
           const brokerSid = typeof req.headers["mcp-session-id"] === "string" ? String(req.headers["mcp-session-id"]).trim() : "";
           const upstreamSid = brokerSid ? await ensureUpstreamSession(brokerSid) : "";
           const up = await fetch(upstreamTargetUrl(url), {
@@ -118,7 +120,9 @@ data:
           });
           res.statusCode = up.status;
           res.setHeader("content-type", up.headers.get("content-type") || "text/event-stream");
-          res.end(await up.text());
+          const t = await up.text();
+          res.end(t);
+          console.log(`[bridge] rid=${rid} upstream.GET status=${up.status} url=${url.pathname} ct=${up.headers.get("content-type") || ""} bodyHead=${JSON.stringify(t.slice(0, 200))}`);
           return;
         }
     
