@@ -56,7 +56,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "31"
 spec:
   selector:
-    app: rhcl-mcp-tools
+    # NOTE: mcp-gateway's internal client resolves the tool server by Service name.
+    # Point this Service at the bridge so initialize/tools/call works with strict Accept handling.
+    app: rhcl-mcp-tools-bridge
   ports:
     - name: http
       port: 8080
