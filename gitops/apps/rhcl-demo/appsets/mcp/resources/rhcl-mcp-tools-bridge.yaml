@@ -97,13 +97,14 @@ data:
     const handler = async (req, res) => {
       try {
         const url = new URL(req.url || "/", "http://localhost");
-        // Be liberal in what we accept: some clients treat the server URL as the host:port
-        // and POST to "/" for streamable HTTP. Normalize "/" to "/mcp".
+        // Be liberal in what we accept: different MCP clients use different base paths.
+        // Normalize legacy paths onto Quarkiverse' /mcp/* endpoints.
         if (url.pathname === "/") url.pathname = "/mcp";
+        if (url.pathname === "/sse") url.pathname = "/mcp/sse";
+        if (url.pathname.startsWith("/messages/")) url.pathname = "/mcp" + url.pathname;
         if (!url.pathname.startsWith("/mcp")) {
-          res.statusCode = 404;
-          res.end();
-          return;
+          // Last resort: treat the request path as relative to /mcp.
+          url.pathname = "/mcp" + (url.pathname.startsWith("/") ? url.pathname : ("/" + url.pathname));
         }
     
         // Proxy GETs (SSE transport uses GET /mcp/sse, and may keep the stream open).
