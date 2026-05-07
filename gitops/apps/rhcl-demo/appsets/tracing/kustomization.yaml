@@ -10,6 +10,7 @@ resources:
   - resources/odf-object-bucket.yaml
   - resources/tempostack.yaml
   - resources/networkpolicy-allow-mcp-to-tempo-distributor.yaml
+  - resources/networkpolicy-allow-otel-to-tempo-distributor.yaml
   - resources/tempo-tenant-rbac.yaml
   - resources/otel-collector.yaml
   - resources/cluster-observability-operator.yaml

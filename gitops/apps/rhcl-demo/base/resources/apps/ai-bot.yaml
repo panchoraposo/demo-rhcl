@@ -103,12 +103,17 @@ spec:
             - name: RHCL_AI_MCP_TOOL_SCOREBOARD
               value: nba_scoreboard
             # Traces (OTLP) - exported to the workshop collector (Tempo).
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://otel-collector.rhcl-observability.svc.cluster.local:4318
-            - name: OTEL_EXPORTER_OTLP_INSECURE
+            # Use Quarkus OpenTelemetry config keys to avoid OTEL_* ambiguity.
+            - name: QUARKUS_OTEL_ENABLED
               value: "true"
-            - name: OTEL_SERVICE_NAME
+            - name: QUARKUS_OTEL_SERVICE_NAME
               value: rhcl-ai-bot
+            - name: QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.rhcl-observability.svc.cluster.local:4317
+            - name: QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
+            - name: QUARKUS_OTEL_TRACES_SAMPLER
+              value: always_on
           readinessProbe:
             httpGet:
               path: /q/health/ready

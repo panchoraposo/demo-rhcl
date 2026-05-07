@@ -28,9 +28,7 @@ spec:
 
     exporters:
       otlp/tempo:
-        endpoint: tempo-simplest-distributor.rhcl-observability.svc.cluster.local:4317
-        headers:
-          X-Scope-OrgID: dev
+        endpoint: otel-collector.rhcl-observability.svc.cluster.local:4317
         tls:
           insecure: true
       debug:
