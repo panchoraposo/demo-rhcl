@@ -7,7 +7,7 @@ resources:
   - resources/tempo-operator.yaml
   # OpenTelemetry operator is already present on many clusters (and OLM will fail if
   # we try to install it twice). We only deploy a collector instance for the demo.
-  - resources/tempo-minio.yaml
+  - resources/odf-object-bucket.yaml
   - resources/tempostack.yaml
   - resources/networkpolicy-allow-mcp-to-tempo-distributor.yaml
   - resources/networkpolicy-allow-otel-to-tempo-distributor.yaml
