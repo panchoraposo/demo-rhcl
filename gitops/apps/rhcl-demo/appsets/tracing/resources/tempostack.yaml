@@ -29,5 +29,5 @@ spec:
         enabled: false
     queryFrontend:
       jaegerQuery:
-        enabled: false
+        enabled: true
 
