@@ -6,6 +6,20 @@ need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1
 need python3
 need oc
 
+require_context() {
+  local expected="${1:-}"
+  [[ -n "${expected}" ]] || return 0
+  local current
+  current="$(oc config current-context 2>/dev/null || true)"
+  if [[ "${current}" != "${expected}" ]]; then
+    echo "ERROR: oc context must be '${expected}' (current: '${current:-<none>}')." >&2
+    echo "Run: oc config use-context ${expected}" >&2
+    exit 1
+  fi
+}
+
+require_context "${RHCL_REQUIRED_CONTEXT:-rhcl}"
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="${VENV_DIR:-${ROOT_DIR}/.venv}"
 

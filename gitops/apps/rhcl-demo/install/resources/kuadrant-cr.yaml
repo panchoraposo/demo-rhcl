@@ -10,3 +10,8 @@ spec:
   observability:
     enable: true
 
+  mtls:
+    enable: false
+    authorino: false
+    limitador: false
+

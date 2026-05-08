@@ -742,7 +742,6 @@
           <button data-module="ai">AI chatbot</button>
           <button data-module="keycloakjwt">AuthPolicy (Keycloak JWT)</button>
           <button data-module="oidc">OIDC portal</button>
-          <button data-module="lightspeed">OpenShift Lightspeed</button>
           <button data-module="observability">Observability</button>
         </div>
       </aside>
@@ -760,6 +759,7 @@
               <span class="tag"><b>Gateway API</b> (openshift-default)</span>
               <span class="tag"><b>Kuadrant</b> policies</span>
               <span class="tag"><b>Same-origin</b> UI</span>
+              <span class="tag"><b>UI build</b> 2026-05-08.1</span>
             </div>
           </header>
 
@@ -1279,6 +1279,21 @@
                 </div>
               </div>
 
+              <div class="card">
+                <h2>OpenShift Console graphs</h2>
+                <div class="sub">Open the Query Browser with pre-filled PromQL (no copy/paste).</div>
+                <div class="btnGrid" style="margin-top:10px">
+                  <button class="primary" onclick="openConsoleQueryBrowser('Gateway req/s (by workload)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\"}[5m])) by (destination_workload)')">Gateway req/s</button>
+                  <button onclick="openConsoleQueryBrowser('HTTP codes (gateway)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\",response_code=~\"(200|401|403|404|429|5..)\"}[5m])) by (response_code)')">200/401/403/404/429/5xx</button>
+                  <button onclick="openConsoleQueryBrowser('Auth + limits (401/403/429)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\",response_code=~\"(401|403|429)\"}[5m])) by (response_code)')">Auth + limits</button>
+                  <button onclick="openConsoleQueryBrowser('Not found (404)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\",response_code=\"404\"}[5m]))')">404</button>
+                </div>
+                <div class="footer">
+                  Uses <span class="mono">istio_requests_total</span> from User Workload Monitoring.
+                  If links don’t open, set the Console URL in <b>Quick checks</b>.
+                </div>
+              </div>
+
               <div class="card" style="grid-column: 1 / -1;">
                 <h2>Quick checks</h2>
                 <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
@@ -1303,52 +1318,7 @@
             </div>
           </section>
 
-          <section class="module" id="lightspeed" data-module="lightspeed">
-            <div class="moduleHero">
-              <div class="k">Module</div>
-              <div class="t"><b>OpenShift Lightspeed</b> — ask your cluster (Connectivity Link)</div>
-              <div class="d">
-                Lightspeed runs in the OpenShift Console and can call MCP tools to answer questions with real cluster context.
-                Use this module as a guided entrypoint and a prompt cookbook.
-              </div>
-            </div>
-
-            <div class="grid">
-              <div class="card">
-                <h2>Open Lightspeed (in Console)</h2>
-                <div class="sub">
-                  This demo UI can’t embed the Console plugin UI. Open the Console in a new tab and use the Lightspeed button/popover there.
-                </div>
-                <div class="btnGrid" style="margin-top:10px">
-                  <a class="btnLink primary" id="olsConsoleHome" target="_blank" rel="noreferrer">Open OpenShift Console</a>
-                  <button onclick="setConsoleUrl()">Change console URL</button>
-                </div>
-                <div class="footer">
-                  Tip: after opening the Console, look for the <b>Lightspeed</b> icon/button (it opens as a popover).
-                </div>
-              </div>
-
-              <div class="card" style="grid-column: 1 / -1;">
-                <h2>Copy/paste prompts (Connectivity Link)</h2>
-                <div class="sub">These prompts are designed to be demoable against the policies and resources in this workshop.</div>
-                <div class="btnGrid" style="margin-top:10px">
-                  <button class="primary" onclick="olsCopyPrompt('Debug why RateLimitPolicy enforcement is not working for my demo endpoints. Focus on Gateway rhcl-gw in namespace openshift-ingress and routes in namespace demo. Give a short checklist of what to verify and likely root causes.')">Copy: Rate limits not enforced</button>
-                  <button class="primary" onclick="olsCopyPrompt('Explain the AuthPolicy rhcl-mcp-gw-auth in namespace openshift-ingress. What does it block by default, and what is the smallest safe way to allow only the /mcp HTTPRoute (rhcl-mcp-gateway)?')">Copy: MCP gateway deny-all</button>
-                  <button onclick="olsCopyPrompt('Check for policy conflicts (defaults vs overrides) affecting demo namespace routes. If you find conflicts, propose the minimal change to make behavior deterministic.')">Copy: policy conflicts</button>
-                  <button onclick="olsCopyPrompt('I am getting 429s during the AI demo. Explain whether this is request rate limiting or token-based rate limiting, and which policy controls it. Provide a practical way to demonstrate the difference live.')">Copy: 429 during AI demo</button>
-                </div>
-                <div class="log" id="olsPromptLog" style="height:110px; margin-top:10px"></div>
-              </div>
-
-              <div class="card" style="grid-column: 1 / -1;">
-                <h2>Quick checks (optional)</h2>
-                <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
-                  <li><b>OLS installed</b>: namespace <span class="mono">openshift-lightspeed</span> (Subscription/CSV) + <span class="mono">OLSConfig/cluster</span></li>
-                  <li><b>MCP Gateway</b>: dedicated hostname <span class="mono">mcp.&lt;base-domain&gt;</span> routing tool calls to <span class="mono">mcp-system/rhcl-mcp-tools</span></li>
-                </ul>
-              </div>
-            </div>
-          </section>
+          <!-- OpenShift Lightspeed module removed (not part of this RHCL workshop demo) -->
         </div>
       </main>
     </div>
@@ -3863,33 +3833,20 @@ spec:
         return url.replace(/\/+$/g, "");
       }
 
-      function refreshLightspeedLinks(){
+      function openConsoleQueryBrowser(title, promql){
         const base = consoleBaseUrl();
-        const el = document.getElementById("olsConsoleHome");
-        if (!el) return;
         if (!base){
-          el.setAttribute("href", "#");
-          el.style.opacity = "0.55";
-          el.style.pointerEvents = "none";
+          toast("Set the OpenShift Console URL first.");
+          setConsoleUrl();
           return;
         }
-        el.setAttribute("href", base + "/");
-        el.style.opacity = "";
-        el.style.pointerEvents = "";
+        const q = String(promql || "").trim();
+        if (!q) return;
+        const url = `${base}/monitoring/query-browser?units=short&query0=${encodeURIComponent(q)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
       }
 
-      async function olsCopyPrompt(txt){
-        const ok = await copyText(String(txt || "").trim());
-        const el = document.getElementById("olsPromptLog");
-        if (el) appendTo(el, ok ? `[${now()}] copied prompt` : `[${now()}] copy failed`, ok ? "muted" : "bad");
-        if (!ok) return toast("Copy failed");
-        toast("Prompt copied. Paste it into Lightspeed in the Console.");
-      }
-
-      // (Distributed tracing removed)
-
-      // Initial link refresh
-      refreshLightspeedLinks();
+      // (OpenShift Lightspeed module removed)
 
       function setConsoleUrl(){
         const v = prompt("OpenShift console base URL (example: https://console-openshift-console.apps.<cluster>)", consoleBaseUrl());
@@ -3897,7 +3854,6 @@ spec:
         const s = String(v || "").trim();
         if (s) localStorage.setItem("rhcl_console_url", s);
         else localStorage.removeItem("rhcl_console_url");
-        refreshLightspeedLinks();
         toast(`Console URL set to: ${consoleBaseUrl() || "(unknown)"}`);
       }
 
