@@ -13,6 +13,6 @@ resources:
   - resources/networkpolicy-allow-otel-to-tempo-distributor.yaml
   - resources/tempo-tenant-rbac.yaml
   - resources/otel-collector.yaml
-  - resources/cluster-observability-operator.yaml
-  - resources/uiplugin-distributed-tracing.yaml
+  # NOTE: Cluster observability UI plugin is intentionally excluded to keep the demo
+  # tracing stack independent of additional OLM operators.
 
