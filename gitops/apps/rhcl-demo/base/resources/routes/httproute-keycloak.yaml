@@ -5,6 +5,8 @@ metadata:
   namespace: rhcl-keycloak
   labels:
     app: keycloak
+    service: keycloak-service
+    deployment: keycloak
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:

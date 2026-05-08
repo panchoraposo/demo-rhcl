@@ -5,6 +5,8 @@ metadata:
   namespace: demo
   labels:
     app: external-proxy
+    service: external-proxy
+    deployment: external-proxy
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:

@@ -5,6 +5,8 @@ metadata:
   namespace: rhcl-oidc-portal
   labels:
     app: secure-demo
+    service: rhcl-oidc-ui
+    deployment: rhcl-oidc-ui
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:
@@ -58,6 +60,8 @@ metadata:
   namespace: rhcl-oidc-portal
   labels:
     app: rhcl-oidc-ui
+    service: rhcl-oidc-ui
+    deployment: rhcl-oidc-ui
   annotations:
     argocd.argoproj.io/sync-wave: "30"
 spec:
