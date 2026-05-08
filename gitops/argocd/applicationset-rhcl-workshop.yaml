@@ -89,7 +89,6 @@ spec:
           namespace: rhcl-observability
           jsonPointers:
             - /metadata/annotations
-            - /spec
             - /status
         - group: cert-manager.io
           kind: Certificate
