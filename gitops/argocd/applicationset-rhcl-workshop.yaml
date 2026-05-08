@@ -90,6 +90,12 @@ spec:
           jsonPointers:
             - /metadata/annotations
             - /status
+        - group: apps
+          kind: Deployment
+          name: tempo-simplest-query-frontend
+          namespace: rhcl-observability
+          jsonPointers:
+            - /spec/template/spec/containers/1/args
         - group: cert-manager.io
           kind: Certificate
           name: rhcl-gw-tls
