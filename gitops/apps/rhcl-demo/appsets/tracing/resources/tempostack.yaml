@@ -15,8 +15,8 @@ spec:
   resources:
     total:
       limits:
-        memory: 2Gi
-        cpu: 2000m
+        memory: 1Gi
+        cpu: 1000m
   tenants:
     mode: openshift
     authentication:
@@ -29,5 +29,5 @@ spec:
         enabled: false
     queryFrontend:
       jaegerQuery:
-        enabled: false
+        enabled: true
 

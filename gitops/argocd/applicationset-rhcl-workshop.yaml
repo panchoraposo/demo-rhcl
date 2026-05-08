@@ -51,6 +51,12 @@ spec:
             oidcHostname: REPLACE_ME_OIDC_HOSTNAME
             baseDomain: REPLACE_ME_BASE_DOMAIN
             clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
+          - name: tracing
+            path: gitops/apps/rhcl-demo/appsets/tracing
+            demoHostname: REPLACE_ME_DEMO_HOSTNAME
+            oidcHostname: REPLACE_ME_OIDC_HOSTNAME
+            baseDomain: REPLACE_ME_BASE_DOMAIN
+            clusterIssuer: REPLACE_ME_CLUSTER_ISSUER
   template:
     metadata:
       name: rhcl-workshop-{{.name}}

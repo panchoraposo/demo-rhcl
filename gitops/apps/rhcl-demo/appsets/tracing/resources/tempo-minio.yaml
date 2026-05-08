@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tempo-minio-root
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+type: Opaque
+stringData:
+  rootUser: tempo
+  rootPassword: tempo-tempo-tempo
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tempo-minio-data
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo-minio
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "16"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo-minio
+  template:
+    metadata:
+      labels:
+        app: tempo-minio
+    spec:
+      containers:
+        - name: minio
+          image: quay.io/minio/minio:latest
+          args:
+            - server
+            - /data
+            - --console-address
+            - ":9001"
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: tempo-minio-root
+                  key: rootUser
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tempo-minio-root
+                  key: rootPassword
+          ports:
+            - name: s3
+              containerPort: 9000
+            - name: console
+              containerPort: 9001
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: tempo-minio-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo-minio
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "16"
+spec:
+  selector:
+    app: tempo-minio
+  ports:
+    - name: s3
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tempo-minio-init
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "17"
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: quay.io/minio/mc:latest
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: tempo-minio-root
+                  key: rootUser
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tempo-minio-root
+                  key: rootPassword
+          command:
+            - /bin/sh
+            - -lc
+          args:
+            - |
+              set -euo pipefail
+              host="http://tempo-minio.rhcl-observability.svc:9000"
+              for i in $(seq 1 120); do
+                if mc alias set tempo "${host}" "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}" >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 2
+              done
+              mc mb --ignore-existing tempo/tempo-traces
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tempo-storage
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "18"
+type: Opaque
+stringData:
+  endpoint: http://tempo-minio.rhcl-observability.svc:9000
+  bucket: tempo-traces
+  access_key_id: tempo
+  access_key_secret: tempo-tempo-tempo
+

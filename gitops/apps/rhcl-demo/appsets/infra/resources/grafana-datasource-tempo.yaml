@@ -1,0 +1,24 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: rhcl-tempo
+  namespace: monitoring
+  labels:
+    app: rhcl-grafana
+  annotations:
+    argocd.argoproj.io/sync-wave: "97"
+spec:
+  instanceSelector:
+    matchLabels:
+      app: rhcl-grafana
+  datasource:
+    name: rhcl-tempo
+    type: tempo
+    access: proxy
+    isDefault: false
+    url: http://tempo-simplest-gateway.rhcl-observability.svc.cluster.local:8080
+    jsonData:
+      httpHeaderName1: X-Scope-OrgID
+  secureJsonData:
+      httpHeaderValue1: dev
+

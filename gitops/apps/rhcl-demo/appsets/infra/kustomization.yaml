@@ -18,6 +18,7 @@ resources:
   - resources/grafana-thanos-token.yaml
   - resources/grafana.yaml
   - resources/grafana-datasource-thanos.yaml
+  - resources/grafana-datasource-tempo.yaml
   - resources/grafana-dashboard-configmaps.yaml
   - resources/grafana-dashboards.yaml
   - resources/gateway-metrics-services.yaml
