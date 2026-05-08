@@ -10,19 +10,6 @@ stringData:
   rootUser: tempo
   rootPassword: tempo-tempo-tempo
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: tempo-minio-data
-  namespace: rhcl-observability
-  annotations:
-    argocd.argoproj.io/sync-wave: "15"
-spec:
-  accessModes: ["ReadWriteOnce"]
-  resources:
-    requests:
-      storage: 2Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -76,8 +63,7 @@ spec:
               mountPath: /data
       volumes:
         - name: data
-          persistentVolumeClaim:
-            claimName: tempo-minio-data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
