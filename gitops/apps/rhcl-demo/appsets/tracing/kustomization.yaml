@@ -11,6 +11,7 @@ resources:
   - resources/tempostack.yaml
   - resources/networkpolicy-allow-mcp-to-tempo-distributor.yaml
   - resources/networkpolicy-allow-otel-to-tempo-distributor.yaml
+  - resources/networkpolicy-allow-grafana-to-tempo-query-frontend.yaml
   - resources/tempo-tenant-rbac.yaml
   - resources/otel-collector.yaml
   # NOTE: Cluster observability UI plugin is intentionally excluded to keep the demo

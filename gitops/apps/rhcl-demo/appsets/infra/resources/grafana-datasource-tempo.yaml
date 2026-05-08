@@ -16,9 +16,9 @@ spec:
     type: tempo
     access: proxy
     isDefault: false
-    url: http://tempo-simplest-gateway.rhcl-observability.svc.cluster.local:8080
+    url: http://tempo-simplest-query-frontend.rhcl-observability.svc.cluster.local:3200
     jsonData:
       httpHeaderName1: X-Scope-OrgID
-  secureJsonData:
+    secureJsonData:
       httpHeaderValue1: dev
 
