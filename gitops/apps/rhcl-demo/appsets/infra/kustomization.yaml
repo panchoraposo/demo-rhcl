@@ -16,6 +16,7 @@ resources:
   - resources/install-kuadrant-observability-config.yaml
   - resources/grafana-rbac.yaml
   - resources/grafana-thanos-token.yaml
+  - resources/grafana-tempo-sa.yaml
   - resources/grafana-tempo-token.yaml
   - resources/grafana.yaml
   - resources/grafana-datasource-thanos.yaml
