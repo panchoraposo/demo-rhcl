@@ -53,9 +53,10 @@ metadata:
   namespace: rhcl-observability
   annotations:
     argocd.argoproj.io/sync-wave: "22"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
 spec:
   backoffLimit: 8
-  ttlSecondsAfterFinished: 60
   template:
     spec:
       restartPolicy: OnFailure
