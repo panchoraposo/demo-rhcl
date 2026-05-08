@@ -11,15 +11,21 @@ spec:
   instanceSelector:
     matchLabels:
       app: rhcl-grafana
+  valuesFrom:
+    - targetPath: "secureJsonData.httpHeaderValue1"
+      valueFrom:
+        secretKeyRef:
+          name: rhcl-grafana-tempo
+          key: TEMPO_TOKEN
   datasource:
-    name: rhcl-tempo
-    type: tempo
+    name: rhcl-tracing
+    type: jaeger
     access: proxy
     isDefault: false
-    url: https://tempo-simplest-query-frontend.rhcl-observability.svc.cluster.local:3200
+    url: https://tempo-simplest-gateway.rhcl-observability.svc.cluster.local:8080/api/traces/v1/dev
     jsonData:
-      httpHeaderName1: X-Scope-OrgID
       tlsSkipVerify: true
+      httpHeaderName1: "Authorization"
     secureJsonData:
-      httpHeaderValue1: dev
+      httpHeaderValue1: "Bearer ${TEMPO_TOKEN}"
 

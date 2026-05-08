@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rhcl-grafana-tempo-token
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "95"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              TOKEN="$(oc -n monitoring create token rhcl-grafana-tempo --duration=168h)"
+              oc -n monitoring create secret generic rhcl-grafana-tempo \
+                --from-literal=TEMPO_TOKEN="$TOKEN" \
+                --dry-run=client -o yaml | oc apply -f -
+              echo "OK: tempo token secret updated"
+
