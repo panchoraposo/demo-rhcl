@@ -32,7 +32,7 @@ spec:
                   "value":[
                     "--query.base-path=/",
                     "--span-storage.type=grpc",
-                    "--grpc-storage.server=localhost:7777",
+                    "--grpc-storage.server=127.0.0.1:7777",
                     "--query.bearer-token-propagation=true",
                     "--multi-tenancy.enabled=true",
                     "--multi-tenancy.header=x-scope-orgid",
