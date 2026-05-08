@@ -26,4 +26,5 @@ resources:
   - resources/gateway-metrics-services.yaml
   - resources/gateway-metrics-servicemonitor.yaml
   - resources/gatewayapi-state-metrics.yaml
+  - resources/rhcl-gateway-trafficanalysis-prometheusrule.yaml
 
