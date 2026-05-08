@@ -7,6 +7,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "30"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
+  extraConfig:
+    server:
+      http_listen_address: "::"
+      grpc_listen_address: "::"
   storage:
     secret:
       name: tempo-storage
