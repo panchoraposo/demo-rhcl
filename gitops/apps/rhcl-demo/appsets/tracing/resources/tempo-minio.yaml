@@ -116,13 +116,15 @@ spec:
           args:
             - |
               set -euo pipefail
-              host="http://tempo-minio.rhcl-observability.svc:9000"
+              host="http://tempo-minio.rhcl-observability.svc.cluster.local:9000"
               for i in $(seq 1 120); do
                 if mc alias set tempo "${host}" "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}" >/dev/null 2>&1; then
                   break
                 fi
+                echo "Waiting for MinIO at ${host}... (${i}/120)"
                 sleep 2
               done
+              mc alias list tempo >/dev/null 2>&1 || { echo "ERROR: unable to reach MinIO at ${host}"; exit 1; }
               mc mb --ignore-existing tempo/tempo-traces
 ---
 apiVersion: v1
@@ -134,7 +136,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "18"
 type: Opaque
 stringData:
-  endpoint: http://tempo-minio.rhcl-observability.svc:9000
+  endpoint: http://tempo-minio.rhcl-observability.svc.cluster.local:9000
   bucket: tempo-traces
   access_key_id: tempo
   access_key_secret: tempo-tempo-tempo
