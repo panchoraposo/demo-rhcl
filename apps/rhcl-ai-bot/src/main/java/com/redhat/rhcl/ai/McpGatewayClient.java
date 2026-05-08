@@ -60,6 +60,25 @@ public class McpGatewayClient {
     }
   }
 
+  public JsonNode listToolsJson() throws Exception {
+    if (!enabled()) {
+      throw new IllegalStateException("MCP Gateway disabled: missing rhcl.ai.mcp.base-url");
+    }
+    String sessionId = initialize();
+    try {
+      return toolsList(sessionId);
+    } finally {
+      // No explicit session close required for demo; the gateway expires sessions.
+    }
+  }
+
+  public void ping() throws Exception {
+    if (!enabled()) {
+      throw new IllegalStateException("MCP Gateway disabled: missing rhcl.ai.mcp.base-url");
+    }
+    initialize();
+  }
+
   public String callToolText(String toolName, ObjectNode arguments) throws Exception {
     JsonNode res = callToolJson(toolName, arguments);
     String text = res.at("/result/content/0/text").asText("");
@@ -126,6 +145,19 @@ public class McpGatewayClient {
     HttpResponse<String> res = post(sessionId, req);
     if (res.statusCode() < 200 || res.statusCode() >= 300) {
       throw new RuntimeException("MCP tools/call failed status=" + res.statusCode() + " body=" + safe(res.body()));
+    }
+    return json.readTree(res.body());
+  }
+
+  private JsonNode toolsList(String sessionId) throws Exception {
+    ObjectNode req = json.obj();
+    req.put("jsonrpc", "2.0");
+    req.put("id", 2);
+    req.put("method", "tools/list");
+
+    HttpResponse<String> res = post(sessionId, req);
+    if (res.statusCode() < 200 || res.statusCode() >= 300) {
+      throw new RuntimeException("MCP tools/list failed status=" + res.statusCode() + " body=" + safe(res.body()));
     }
     return json.readTree(res.body());
   }

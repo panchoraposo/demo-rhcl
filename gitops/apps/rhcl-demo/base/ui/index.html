@@ -1281,40 +1281,24 @@
 
               <div class="card">
                 <h2>OpenShift Console graphs</h2>
-                <div class="sub">Open the Query Browser with pre-filled PromQL (no copy/paste).</div>
+                <div class="sub">Open the Query Browser with pre-filled PromQL.</div>
                 <div class="btnGrid" style="margin-top:10px">
-                  <button class="primary" onclick="openConsoleQueryBrowser('Gateway req/s (by workload)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\"}[5m])) by (destination_workload)')">Gateway req/s</button>
-                  <button onclick="openConsoleQueryBrowser('HTTP codes (gateway)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\",response_code=~\"(200|401|403|404|429|5..)\"}[5m])) by (response_code)')">200/401/403/404/429/5xx</button>
-                  <button onclick="openConsoleQueryBrowser('Auth + limits (401/403/429)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\",response_code=~\"(401|403|429)\"}[5m])) by (response_code)')">Auth + limits</button>
-                  <button onclick="openConsoleQueryBrowser('Not found (404)','sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\",response_code=\"404\"}[5m]))')">404</button>
+                  <a class="btnLink primary" id="ocq_gateway_rps" target="_blank" rel="noreferrer"
+                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;}[5m])) by (destination_workload)">Gateway req/s</a>
+                  <a class="btnLink" id="ocq_codes" target="_blank" rel="noreferrer"
+                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;,response_code=~&quot;(200|401|403|404|429|5..)&quot;}[5m])) by (response_code)">200/401/403/404/429/5xx</a>
+                  <a class="btnLink" id="ocq_auth_limits" target="_blank" rel="noreferrer"
+                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;,response_code=~&quot;(401|403|429)&quot;}[5m])) by (response_code)">Auth + limits</a>
+                  <a class="btnLink" id="ocq_404" target="_blank" rel="noreferrer"
+                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;,response_code=&quot;404&quot;}[5m]))">404</a>
                 </div>
                 <div class="footer">
                   Uses <span class="mono">istio_requests_total</span> from User Workload Monitoring.
-                  If links don’t open, set the Console URL in <b>Quick checks</b>.
+                  If links don’t open, set the Console URL (prompt) and retry.
                 </div>
               </div>
 
-              <div class="card" style="grid-column: 1 / -1;">
-                <h2>Quick checks</h2>
-                <div class="row" style="margin-top:10px; gap:10px; flex-wrap:wrap">
-                  <button class="primary" onclick="obsGenerateTraffic()">Generate sample traffic</button>
-                  <button onclick="setConsoleUrl()">Change console URL</button>
-                  <button onclick="copyText('sum(rate(istio_requests_total{destination_service_namespace=\"openshift-ingress\",destination_workload=~\"rhcl-.*\"}[5m])) by (destination_workload)')">Copy PromQL (gateway req/s)</button>
-                </div>
-                <ul class="sub" style="margin:10px 0 0 18px; line-height:1.55">
-                  <li><b>Generate traffic</b> for each module: <span class="mono">demo</span> (UI/API/external), <span class="mono">demo-ab</span> (A/B + canary), <span class="mono">demo-jwt</span> (JWT), <span class="mono">rhcl-ai-bot</span> (AI).</li>
-                  <li><b>Dashboards</b>: open Grafana and use the <b>RHCL Workshop</b> folder for role-based views.</li>
-                </ul>
-                <div class="toolRow" style="margin-top:10px">
-                  <div class="left">
-                    <span class="pill"><span class="dot"></span> <span id="obsTrafficStatus">traffic: idle</span></span>
-                  </div>
-                  <div class="right">
-                    <button onclick="clearObsLog()">Clear</button>
-                  </div>
-                </div>
-                <div class="log" id="obsTrafficLog" style="height:140px; margin-top:10px"></div>
-              </div>
+              <!-- Quick checks removed (no longer part of the demo flow) -->
             </div>
           </section>
 
@@ -3362,21 +3346,38 @@ spec:
         return r;
       }
 
+      async function aiMcpProxy(path, bodyObj){
+        const p = String(path || "").trim();
+        const url = `/ai/mcp${p.startsWith("/") ? p : ("/" + p)}`;
+        return await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json", "accept": "application/json" },
+          body: JSON.stringify(bodyObj || {}),
+          cache: "no-store",
+        });
+      }
+
       async function aiPing(){
         refreshMcpHostPill();
         aiSetStatus("Pinging MCP Gateway…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          const { r, sid } = await mcpInitializeAt("/mcp", "rhcl_mcp_session_id");
-          const ct = r.headers.get("content-type") || "—";
-          aiSetStatus(`HTTP ${r.status}${sid ? " · session" : ""}`);
-          const shortSid = sid && sid.length > 26 ? `${sid.slice(0, 16)}…${sid.slice(-8)}` : sid;
-          appendTo(aiLogEl, `[${now()}] POST ${mcpBaseUrl()}/mcp (initialize) -> ${r.status} · content-type=${ct}${shortSid ? " · session=" + shortSid : ""}`, r.ok ? "good" : "bad");
-          aiLastMetaObj = { mcp: { baseUrl: `${mcpBaseUrl()}/mcp`, status: r.status, contentType: ct, sessionId: sid } };
+          const r = await aiMcpProxy("/ping", {});
+          const txt = await r.text();
+          let obj=null;
+          try{ obj = JSON.parse(txt); } catch {}
+          aiSetStatus(`HTTP ${r.status}`);
+          appendTo(aiLogEl, `[${now()}] POST /ai/mcp/ping -> ${r.status}`, r.ok ? "good" : "bad");
+          if (obj && typeof obj.ok === "boolean") {
+            appendTo(aiLogEl, `mcp: ${obj.ok ? "ok" : "error"} · host=${mcpHost()}`, obj.ok ? "muted" : "bad");
+          } else {
+            appendTo(aiLogEl, `mcp: host=${mcpHost()}`, "muted");
+          }
+          aiLastMetaObj = { mcp: { via: "ai-bot-proxy", host: mcpHost(), status: r.status, body: obj || txt } };
         } catch (e){
           aiSetStatus("Error");
-          appendTo(aiLogEl, `[${now()}] /mcp error: ${String(e)}`, "bad");
-          aiLastMetaObj = { mcp: { baseUrl: `${mcpBaseUrl()}/mcp`, error: String(e) } };
+          appendTo(aiLogEl, `[${now()}] /ai/mcp/ping error: ${String(e)}`, "bad");
+          aiLastMetaObj = { mcp: { via: "ai-bot-proxy", host: mcpHost(), error: String(e) } };
         }
       }
 
@@ -3385,13 +3386,7 @@ spec:
         aiSetStatus("Listing tools…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          // List tools through the MCP Gateway dedicated hostname (/mcp).
-          let sid = mcpSessionId();
-          if (!sid){
-            const ir = await mcpInitializeAt("/mcp", "rhcl_mcp_session_id");
-            sid = ir.sid || mcpSessionId();
-          }
-          const r = await mcpRpc("tools/list");
+          const r = await aiMcpProxy("/tools/list", {});
           const txt = await r.text();
 
           let obj=null;
@@ -3409,7 +3404,7 @@ spec:
             tools: {
               list: {
                 status: r.status,
-                endpoint: `${mcpBaseUrl()}/mcp`,
+                endpoint: `/ai/mcp/tools/list`,
               },
             },
           };
@@ -3425,15 +3420,9 @@ spec:
         aiSetStatus("Calling tool…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
-          const toolName = aiSelectedToolName() || "nba_scoreboard";
+          const toolName = aiSelectedToolName() || "tools_nba_scoreboard";
           const params = { name: toolName, arguments: { dates: "" } };
-          let sid = mcpSessionId();
-          if (!sid){
-            const ir = await mcpInitializeAt("/mcp", "rhcl_mcp_session_id");
-            sid = ir.sid || mcpSessionId();
-          }
-
-          const r = await mcpRpc("tools/call", params);
+          const r = await aiMcpProxy("/tools/call", params);
           const txt = await r.text();
 
           appendTo(aiLogEl, `[${now()}] tools/call ${toolName} -> ${r.status}`, r.ok ? "good" : "bad");
@@ -3458,7 +3447,7 @@ spec:
               call: {
                 status: r.status,
                 toolName,
-                endpoint: `${mcpBaseUrl()}/mcp`,
+                endpoint: `/ai/mcp/tools/call`,
               },
             },
           };
@@ -3473,10 +3462,15 @@ spec:
         const n = String(name || "").trim();
         const map = {
           "nba_scoreboard": "NBA",
+          "tools_nba_scoreboard": "NBA",
           "epl_scoreboard": "Premier League",
+          "tools_epl_scoreboard": "Premier League",
           "laliga_scoreboard": "LaLiga",
+          "tools_laliga_scoreboard": "LaLiga",
           "nfl_scoreboard": "NFL",
+          "tools_nfl_scoreboard": "NFL",
           "nhl_scoreboard": "NHL",
+          "tools_nhl_scoreboard": "NHL",
         };
         return map[n] || n || "auto";
       }
@@ -3534,6 +3528,8 @@ spec:
         const hasSelected = selected && names.includes(selected);
         if (hasSelected) {
           aiSetSelectedToolName(selected);
+        } else if (names.includes("tools_nba_scoreboard")) {
+          aiSetSelectedToolName("tools_nba_scoreboard");
         } else if (names.includes("nba_scoreboard")) {
           aiSetSelectedToolName("nba_scoreboard");
         } else if (names.length) {
@@ -3833,17 +3829,21 @@ spec:
         return url.replace(/\/+$/g, "");
       }
 
-      function openConsoleQueryBrowser(title, promql){
+      function refreshConsoleGraphLinks(){
         const base = consoleBaseUrl();
-        if (!base){
-          toast("Set the OpenShift Console URL first.");
-          setConsoleUrl();
-          return;
+        const links = Array.from(document.querySelectorAll("a[data-promql]"));
+        for (const a of links){
+          const q = String(a.getAttribute("data-promql") || "").trim();
+          if (!base || !q){
+            a.setAttribute("href", "#");
+            a.style.opacity = "0.55";
+            a.style.pointerEvents = "none";
+            continue;
+          }
+          a.setAttribute("href", `${base}/monitoring/query-browser?units=short&query0=${encodeURIComponent(q)}`);
+          a.style.opacity = "";
+          a.style.pointerEvents = "";
         }
-        const q = String(promql || "").trim();
-        if (!q) return;
-        const url = `${base}/monitoring/query-browser?units=short&query0=${encodeURIComponent(q)}`;
-        window.open(url, "_blank", "noopener,noreferrer");
       }
 
       // (OpenShift Lightspeed module removed)
@@ -3854,6 +3854,7 @@ spec:
         const s = String(v || "").trim();
         if (s) localStorage.setItem("rhcl_console_url", s);
         else localStorage.removeItem("rhcl_console_url");
+        refreshConsoleGraphLinks();
         toast(`Console URL set to: ${consoleBaseUrl() || "(unknown)"}`);
       }
 
@@ -4434,6 +4435,7 @@ spec:
       refreshOidcPortalPill();
       refreshKeycloakJwtHostPill();
       refreshMcpHostPill();
+      refreshConsoleGraphLinks();
       if (aiToolSelectEl){
         aiToolSelectEl.disabled = true;
         aiToolSelectEl.innerHTML = `<option value="">auto (nba_scoreboard) — run “List tools”</option>`;
