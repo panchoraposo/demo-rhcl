@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tempo-jaeger-query-disable-client-mtls
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+    argocd.argoproj.io/sync-wave: "99"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: rhcl-observability-bootstrap
+      restartPolicy: Never
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              ns="rhcl-observability"
+              dep="tempo-simplest-query-frontend"
+
+              echo "Patching ${ns}/${dep} to disable client-certificate requirement on Jaeger Query..."
+
+              oc -n "${ns}" patch deployment "${dep}" --type='json' -p='[
+                {
+                  "op":"replace",
+                  "path":"/spec/template/spec/containers/1/args",
+                  "value":[
+                    "--query.base-path=/",
+                    "--span-storage.type=grpc",
+                    "--grpc-storage.server=localhost:7777",
+                    "--query.bearer-token-propagation=true",
+                    "--multi-tenancy.enabled=true",
+                    "--multi-tenancy.header=x-scope-orgid",
+                    "--query.http.tls.enabled=true",
+                    "--query.http.tls.key=/var/run/tls/server/tls.key",
+                    "--query.http.tls.cert=/var/run/tls/server/tls.crt",
+                    "--query.grpc.tls.enabled=true",
+                    "--query.grpc.tls.key=/var/run/tls/server/tls.key",
+                    "--query.grpc.tls.cert=/var/run/tls/server/tls.crt"
+                  ]
+                }
+              ]'
+
+              echo "Waiting for rollout..."
+              oc -n "${ns}" rollout status deployment "${dep}" --timeout=180s
+              echo "OK"
+

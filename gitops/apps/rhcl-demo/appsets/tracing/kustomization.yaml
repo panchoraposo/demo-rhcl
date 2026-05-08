@@ -16,4 +16,5 @@ resources:
   - resources/tempo-grafana-rbac.yaml
   - resources/otel-collector.yaml
   - resources/uiplugin-distributed-tracing.yaml
+  - resources/patch-jaeger-query-no-client-mtls.yaml
 
