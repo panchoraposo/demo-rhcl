@@ -89,6 +89,7 @@ spec:
           namespace: rhcl-observability
           jsonPointers:
             - /metadata/annotations
+            - /spec
             - /status
         - group: apps
           kind: Deployment
