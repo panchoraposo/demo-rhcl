@@ -12,8 +12,8 @@ spec:
     - name: rhcl.gateway.trafficanalysis
       rules:
         # Normalize gateway request metrics for Traffic Analysis views.
-        # The upstream template filters by job name; in this demo cluster the job label differs,
-        # so we filter by the gateway label which is set by the Kuadrant PodMonitor relabeling.
+        # The Traffic Analysis views expect `istio_requests_total` series keyed by gateway name.
+        # We record a normalized series from the gateway scrape jobs (one job per gateway service).
         - record: istio_requests_total
           expr: |
             label_replace(
@@ -21,15 +21,18 @@ spec:
                 label_replace(
                   label_replace(
                     label_replace(
-                      istio_requests_total{namespace="openshift-ingress", reporter="source", gateway=~"rhcl-.*"},
-                      "reporter", "destination", "reporter", "source"
+                      label_replace(
+                        istio_requests_total{namespace="openshift-ingress", reporter="source", job=~"rhcl-.*"},
+                        "reporter", "destination", "reporter", "source"
+                      ),
+                      "destination_service_name", "$1", "job", "(.*)"
                     ),
-                    "destination_workload", "$1", "source_workload", "(.*)"
+                    "destination_service_namespace", "$1", "namespace", "(.*)"
                   ),
-                  "destination_workload_namespace", "$1", "source_workload_namespace", "(.*)"
+                  "destination_workload", "$1", "job", "(.*)"
                 ),
-                "destination_service_name", "$1", "gateway", "(.*)"
+                "destination_workload_namespace", "$1", "namespace", "(.*)"
               ),
-              "destination_service_namespace", "$1", "namespace", "(.*)"
+              "gateway", "$1", "job", "(.*)"
             )
 

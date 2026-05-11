@@ -11,6 +11,7 @@ resources:
   - ../../base/resources/gateway/gateway-dnspolicy.yaml
   - ../../base/resources/gateway/gateway-public-dnspolicy-main.yaml
   - ../../base/resources/policies/gateway-authpolicy.yaml
+  - resources/workshop-users-rbac.yaml
   - resources/enable-kuadrant-console-plugin.yaml
   - resources/enable-user-workload-monitoring.yaml
   - resources/install-kuadrant-observability-config.yaml

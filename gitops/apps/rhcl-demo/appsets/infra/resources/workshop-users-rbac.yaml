@@ -1,0 +1,30 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rhcl-workshop-demo-cluster-monitoring-view
+  annotations:
+    argocd.argoproj.io/sync-wave: "92"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+  - kind: User
+    name: demo
+    apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rhcl-workshop-demo-openshift-ingress-view
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "92"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: User
+    name: demo
+    apiGroup: rbac.authorization.k8s.io
