@@ -1,7 +1,7 @@
 ---
 - name: Render Argo CD Application manifest
   ansible.builtin.template:
-    src: rhcl-workshop-application.yaml.j2
+    src: "{{ playbook_dir }}/../templates/rhcl-workshop-application.yaml.j2"
     dest: /tmp/rhcl-workshop-application.yaml
     mode: "0644"
 
