@@ -15,7 +15,9 @@ data:
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_http_version 1.1;
       proxy_set_header Connection "";
-      proxy_pass http://tempo-simplest-query-frontend.rhcl-observability.svc.cluster.local:16686;
+      proxy_ssl_server_name on;
+      proxy_ssl_verify off;
+      proxy_pass https://tempo-simplest-query-frontend.rhcl-observability.svc.cluster.local:16686;
     }
 ---
 apiVersion: apps/v1
