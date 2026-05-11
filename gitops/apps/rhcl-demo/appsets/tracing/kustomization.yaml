@@ -24,5 +24,6 @@ resources:
   - resources/service-tempo-jaeger-ui.yaml
   - resources/route-tempo-jaeger-ui.yaml
   - resources/uiplugin-distributed-tracing.yaml
-  - resources/patch-jaeger-query-no-client-mtls.yaml
+  - resources/distributed-tracing-auth-proxy.yaml
+  - resources/patch-consoleplugin-distributed-tracing-proxy.yaml
 
