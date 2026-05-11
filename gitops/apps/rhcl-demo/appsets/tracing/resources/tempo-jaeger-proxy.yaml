@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-jaeger-proxy-nginx
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "68"
+data:
+  proxy.conf: |
+    # Included in the default server block by the UBI nginx image.
+    location / {
+      proxy_set_header X-Scope-OrgID dev;
+      proxy_set_header Host $host;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_http_version 1.1;
+      proxy_set_header Connection "";
+      proxy_pass http://tempo-simplest-query-frontend.rhcl-observability.svc.cluster.local:16686;
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo-jaeger-proxy
+  namespace: rhcl-observability
+  labels:
+    app: tempo-jaeger-proxy
+  annotations:
+    argocd.argoproj.io/sync-wave: "68"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo-jaeger-proxy
+  template:
+    metadata:
+      labels:
+        app: tempo-jaeger-proxy
+    spec:
+      containers:
+        - name: nginx
+          image: registry.redhat.io/ubi10/nginx-126:10.1
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /opt/app-root/etc/nginx.default.d
+              readOnly: true
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: tempo-jaeger-proxy-nginx
+

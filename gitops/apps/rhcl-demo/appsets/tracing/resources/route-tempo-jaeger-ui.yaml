@@ -10,7 +10,7 @@ spec:
     kind: Service
     name: tempo-jaeger-ui
   port:
-    targetPort: jaeger-ui
+    targetPort: http
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
