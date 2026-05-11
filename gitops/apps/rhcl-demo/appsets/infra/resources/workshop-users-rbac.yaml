@@ -12,6 +12,9 @@ subjects:
   - kind: User
     name: demo
     apiGroup: rbac.authorization.k8s.io
+  - kind: User
+    name: kubeadmin
+    apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -27,4 +30,7 @@ roleRef:
 subjects:
   - kind: User
     name: demo
+    apiGroup: rbac.authorization.k8s.io
+  - kind: User
+    name: kubeadmin
     apiGroup: rbac.authorization.k8s.io
