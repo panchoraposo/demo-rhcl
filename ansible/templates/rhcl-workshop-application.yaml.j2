@@ -12,6 +12,21 @@ spec:
     kustomize:
       patches:
         - target:
+            group: ""
+            version: v1
+            kind: PersistentVolumeClaim
+            name: keycloak-db-data
+            namespace: rhcl-keycloak
+          patch: |-
+            apiVersion: v1
+            kind: PersistentVolumeClaim
+            metadata:
+              name: keycloak-db-data
+              namespace: rhcl-keycloak
+            spec:
+              storageClassName: {{ db_storage_class }}
+
+        - target:
             group: gateway.networking.k8s.io
             version: v1
             kind: Gateway

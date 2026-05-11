@@ -32,6 +32,54 @@
     msg: "Could not detect default ingress certificate secret. Set DEFAULT_INGRESS_CERT_SECRET manually."
   when: default_ingress_cert_secret | trim == ''
 
+- name: Detect best StorageClass for Keycloak DB (prefer Immediate binding)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 - <<'PY'
+    import json, subprocess
+    raw = subprocess.check_output(["oc","get","storageclass","-o","json"], text=True)
+    j = json.loads(raw)
+    items = j.get("items", []) or []
+
+    def is_default(sc: dict) -> bool:
+      ann = (sc.get("metadata", {}) or {}).get("annotations", {}) or {}
+      return ann.get("storageclass.kubernetes.io/is-default-class") == "true" or ann.get("storageclass.beta.kubernetes.io/is-default-class") == "true"
+
+    def vbm(sc: dict) -> str:
+      return (sc.get("volumeBindingMode") or "").strip()
+
+    defaults = [sc for sc in items if is_default(sc)]
+    immed_defaults = [sc for sc in defaults if vbm(sc) == "Immediate"]
+    immed_any = [sc for sc in items if vbm(sc) == "Immediate"]
+
+    pick = None
+    if immed_defaults:
+      pick = immed_defaults[0]
+    elif immed_any:
+      # prefer something with "immediate" in name if present
+      immed_any.sort(key=lambda sc: (("immediate" not in (sc.get("metadata",{}).get("name","").lower())), sc.get("metadata",{}).get("name","")))
+      pick = immed_any[0]
+    elif defaults:
+      pick = defaults[0]
+    elif items:
+      pick = items[0]
+
+    print((pick.get("metadata", {}) or {}).get("name", "") if pick else "")
+    PY
+  args:
+    executable: /bin/bash
+  register: detected_db_storage_class
+  changed_when: false
+
+- name: Set db_storage_class
+  ansible.builtin.set_fact:
+    db_storage_class: "{{ detected_db_storage_class.stdout | trim }}"
+
+- name: Fail if db_storage_class is empty
+  ansible.builtin.fail:
+    msg: "Could not detect any StorageClass. Ensure a default StorageClass exists or set up storage."
+  when: db_storage_class | trim == ''
+
 - name: Detect best ClusterIssuer (if not provided)
   ansible.builtin.shell: |
     set -euo pipefail
@@ -127,4 +175,5 @@
       - "OIDC_PUBLIC_HOSTNAME={{ oidc_public_hostname }}"
       - "CLUSTER_ISSUER={{ cluster_issuer }}"
       - "DEFAULT_INGRESS_CERT_SECRET={{ default_ingress_cert_secret }}"
+      - "DB_STORAGE_CLASS={{ db_storage_class }}"
 
