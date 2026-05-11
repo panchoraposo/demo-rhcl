@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-coo-to-tempo-query-frontend
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "69"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: query-frontend
+      app.kubernetes.io/instance: simplest
+      app.kubernetes.io/managed-by: tempo-operator
+      app.kubernetes.io/name: tempo
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-cluster-observability-operator
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: distributed-tracing
+              app.kubernetes.io/managed-by: observability-operator
+              app.kubernetes.io/part-of: UIPlugin
+      ports:
+        - protocol: TCP
+          port: 3200
+        - protocol: TCP
+          port: 9095
+

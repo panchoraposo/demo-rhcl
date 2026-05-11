@@ -20,6 +20,7 @@ resources:
   - resources/tempo-jaeger-proxy.yaml
   - resources/networkpolicy-allow-tempo-jaeger-proxy-to-query-frontend.yaml
   - resources/networkpolicy-allow-opentelemetry-to-tempo-distributor.yaml
+  - resources/networkpolicy-allow-coo-to-tempo-query-frontend.yaml
   - resources/service-tempo-jaeger-ui.yaml
   - resources/route-tempo-jaeger-ui.yaml
   - resources/uiplugin-distributed-tracing.yaml
