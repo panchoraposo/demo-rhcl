@@ -13,7 +13,10 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "9"
 spec:
-  targetNamespaces: []
+  # Avoid overlapping with other cluster-wide OperatorGroups.
+  # The operator is still cluster-scoped, but OLM scoping must be namespaced here.
+  targetNamespaces:
+    - openshift-cluster-observability-operator
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription

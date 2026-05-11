@@ -1297,6 +1297,19 @@
                 </div>
               </div>
 
+              <div class="card">
+                <h2>Distributed tracing</h2>
+                <div class="sub">Open traces in Tempo (Jaeger UI), Grafana Explore, or the OpenShift Console (Traces plugin).</div>
+                <div class="btnGrid" style="margin-top:10px">
+                  <a class="btnLink primary" href="#" onclick="openTempoJaegerUi(); return false;">Tempo (Jaeger UI)</a>
+                  <a class="btnLink" href="#" onclick="openGrafanaExplore(); return false;">Grafana Explore</a>
+                  <a class="btnLink" href="#" onclick="openConsoleTraces(); return false;">OpenShift Console (Traces)</a>
+                </div>
+                <div class="footer">
+                  If the console link shows 404, the Distributed Tracing plugin isn’t enabled yet. Tempo UI always works once the stack is up.
+                </div>
+              </div>
+
               <!-- Quick checks removed (no longer part of the demo flow) -->
             </div>
           </section>
@@ -3806,6 +3819,11 @@ spec:
         window.open(url, "_blank", "noopener,noreferrer");
       }
 
+      function openGrafanaExplore(){
+        const base = grafanaBaseUrl();
+        window.open(`${base}/explore`, "_blank", "noopener,noreferrer");
+      }
+
       function setGrafanaUrl(){
         const v = prompt("Grafana base URL (example: https://grafana-rhcl-workshop.apps.<cluster>)", grafanaBaseUrl());
         if (v === null) return;
@@ -3826,6 +3844,31 @@ spec:
         }
         if (url && !/^https?:\/\//i.test(url)) url = `https://${url}`;
         return url.replace(/\/+$/g, "");
+      }
+
+      function openConsoleTraces(){
+        const base = consoleBaseUrl();
+        if (!base){
+          toast("Console URL not set.");
+          return;
+        }
+        window.open(`${base}/observe/traces`, "_blank", "noopener,noreferrer");
+      }
+
+      function tempoJaegerUrl(){
+        const parts = String(location.host || "").split(".");
+        const appsDomain = parts.length > 1 ? parts.slice(1).join(".") : "";
+        const url = appsDomain ? `https://tempo-jaeger-rhcl-observability.${appsDomain}` : "";
+        return url.replace(/\/+$/g, "");
+      }
+
+      function openTempoJaegerUi(){
+        const url = tempoJaegerUrl();
+        if (!url){
+          toast("Tempo UI URL unknown.");
+          return;
+        }
+        window.open(url, "_blank", "noopener,noreferrer");
       }
 
       function refreshConsoleGraphLinks(){
