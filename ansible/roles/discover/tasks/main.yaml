@@ -35,14 +35,14 @@
 - name: Detect best ClusterIssuer (if not provided)
   ansible.builtin.shell: |
     set -euo pipefail
-    oc get clusterissuer -o json 2>/dev/null | python3 - <<'PY'
-    import json,sys
-    raw=sys.stdin.read()
-    start=raw.find("{")
-    if start == -1:
+    python3 - <<'PY'
+    import json, subprocess
+    try:
+      raw = subprocess.check_output(["oc","get","clusterissuer","-o","json"], text=True, stderr=subprocess.DEVNULL)
+    except Exception:
       print("")
       raise SystemExit(0)
-    j=json.loads(raw[start:])
+    j=json.loads(raw)
     names=[x["metadata"]["name"] for x in j.get("items",[])]
     def score(n:str)->int:
       nl=n.lower()
