@@ -18,7 +18,7 @@ spec:
         memory: 1Gi
         cpu: 1000m
   tenants:
-    mode: openshift
+    mode: static
     authentication:
       - tenantName: dev
         tenantId: "dev"
