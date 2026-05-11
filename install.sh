@@ -33,5 +33,6 @@ source "${VENV_DIR}/bin/activate"
 python3 -m pip install --upgrade pip >/dev/null
 python3 -m pip install -r "${ROOT_DIR}/ansible/requirements.txt" >/dev/null
 
+export ANSIBLE_ROLES_PATH="${ROOT_DIR}/ansible/roles:${ANSIBLE_ROLES_PATH:-}"
 exec ansible-playbook -i localhost, -c local "${ROOT_DIR}/ansible/playbooks/install.yaml" "$@"
 
