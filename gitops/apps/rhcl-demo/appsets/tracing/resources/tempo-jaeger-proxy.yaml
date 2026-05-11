@@ -17,6 +17,8 @@ data:
       proxy_set_header Connection "";
       proxy_ssl_server_name on;
       proxy_ssl_verify off;
+      proxy_ssl_certificate /etc/query-frontend/tls.crt;
+      proxy_ssl_certificate_key /etc/query-frontend/tls.key;
       proxy_pass https://tempo-simplest-query-frontend.rhcl-observability.svc.cluster.local:16686;
     }
 ---
@@ -51,8 +53,14 @@ spec:
             - name: nginx-conf
               mountPath: /opt/app-root/etc/nginx.default.d
               readOnly: true
+            - name: query-frontend-mtls
+              mountPath: /etc/query-frontend
+              readOnly: true
       volumes:
         - name: nginx-conf
           configMap:
             name: tempo-jaeger-proxy-nginx
+        - name: query-frontend-mtls
+          secret:
+            secretName: tempo-simplest-query-frontend-mtls
 
