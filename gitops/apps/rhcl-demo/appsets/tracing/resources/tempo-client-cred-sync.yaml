@@ -94,32 +94,25 @@ spec:
               done
 
               echo "Copying tempo-simplest-gateway-mtls -> ${dst_ns}"
-              crt_b64="$(oc -n \"${src_ns}\" get secret tempo-simplest-gateway-mtls -o jsonpath='{.data.tls\\.crt}')"
-              key_b64="$(oc -n \"${src_ns}\" get secret tempo-simplest-gateway-mtls -o jsonpath='{.data.tls\\.key}')"
-              cat <<EOF | oc -n "${dst_ns}" apply -f -
-              apiVersion: v1
-              kind: Secret
-              metadata:
-                name: tempo-simplest-gateway-mtls
-                namespace: ${dst_ns}
-              type: kubernetes.io/tls
-              data:
-                tls.crt: ${crt_b64}
-                tls.key: ${key_b64}
-              EOF
+              crt_b64="$(oc -n "${src_ns}" get secret tempo-simplest-gateway-mtls -o jsonpath='{.data.tls\.crt}')"
+              key_b64="$(oc -n "${src_ns}" get secret tempo-simplest-gateway-mtls -o jsonpath='{.data.tls\.key}')"
+              crt_file="$(mktemp)"
+              key_file="$(mktemp)"
+              echo "${crt_b64}" | base64 -d > "${crt_file}"
+              echo "${key_b64}" | base64 -d > "${key_file}"
+              oc -n "${dst_ns}" create secret tls tempo-simplest-gateway-mtls \
+                --cert="${crt_file}" --key="${key_file}" \
+                --dry-run=client -o yaml | oc -n "${dst_ns}" apply -f -
+              rm -f "${crt_file}" "${key_file}"
 
               echo "Copying tempo-simplest-ca-bundle -> ${dst_ns}"
-              ca_crt="$(oc -n \"${src_ns}\" get configmap tempo-simplest-ca-bundle -o jsonpath='{.data.service-ca\\.crt}')"
-              cat <<EOF | oc -n "${dst_ns}" apply -f -
-              apiVersion: v1
-              kind: ConfigMap
-              metadata:
-                name: tempo-simplest-ca-bundle
-                namespace: ${dst_ns}
-              data:
-                service-ca.crt: |
-$(printf "%s\n" "${ca_crt}" | sed 's/^/                  /')
-              EOF
+              ca_crt="$(oc -n "${src_ns}" get configmap tempo-simplest-ca-bundle -o jsonpath='{.data.service-ca\.crt}')"
+              ca_file="$(mktemp)"
+              printf "%s\n" "${ca_crt}" > "${ca_file}"
+              oc -n "${dst_ns}" create configmap tempo-simplest-ca-bundle \
+                --from-file=service-ca.crt="${ca_file}" \
+                --dry-run=client -o yaml | oc -n "${dst_ns}" apply -f -
+              rm -f "${ca_file}"
 
               echo "Done."
 
