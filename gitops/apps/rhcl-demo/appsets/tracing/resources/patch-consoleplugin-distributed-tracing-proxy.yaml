@@ -33,30 +33,32 @@ subjects:
     namespace: openshift-cluster-observability-operator
 ---
 apiVersion: batch/v1
-kind: Job
+kind: CronJob
 metadata:
   name: patch-distributed-tracing-consoleplugin-proxy
   namespace: openshift-cluster-observability-operator
   annotations:
     argocd.argoproj.io/sync-wave: "94"
-    argocd.argoproj.io/hook: PostSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
 spec:
-  backoffLimit: 3
-  template:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
     spec:
-      restartPolicy: OnFailure
-      serviceAccountName: consoleplugin-patcher
-      containers:
-        - name: oc
-          image: registry.redhat.io/openshift4/ose-cli:latest
-          command: ["/bin/bash","-lc"]
-          args:
-            - |
-              set -euo pipefail
-              echo "Patching ConsolePlugin proxy to use distributed-tracing-auth-proxy..."
-              oc patch consoleplugin distributed-tracing-console-plugin --type='json' -p='[
-                {"op":"replace","path":"/spec/proxy/0/endpoint/service/name","value":"distributed-tracing-auth-proxy"}
-              ]'
-              echo "OK"
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: consoleplugin-patcher
+          containers:
+            - name: oc
+              image: registry.redhat.io/openshift4/ose-cli:latest
+              command: ["/bin/bash","-lc"]
+              args:
+                - |
+                  set -euo pipefail
+                  oc patch consoleplugin distributed-tracing-console-plugin --type='json' -p='[
+                    {"op":"replace","path":"/spec/proxy/0/endpoint/service/name","value":"distributed-tracing-auth-proxy"}
+                  ]'
 
