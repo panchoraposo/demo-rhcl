@@ -24,4 +24,12 @@ spec:
       ports:
         - protocol: TCP
           port: 3200
+    # Allow the OpenShift router to reach the Jaeger UI exposed via Route.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-ingress
+      ports:
+        - protocol: TCP
+          port: 16686
 

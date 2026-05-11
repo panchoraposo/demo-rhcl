@@ -3870,9 +3870,8 @@ spec:
       function tempoJaegerUrl(){
         const parts = String(location.host || "").split(".");
         const appsDomain = parts.length > 1 ? parts.slice(1).join(".") : "";
-        // Prefer the Tempo gateway Route (this is what Grafana uses too).
-        // Jaeger UI is served under /jaeger/ui when enabled on the TempoStack.
-        const url = appsDomain ? `https://tempo-simplest-gateway-rhcl-observability.${appsDomain}/jaeger/ui` : "";
+        // Use the dedicated Route for the Jaeger UI.
+        const url = appsDomain ? `https://tempo-jaeger-rhcl-observability.${appsDomain}` : "";
         return url.replace(/\/+$/g, "");
       }
 
