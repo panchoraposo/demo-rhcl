@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - resources/namespace-observability.yaml
+  - resources/cluster-observability-operator.yaml
   - resources/namespace-tempo-operator.yaml
   - resources/tempo-operator.yaml
   # OpenTelemetry operator is already present on many clusters (and OLM will fail if
