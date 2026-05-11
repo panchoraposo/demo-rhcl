@@ -1302,7 +1302,7 @@
                 <div class="sub">Open traces in Tempo (Jaeger UI), Grafana Explore, or the OpenShift Console (Traces plugin).</div>
                 <div class="btnGrid" style="margin-top:10px">
                   <a class="btnLink primary" href="#" onclick="openTempoJaegerUi(); return false;">Tempo (Jaeger UI)</a>
-                  <a class="btnLink" href="#" onclick="openGrafanaExplore(); return false;">Grafana Explore</a>
+                  <a class="btnLink" href="#" onclick="openGrafanaTraces(); return false;">Grafana (traces)</a>
                   <a class="btnLink" href="#" onclick="openConsoleTraces(); return false;">OpenShift Console (Traces)</a>
                 </div>
                 <div class="footer">
@@ -3822,6 +3822,18 @@ spec:
       function openGrafanaExplore(){
         const base = grafanaBaseUrl();
         window.open(`${base}/explore`, "_blank", "noopener,noreferrer");
+      }
+
+      function openGrafanaTraces(){
+        const base = grafanaBaseUrl();
+        // GrafanaDatasource name from GitOps: `rhcl-tracing` (type=jaeger, backed by Tempo gateway).
+        const left = {
+          datasource: "rhcl-tracing",
+          queries: [{ refId: "A", query: "" }],
+          range: { from: "now-15m", to: "now" }
+        };
+        const url = `${base}/explore?orgId=1&left=${encodeURIComponent(JSON.stringify(left))}`;
+        window.open(url, "_blank", "noopener,noreferrer");
       }
 
       function setGrafanaUrl(){

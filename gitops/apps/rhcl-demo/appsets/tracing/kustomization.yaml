@@ -15,6 +15,7 @@ resources:
   - resources/tempo-tenant-rbac.yaml
   - resources/tempo-grafana-rbac.yaml
   - resources/otel-collector.yaml
+  - resources/service-tempo-jaeger-ui.yaml
   - resources/route-tempo-jaeger-ui.yaml
   - resources/uiplugin-distributed-tracing.yaml
   - resources/patch-jaeger-query-no-client-mtls.yaml

@@ -8,9 +8,9 @@ metadata:
 spec:
   to:
     kind: Service
-    name: tempo-simplest-query-frontend
+    name: tempo-jaeger-ui
   port:
-    targetPort: 16686
+    targetPort: jaeger-ui
   tls:
     termination: edge
     insecureEdgeTerminationPolicy: Redirect
