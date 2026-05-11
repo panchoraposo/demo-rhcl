@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-opentelemetry-to-tempo-distributor
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "69"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: distributor
+      app.kubernetes.io/instance: simplest
+      app.kubernetes.io/managed-by: tempo-operator
+      app.kubernetes.io/name: tempo
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-opentelemetry
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: connectivity-link-collector-collector
+      ports:
+        - protocol: TCP
+          port: 4317
+        - protocol: TCP
+          port: 4318
+
