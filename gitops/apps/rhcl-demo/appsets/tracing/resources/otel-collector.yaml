@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: otel
-  namespace: rhcl-observability
+  name: connectivity-link-collector
+  namespace: openshift-opentelemetry
   annotations:
     argocd.argoproj.io/sync-wave: "40"
 ---
@@ -32,20 +32,20 @@ roleRef:
   name: rhcl-observability-otel-k8sattributes
 subjects:
   - kind: ServiceAccount
-    name: otel
-    namespace: rhcl-observability
+    name: connectivity-link-collector
+    namespace: openshift-opentelemetry
 ---
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
-  name: otel
-  namespace: rhcl-observability
+  name: connectivity-link-collector
+  namespace: openshift-opentelemetry
   annotations:
     argocd.argoproj.io/sync-wave: "41"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   mode: deployment
-  serviceAccount: otel
+  serviceAccount: connectivity-link-collector
   volumes:
     - name: tempo-client-mtls
       secret:

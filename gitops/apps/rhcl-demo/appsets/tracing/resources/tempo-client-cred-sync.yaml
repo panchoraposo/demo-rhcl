@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tempo-client-cred-sync
+  namespace: openshift-opentelemetry
+  annotations:
+    argocd.argoproj.io/sync-wave: "42"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tempo-client-cred-sync-read
+  annotations:
+    argocd.argoproj.io/sync-wave: "42"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tempo-client-cred-sync-write
+  annotations:
+    argocd.argoproj.io/sync-wave: "42"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["create", "patch", "update", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tempo-client-cred-sync-read
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "42"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tempo-client-cred-sync-read
+subjects:
+  - kind: ServiceAccount
+    name: tempo-client-cred-sync
+    namespace: openshift-opentelemetry
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tempo-client-cred-sync-write
+  namespace: openshift-opentelemetry
+  annotations:
+    argocd.argoproj.io/sync-wave: "42"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: tempo-client-cred-sync-write
+subjects:
+  - kind: ServiceAccount
+    name: tempo-client-cred-sync
+    namespace: openshift-opentelemetry
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tempo-client-cred-sync
+  namespace: openshift-opentelemetry
+  annotations:
+    argocd.argoproj.io/sync-wave: "43"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded,HookFailed
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: tempo-client-cred-sync
+      containers:
+        - name: oc
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              src_ns="rhcl-observability"
+              dst_ns="openshift-opentelemetry"
+
+              echo "Waiting for Tempo mTLS secret/configmap in ${src_ns}..."
+              for i in $(seq 1 90); do
+                if oc -n "${src_ns}" get secret tempo-simplest-gateway-mtls >/dev/null 2>&1 && oc -n "${src_ns}" get configmap tempo-simplest-ca-bundle >/dev/null 2>&1; then
+                  break
+                fi
+                sleep 2
+              done
+
+              echo "Copying tempo-simplest-gateway-mtls -> ${dst_ns}"
+              oc -n "${src_ns}" get secret tempo-simplest-gateway-mtls -o yaml \
+                | sed "s/^  namespace: .*/  namespace: ${dst_ns}/" \
+                | oc -n "${dst_ns}" apply -f -
+
+              echo "Copying tempo-simplest-ca-bundle -> ${dst_ns}"
+              oc -n "${src_ns}" get configmap tempo-simplest-ca-bundle -o yaml \
+                | sed "s/^  namespace: .*/  namespace: ${dst_ns}/" \
+                | oc -n "${dst_ns}" apply -f -
+
+              echo "Done."
+
