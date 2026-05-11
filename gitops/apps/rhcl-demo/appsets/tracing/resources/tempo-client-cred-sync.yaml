@@ -94,14 +94,32 @@ spec:
               done
 
               echo "Copying tempo-simplest-gateway-mtls -> ${dst_ns}"
-              oc -n "${src_ns}" get secret tempo-simplest-gateway-mtls -o yaml \
-                | sed "s/^  namespace: .*/  namespace: ${dst_ns}/" \
-                | oc -n "${dst_ns}" apply -f -
+              crt_b64="$(oc -n \"${src_ns}\" get secret tempo-simplest-gateway-mtls -o jsonpath='{.data.tls\\.crt}')"
+              key_b64="$(oc -n \"${src_ns}\" get secret tempo-simplest-gateway-mtls -o jsonpath='{.data.tls\\.key}')"
+              cat <<EOF | oc -n "${dst_ns}" apply -f -
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: tempo-simplest-gateway-mtls
+                namespace: ${dst_ns}
+              type: kubernetes.io/tls
+              data:
+                tls.crt: ${crt_b64}
+                tls.key: ${key_b64}
+              EOF
 
               echo "Copying tempo-simplest-ca-bundle -> ${dst_ns}"
-              oc -n "${src_ns}" get configmap tempo-simplest-ca-bundle -o yaml \
-                | sed "s/^  namespace: .*/  namespace: ${dst_ns}/" \
-                | oc -n "${dst_ns}" apply -f -
+              ca_crt="$(oc -n \"${src_ns}\" get configmap tempo-simplest-ca-bundle -o jsonpath='{.data.service-ca\\.crt}')"
+              cat <<EOF | oc -n "${dst_ns}" apply -f -
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: tempo-simplest-ca-bundle
+                namespace: ${dst_ns}
+              data:
+                service-ca.crt: |
+$(printf "%s\n" "${ca_crt}" | sed 's/^/                  /')
+              EOF
 
               echo "Done."
 
