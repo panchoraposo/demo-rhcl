@@ -1302,7 +1302,7 @@
                 <div class="sub">Open traces in Tempo (Jaeger UI), Grafana Explore, or the OpenShift Console (Traces plugin).</div>
                 <div class="btnGrid" style="margin-top:10px">
                   <a class="btnLink primary" href="#" onclick="openTempoJaegerUi(); return false;">Tempo (Jaeger UI)</a>
-                  <a class="btnLink" href="#" onclick="openGrafanaTraces(); return false;">Grafana (traces)</a>
+                  <a class="btnLink" href="#" onclick="openGrafanaTraces(); return false;">Grafana Explore (traces)</a>
                   <a class="btnLink" href="#" onclick="openConsoleTraces(); return false;">OpenShift Console (Traces)</a>
                 </div>
                 <div class="footer">
@@ -3870,7 +3870,9 @@ spec:
       function tempoJaegerUrl(){
         const parts = String(location.host || "").split(".");
         const appsDomain = parts.length > 1 ? parts.slice(1).join(".") : "";
-        const url = appsDomain ? `https://tempo-jaeger-rhcl-observability.${appsDomain}` : "";
+        // Prefer the Tempo gateway Route (this is what Grafana uses too).
+        // Jaeger UI is served under /jaeger/ui when enabled on the TempoStack.
+        const url = appsDomain ? `https://tempo-simplest-gateway-rhcl-observability.${appsDomain}/jaeger/ui` : "";
         return url.replace(/\/+$/g, "");
       }
 
