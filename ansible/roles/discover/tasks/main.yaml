@@ -81,28 +81,20 @@
   when: db_storage_class | trim == ''
 
 - name: Detect best GatewayClass (prefer openshift-default, then istio)
-  ansible.builtin.shell: |
-    set -euo pipefail
-    python3 - <<'PY'
-    import json, subprocess
-    preferred = ["openshift-default", "istio"]
+  ansible.builtin.command: >-
+    python3 -c
+    'import json,subprocess,sys;
+    preferred=["openshift-default","istio"];
     try:
-      raw = subprocess.check_output(["oc","get","gatewayclass","-o","json"], text=True, stderr=subprocess.DEVNULL)
-      j = json.loads(raw)
-      names = [(it.get("metadata", {}) or {}).get("name", "") for it in (j.get("items", []) or [])]
-      names = [n for n in names if n]
+      raw=subprocess.check_output(["oc","get","gatewayclass","-o","json"], text=True, stderr=subprocess.DEVNULL);
+      j=json.loads(raw);
+      names=[(it.get("metadata",{}) or {}).get("name","") for it in (j.get("items",[]) or [])];
+      names=[n for n in names if n];
     except Exception:
-      # If the API is flaky, default to "istio" because it's commonly present in these workshop clusters.
-      print("istio")
-      raise SystemExit(0)
+      print("istio"); sys.exit(0);
     for p in preferred:
-      if p in names:
-        print(p)
-        raise SystemExit(0)
-    print(names[0] if names else "istio")
-    PY
-  args:
-    executable: /bin/bash
+      if p in names: print(p); sys.exit(0);
+    print(names[0] if names else "istio");'
   register: detected_gateway_class
   changed_when: false
 
