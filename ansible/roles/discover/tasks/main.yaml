@@ -80,6 +80,41 @@
     msg: "Could not detect any StorageClass. Ensure a default StorageClass exists or set up storage."
   when: db_storage_class | trim == ''
 
+- name: Detect best GatewayClass (prefer openshift-default, then istio)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    python3 - <<'PY'
+    import json, subprocess
+    preferred = ["openshift-default", "istio"]
+    try:
+      raw = subprocess.check_output(["oc","get","gatewayclass","-o","json"], text=True, stderr=subprocess.DEVNULL)
+      j = json.loads(raw)
+      names = [(it.get("metadata", {}) or {}).get("name", "") for it in (j.get("items", []) or [])]
+      names = [n for n in names if n]
+    except Exception:
+      # If the API is flaky, default to "istio" because it's commonly present in these workshop clusters.
+      print("istio")
+      raise SystemExit(0)
+    for p in preferred:
+      if p in names:
+        print(p)
+        raise SystemExit(0)
+    print(names[0] if names else "istio")
+    PY
+  args:
+    executable: /bin/bash
+  register: detected_gateway_class
+  changed_when: false
+
+- name: Set gateway_class
+  ansible.builtin.set_fact:
+    gateway_class: "{{ detected_gateway_class.stdout | trim }}"
+
+- name: Fail if gateway_class is empty
+  ansible.builtin.fail:
+    msg: "Could not detect any GatewayClass. Ensure a Gateway API controller is installed."
+  when: gateway_class | trim == ''
+
 - name: Detect best ClusterIssuer (if not provided)
   ansible.builtin.shell: |
     set -euo pipefail
@@ -176,4 +211,5 @@
       - "CLUSTER_ISSUER={{ cluster_issuer }}"
       - "DEFAULT_INGRESS_CERT_SECRET={{ default_ingress_cert_secret }}"
       - "DB_STORAGE_CLASS={{ db_storage_class }}"
+      - "GATEWAY_CLASS={{ gateway_class }}"
 

@@ -12,6 +12,36 @@ spec:
     kustomize:
       patches:
         - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: Gateway
+            name: rhcl-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: rhcl-gw
+              namespace: openshift-ingress
+            spec:
+              gatewayClassName: {{ gateway_class }}
+
+        - target:
+            group: gateway.networking.k8s.io
+            version: v1
+            kind: Gateway
+            name: rhcl-mcp-gw
+            namespace: openshift-ingress
+          patch: |-
+            apiVersion: gateway.networking.k8s.io/v1
+            kind: Gateway
+            metadata:
+              name: rhcl-mcp-gw
+              namespace: openshift-ingress
+            spec:
+              gatewayClassName: {{ gateway_class }}
+
+        - target:
             group: ""
             version: v1
             kind: PersistentVolumeClaim
