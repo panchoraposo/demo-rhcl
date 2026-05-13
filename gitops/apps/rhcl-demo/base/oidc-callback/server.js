@@ -83,15 +83,27 @@ function isJwtExpired(payload) {
 }
 
 const PORT = Number(process.env.PORT || "8080");
-const TOKEN_URL =
-  process.env.KEYCLOAK_TOKEN_URL ||
-  "http://keycloak-service.rhcl-keycloak.svc.cluster.local:8080/auth/realms/rhcl/protocol/openid-connect/token";
+const TOKEN_URL = String(process.env.KEYCLOAK_TOKEN_URL || "").trim();
 const CLIENT_ID = process.env.OIDC_CLIENT_ID || "rhcl-ui";
+
+function hostNoPort(h) {
+  const host = String(h || "").split(",")[0].trim();
+  return host.replace(/:\d+$/, "");
+}
+
+function tokenUrlForHost(h) {
+  // If KEYCLOAK_TOKEN_URL points to a cluster-local service (or uses http),
+  // Keycloak may mint tokens with an internal issuer that won't match the Gateway's JWT issuerUrl.
+  // Prefer exchanging the code via the public Keycloak route at the same hostname as the portal.
+  if (TOKEN_URL && TOKEN_URL.startsWith("https://") && !TOKEN_URL.includes("svc.cluster.local")) return TOKEN_URL;
+  const host = hostNoPort(h) || "example.com";
+  return `https://${host}/auth/realms/rhcl/protocol/openid-connect/token`;
+}
 
 const server = http.createServer(async (req, res) => {
   try {
     const host = String(req.headers["x-forwarded-host"] || req.headers.host || "example.com");
-    const u = new URL(req.url || "/", `http://${host}`);
+    const u = new URL(req.url || "/", `http://${hostNoPort(host)}`);
     const cookies = parseCookies(req.headers.cookie);
 
     if (u.pathname === "/whoami") {
@@ -152,7 +164,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (u.pathname !== "/auth/callback") {
+    if (u.pathname !== "/oidc/callback") {
       res.writeHead(404, { "content-type": "text/plain" });
       res.end("not found\n");
       return;
@@ -165,7 +177,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const redirectUri = `https://${host}/auth/callback`;
+    const redirectUri = `https://${host}/oidc/callback`;
     const body = formEncode({
       code,
       grant_type: "authorization_code",
@@ -173,7 +185,7 @@ const server = http.createServer(async (req, res) => {
       client_id: CLIENT_ID,
     });
 
-    const tr = await postForm(TOKEN_URL, body);
+    const tr = await postForm(tokenUrlForHost(host), body);
     if (tr.status < 200 || tr.status >= 300) {
       res.writeHead(502, { "content-type": "text/plain" });
       res.end(`token_exchange_failed status=${tr.status}\n${String(tr.body || "").slice(0, 2000)}\n`);

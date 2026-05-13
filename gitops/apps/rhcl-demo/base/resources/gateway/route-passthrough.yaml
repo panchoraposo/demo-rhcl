@@ -9,7 +9,7 @@ spec:
   host: REPLACE_ME_DEMO_HOSTNAME
   to:
     kind: Service
-    name: rhcl-gw-openshift-default
+    name: rhcl-gw-istio
   port:
     targetPort: 443
   tls:

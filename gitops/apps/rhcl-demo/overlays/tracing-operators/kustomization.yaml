@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../appsets/tracing/resources/namespace-observability.yaml
+  - ../../appsets/tracing/resources/cluster-observability-operator.yaml
+  - ../../appsets/tracing/resources/namespace-tempo-operator.yaml
+  - ../../appsets/tracing/resources/tempo-operator.yaml
+  - ../../appsets/tracing/resources/namespace-opentelemetry-operator.yaml
+  - ../../appsets/tracing/resources/opentelemetry-operator.yaml
+  - ../../appsets/tracing/resources/namespace-opentelemetry.yaml
+

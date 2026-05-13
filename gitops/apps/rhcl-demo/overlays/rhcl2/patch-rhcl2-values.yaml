@@ -1,0 +1,330 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rhcl-gw
+  namespace: openshift-ingress
+spec:
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-main-public
+      port: 443
+      protocol: HTTPS
+      hostname: rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-oidc-public
+      port: 443
+      protocol: HTTPS
+      hostname: oidc-rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-oidc-sandbox
+      port: 443
+      protocol: HTTPS
+      hostname: oidc-rhcl-workshop.sandbox921.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-oidc-sandbox-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-external-public
+      port: 443
+      protocol: HTTPS
+      hostname: external-api.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-mcp-public
+      port: 443
+      protocol: HTTPS
+      hostname: mcp.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-public-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-mcp-sandbox
+      port: 443
+      protocol: HTTPS
+      hostname: mcp.sandbox921.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-mcp-sandbox-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rhcl-ai-gw
+  namespace: openshift-ingress
+spec:
+  listeners:
+    - name: http-ai
+      port: 80
+      protocol: HTTP
+      hostname: ai.sandbox921.opentlc.com
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-ai-sandbox
+      port: 443
+      protocol: HTTPS
+      hostname: ai.sandbox921.opentlc.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: rhcl-gw-ai-sandbox-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rhcl-gw
+  namespace: openshift-ingress
+spec:
+  host: rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rhcl-gw-oidc
+  namespace: openshift-ingress
+spec:
+  host: oidc-rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-ui
+  namespace: demo
+spec:
+  hostnames:
+    - rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo-api
+  namespace: demo
+spec:
+  hostnames:
+    - rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ab-demo
+  namespace: demo-ab
+spec:
+  hostnames:
+    - rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: jwt-demo
+  namespace: demo-jwt
+spec:
+  hostnames:
+    - rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ai-bot-main
+  namespace: rhcl-ai-bot
+spec:
+  hostnames:
+    - rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ai-bot-ai
+  namespace: rhcl-ai-bot
+spec:
+  hostnames:
+    - ai.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: external-proxy-public
+  namespace: demo
+spec:
+  hostnames:
+    - external-api.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: secure-demo
+  namespace: rhcl-oidc-portal
+spec:
+  hostnames:
+    - oidc-rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+    - oidc-rhcl-workshop.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: oidc-portal
+  namespace: rhcl-oidc-portal
+spec:
+  hostnames:
+    - oidc-rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+    - oidc-rhcl-workshop.sandbox921.opentlc.com
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: oidc-callback
+  namespace: rhcl-oidc-portal
+spec:
+  hostnames:
+    - oidc-rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+    - oidc-rhcl-workshop.sandbox921.opentlc.com
+---
+apiVersion: extensions.kuadrant.io/v1alpha1
+kind: OIDCPolicy
+metadata:
+  name: secure-demo-oidc
+  namespace: rhcl-oidc-portal
+spec:
+  provider:
+    issuerURL: https://oidc-rhcl-workshop.sandbox921.opentlc.com/auth/realms/rhcl
+    authorizationEndpoint: https://oidc-rhcl-workshop.sandbox921.opentlc.com/auth/realms/rhcl/protocol/openid-connect/auth
+    tokenEndpoint: https://oidc-rhcl-workshop.sandbox921.opentlc.com/auth/realms/rhcl/protocol/openid-connect/token
+    redirectURI: https://oidc-rhcl-workshop.sandbox921.opentlc.com/oidc/callback
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rhcl-gw-public-tls
+  namespace: openshift-ingress
+spec:
+  dnsNames:
+    - rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+    - oidc-rhcl-workshop.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+    - mcp.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+    - external.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+    - external-api.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+  issuerRef:
+    name: letsencrypt-production-ec2
+
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rhcl-gw
+  namespace: openshift-ingress
+spec:
+  to:
+    name: rhcl-gw-istio
+
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rhcl-gw-oidc
+  namespace: openshift-ingress
+spec:
+  to:
+    name: rhcl-gw-istio
+---
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: secure-demo-jwt
+  namespace: rhcl-oidc-portal
+spec:
+  defaults:
+    rules:
+      authentication:
+        jwt:
+          jwt:
+            issuerUrl: https://oidc-rhcl-workshop.sandbox921.opentlc.com/auth/realms/rhcl
+---
+apiVersion: kuadrant.io/v1
+kind: AuthPolicy
+metadata:
+  name: jwt-demo-jwt
+  namespace: demo-jwt
+spec:
+  defaults:
+    rules:
+      authentication:
+        jwt:
+          jwt:
+            issuerUrl: https://oidc-rhcl-workshop.sandbox921.opentlc.com/auth/realms/rhcl
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhcl-ai-bot
+  namespace: rhcl-ai-bot
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          env:
+            - name: RHCL_AI_ESPN_BASE_URL
+              value: https://external-api.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+            - name: RHCL_AI_MCP_BASE_URL
+              value: https://mcp.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: rhcl-grafana
+  namespace: monitoring
+spec:
+  route:
+    spec:
+      host: grafana.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+

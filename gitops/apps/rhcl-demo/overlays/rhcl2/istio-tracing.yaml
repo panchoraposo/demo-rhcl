@@ -1,0 +1,22 @@
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  namespace: istio-system
+  updateStrategy:
+    type: InPlace
+  values:
+    pilot:
+      env:
+        PILOT_ENABLE_GATEWAY_API: "true"
+    meshConfig:
+      enableTracing: true
+      # Extension provider used by Telemetry resources below.
+      extensionProviders:
+        - name: otel-rhcl
+          opentelemetry:
+            service: connectivity-link-collector-collector.openshift-opentelemetry.svc.cluster.local
+            port: 4317
+

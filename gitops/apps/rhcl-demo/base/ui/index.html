@@ -320,6 +320,10 @@
         border-color: rgba(124,92,255,.26);
         background: rgba(124,92,255,.08);
       }
+      .chatLine.bad{
+        border-color: rgba(239,68,68,.36);
+        background: rgba(239,68,68,.10);
+      }
       .chatRole{
         font-size:11px;
         letter-spacing:.08em;
@@ -1092,8 +1096,8 @@
               <div class="k">Module</div>
               <div class="t"><b>AI chatbot</b> — MCP tool call + TokenRateLimitPolicy</div>
               <div class="d">
-                The browser talks to a Quarkus app that returns an OpenAI-compatible response including <code>usage.total_tokens</code>.
-                When it needs external data, the app calls tools through the <b>MCP Gateway</b> (separate hostname) and the Gateway enforces <b>TokenRateLimitPolicy</b> on the AI endpoint.
+                The browser calls an OpenAI-compatible chat completion endpoint on a <b>dedicated AI hostname</b> (so TokenRateLimitPolicy + Traffic Analysis stay scoped to that Gateway).
+                When the model needs external data, the app calls tools through the <b>MCP Gateway</b> (separate hostname).
               </div>
               <div class="row" style="margin-top:10px">
                 <button onclick="openYamlSet('ai')">View policy YAML</button>
@@ -1102,6 +1106,7 @@
                 <button onclick="aiCallTool()">Call tool</button>
                 <button onclick="aiClear()">Clear</button>
                 <span class="pill"><span class="dot"></span> <code id="aiStatus">—</code></span>
+                <span class="pill" title="AI chat hostname"><span class="dot"></span> <code id="aiAiHostPill">—</code></span>
                 <span class="pill" title="MCP gateway hostname"><span class="dot"></span> <code id="aiMcpHostPill">—</code></span>
               </div>
             </div>
@@ -1283,13 +1288,13 @@
                 <div class="sub">Open the Query Browser with pre-filled PromQL.</div>
                 <div class="btnGrid" style="margin-top:10px">
                   <a class="btnLink primary" id="ocq_gateway_rps" target="_blank" rel="noreferrer"
-                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;}[5m])) by (destination_workload)">Gateway req/s</a>
+                     data-promql="sum(rate(istio_requests_total{source_workload_namespace=&quot;openshift-ingress&quot;,source_workload=~&quot;rhcl-.*&quot;}[5m])) by (source_workload)">Gateway req/s</a>
                   <a class="btnLink" id="ocq_codes" target="_blank" rel="noreferrer"
-                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;,response_code=~&quot;(200|401|403|404|429|5..)&quot;}[5m])) by (response_code)">200/401/403/404/429/5xx</a>
+                     data-promql="sum(rate(istio_requests_total{source_workload_namespace=&quot;openshift-ingress&quot;,source_workload=~&quot;rhcl-.*&quot;,response_code=~&quot;(200|401|403|404|429|5..)&quot;}[5m])) by (response_code)">200/401/403/404/429/5xx</a>
                   <a class="btnLink" id="ocq_auth_limits" target="_blank" rel="noreferrer"
-                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;,response_code=~&quot;(401|403|429)&quot;}[5m])) by (response_code)">Auth + limits</a>
+                     data-promql="sum(rate(istio_requests_total{source_workload_namespace=&quot;openshift-ingress&quot;,source_workload=~&quot;rhcl-.*&quot;,response_code=~&quot;(401|403|429)&quot;}[5m])) by (response_code)">Auth + limits</a>
                   <a class="btnLink" id="ocq_404" target="_blank" rel="noreferrer"
-                     data-promql="sum(rate(istio_requests_total{destination_service_namespace=&quot;openshift-ingress&quot;,destination_workload=~&quot;rhcl-.*&quot;,response_code=&quot;404&quot;}[5m]))">404</a>
+                     data-promql="sum(rate(istio_requests_total{source_workload_namespace=&quot;openshift-ingress&quot;,source_workload=~&quot;rhcl-.*&quot;,response_code=&quot;404&quot;}[5m]))">404</a>
                 </div>
                 <div class="footer">
                   Uses <span class="mono">istio_requests_total</span> from User Workload Monitoring.
@@ -1428,6 +1433,7 @@
       const yamlEnforcerPillEl = el("yamlEnforcerPill");
       const oidcPortalPillEl = el("oidcPortalPill");
       const aiStatusEl = el("aiStatus");
+      const aiAiHostPillEl = el("aiAiHostPill");
       const aiMcpHostPillEl = el("aiMcpHostPill");
       const aiCustomPromptDetailsEl = el("aiCustomPromptDetails");
       const aiPromptEl = el("aiPrompt");
@@ -1472,6 +1478,7 @@
       let yamlActiveText = "";
       let yamlActiveKey = "";
       let aiConversation = [];
+      let aiFetchHintShown = false;
       let jwtToken = "";
       let jwtDecodedText = "";
       let jsonActiveText = "";
@@ -1562,8 +1569,15 @@ metadata:
   name: rhcl-mcp-gw
   namespace: openshift-ingress
 spec:
-  gatewayClassName: openshift-default
+  gatewayClassName: istio
   listeners:
+    - name: http-mcp
+      port: 80
+      protocol: HTTP
+      hostname: REPLACE_ME_MCP_HOSTNAME
+      allowedRoutes:
+        namespaces:
+          from: All
     - name: https-mcp-public
       port: 443
       protocol: HTTPS
@@ -1573,7 +1587,10 @@ spec:
         certificateRefs:
           - group: ""
             kind: Secret
-            name: rhcl-gw-public-tls
+            name: rhcl-gw-mcp-sandbox-tls
+      allowedRoutes:
+        namespaces:
+          from: All
 ` },
           { name: "MCP Gateway public HTTPRoute (/mcp)", yaml: `apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -1667,7 +1684,8 @@ stringData:
         hostname: REPLACE_ME_MCP_HOSTNAME
         name: mcp-system/rhcl-mcp-tools
         toolPrefix: tools_
-        url: https://REPLACE_ME_MCP_HOSTNAME/tools/rhcl-mcp-tools
+        # Tool server is reached inside the cluster (the gateway publishes it externally).
+        url: http://rhcl-mcp-tools-bridge.mcp-system.svc.cluster.local:8080/mcp
 ` },
           // (same-origin /mcp-tools bridge removed; the bot uses the dedicated MCP hostname directly)
         ],
@@ -1849,142 +1867,86 @@ data:
 ` },
         ],
         "ai": [
-          { name: "HTTPRoute (/ai)", yaml: `apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: ai-bot-main
-  namespace: rhcl-ai-bot
-spec:
-  hostnames:
-    - REPLACE_ME_DEMO_HOSTNAME
-  parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: rhcl-gw
-      namespace: openshift-ingress
-  rules:
-    - matches:
-        - method: POST
-          path: { type: PathPrefix, value: /ai }
-        - method: OPTIONS
-          path: { type: PathPrefix, value: /ai }
-      backendRefs:
-        - kind: Service
-          name: rhcl-ai-bot
-          port: 80
-` },
-          { name: "MCP Gateway (dedicated hostname)", yaml: `# MCP Gateway entrypoint (dedicated hostname)
-apiVersion: gateway.networking.k8s.io/v1
+          { name: "AI Gateway (dedicated hostname)", yaml: `apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: rhcl-mcp-gw
+  name: rhcl-ai-gw
   namespace: openshift-ingress
+  labels:
+    kuadrant.io/gateway: "true"
 spec:
-  gatewayClassName: openshift-default
+  gatewayClassName: istio
   listeners:
-    - name: https-mcp-public
+    - name: http-ai
+      port: 80
+      protocol: HTTP
+      hostname: REPLACE_ME_AI_HOSTNAME
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-ai-sandbox
       port: 443
       protocol: HTTPS
-      hostname: REPLACE_ME_MCP_HOSTNAME
+      hostname: REPLACE_ME_AI_HOSTNAME
       tls:
         mode: Terminate
         certificateRefs:
           - group: ""
             kind: Secret
-            name: rhcl-gw-public-tls
+            name: rhcl-gw-ai-sandbox-tls
       allowedRoutes:
         namespaces:
           from: All
----
-apiVersion: kuadrant.io/v1
-kind: DNSPolicy
-metadata:
-  name: rhcl-mcp-public-dns
-  namespace: openshift-ingress
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: Gateway
-    name: rhcl-mcp-gw
-    sectionName: https-mcp-public
-  providerRefs:
-    - name: route53-credentials
----
-apiVersion: mcp.kuadrant.io/v1alpha1
-kind: MCPGatewayExtension
-metadata:
-  name: rhcl-mcp
-  namespace: mcp-system
-spec:
-  targetRef:
-    group: gateway.networking.k8s.io
-    kind: Gateway
-    name: rhcl-mcp-gw
-    namespace: openshift-ingress
-    sectionName: https-mcp-public
-  httpRouteManagement: Disabled
 ` },
-          { name: "MCP HTTPRoutes (/mcp + /tools)", yaml: `# Public MCP endpoint on the dedicated hostname
-apiVersion: gateway.networking.k8s.io/v1
+          { name: "AI HTTPRoute (/ai -> rhcl-ai-bot)", yaml: `apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: rhcl-mcp-gateway
-  namespace: mcp-system
+  name: ai-bot-ai
+  namespace: rhcl-ai-bot
 spec:
+  hostnames:
+    - REPLACE_ME_AI_HOSTNAME
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: rhcl-mcp-gw
+      name: rhcl-ai-gw
       namespace: openshift-ingress
-      sectionName: https-mcp-public
-  hostnames:
-    - REPLACE_ME_MCP_HOSTNAME
+      sectionName: https-ai-sandbox
   rules:
     - matches:
         - method: POST
-          path: { type: PathPrefix, value: /mcp }
+          path: { type: PathPrefix, value: /ai }
         - method: OPTIONS
-          path: { type: PathPrefix, value: /mcp }
-      backendRefs:
-        - kind: Service
-          name: mcp-gateway
-          port: 8080
-          weight: 1
----
-# Tool server published through the gateway (bypasses broker aggregation)
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: rhcl-mcp-tools
-  namespace: mcp-system
-spec:
-  parentRefs:
-    - name: rhcl-mcp-gw
-      namespace: openshift-ingress
-      sectionName: https-mcp-public
-  hostnames:
-    - REPLACE_ME_MCP_HOSTNAME
-  rules:
-    - matches:
-        - path: { type: PathPrefix, value: /tools/rhcl-mcp-tools }
+          path: { type: PathPrefix, value: /ai }
       filters:
-        - type: URLRewrite
-          urlRewrite:
-            path: { type: ReplacePrefixMatch, replacePrefixMatch: /mcp }
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: access-control-allow-origin
+                value: "*"
+              - name: access-control-allow-methods
+                value: "GET,POST,OPTIONS,HEAD"
+              - name: access-control-allow-headers
+                value: "content-type,authorization,accept,origin,x-requested-with"
+              - name: access-control-expose-headers
+                value: "mcp-session-id"
       backendRefs:
-        - name: rhcl-mcp-tools-bridge
-          port: 8080
+        - group: ""
+          kind: Service
+          name: rhcl-ai-bot
+          port: 80
+          weight: 1
 ` },
-          { name: "TokenRateLimitPolicy (tokens/min)", yaml: `apiVersion: kuadrant.io/v1alpha1
+          { name: "TokenRateLimitPolicy (tokens/15s)", yaml: `apiVersion: kuadrant.io/v1alpha1
 kind: TokenRateLimitPolicy
 metadata:
-  name: ai-bot-token-rl
-  namespace: demo
+  name: ai-bot-ai-token-rl
+  namespace: rhcl-ai-bot
 spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: HTTPRoute
-    name: ai-bot
+    name: ai-bot-ai
   defaults:
     when:
       - predicate: request.path.startsWith("/ai/v1/chat/completions")
@@ -2180,6 +2142,9 @@ spec:
       function renderYaml(txt){
         const host = (location && location.host) ? String(location.host) : "example.com";
         const oidcHost = oidcPortalHost();
+        const mcp = mcpHost();
+        const ai = mcp.startsWith("mcp.") ? (`ai.${mcp.slice("mcp.".length)}`) : (`ai.${mcp}`);
+        const ext = externalApiHost();
         const issuer = `https://${host}/auth/realms/rhcl`;
         const oidcIssuer = `https://${oidcHost}/auth/realms/rhcl`;
         return String(txt || "")
@@ -2187,6 +2152,10 @@ spec:
           .replaceAll("REPLACE_ME_DEMO_HOSTNAME", host)
           .replaceAll("https://REPLACE_ME_OIDC_HOSTNAME/auth/realms/rhcl", oidcIssuer)
           .replaceAll("REPLACE_ME_OIDC_HOSTNAME", oidcHost)
+          .replaceAll("REPLACE_ME_MCP_HOSTNAME", mcp)
+          .replaceAll("REPLACE_ME_AI_HOSTNAME", ai)
+          .replaceAll("external-api.REPLACE_ME_BASE_DOMAIN", ext)
+          .replaceAll("ai.REPLACE_ME_BASE_DOMAIN", ai)
           .replaceAll("REPLACE_ME_CLUSTER_ISSUER", "letsencrypt-production-ec2");
       }
 
@@ -3250,8 +3219,11 @@ spec:
       }
 
       function aiBaseUrl(){
-        // Prefer same-origin to avoid browser CORS issues. This is routed by Gateway to the bot.
-        return (location && location.origin) ? String(location.origin).replace(/\/+$/g,"") : "";
+        // Chat completions use a dedicated hostname so token rate limiting and traffic analysis
+        // can be scoped to the Connectivity Link AI gateway (separate from the main workshop gateway).
+        const h = mcpHost();
+        const ai = h.startsWith("mcp.") ? (`ai.${h.slice("mcp.".length)}`) : (`ai.${h}`);
+        return `https://${ai}`;
       }
 
       function mcpHost(){
@@ -3283,6 +3255,11 @@ spec:
         aiMcpHostPillEl.textContent = mcpHost();
       }
 
+      function refreshAiHostPill(){
+        if (!aiAiHostPillEl) return;
+        aiAiHostPillEl.textContent = String(aiBaseUrl()).replace(/^https?:\/\//i, "");
+      }
+
       function mcpBaseUrl(){
         return `https://${mcpHost()}`;
       }
@@ -3296,16 +3273,9 @@ spec:
         if (!h) return "external-api.local";
         const parts = h.split(".").filter(Boolean);
 
-        // Example: rhcl-workshop.apps.cluster-xxxx.yyyy.example.com -> external-api.example.com
-        if (parts.includes("apps")){
-          const last3 = parts.slice(-3).join(".");
-          const thirdFromEnd = parts.length >= 3 ? parts[parts.length - 3] : "";
-          const bad = new Set(["apps", "cluster", "clusters", "openshift"]);
-          if (thirdFromEnd && !bad.has(thirdFromEnd)) return `external-api.${last3}`;
-          const last2 = parts.slice(-2).join(".");
-          if (last2) return `external-api.${last2}`;
-        }
-        // Default: external-api.<base-domain> (drop the first label from current host)
+        // Default: external-api.<base-domain> (drop only the first label from current host)
+        // This keeps ephemeral OpenShift base domains intact, e.g.
+        // rhcl-workshop.apps.cluster-xxxx.yyyy.example.com -> external-api.apps.cluster-xxxx.yyyy.example.com
         if (parts.length >= 2) return `external-api.${parts.slice(1).join(".")}`;
         return `external-api-${h}`;
       }
@@ -3370,6 +3340,7 @@ spec:
 
       async function aiPing(){
         refreshMcpHostPill();
+        refreshAiHostPill();
         aiSetStatus("Pinging MCP Gateway…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
@@ -3394,6 +3365,7 @@ spec:
 
       async function aiListTools(){
         refreshMcpHostPill();
+        refreshAiHostPill();
         aiSetStatus("Listing tools…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
@@ -3428,6 +3400,7 @@ spec:
 
       async function aiCallTool(){
         refreshMcpHostPill();
+        refreshAiHostPill();
         aiSetStatus("Calling tool…");
         if (aiLogEl) aiLogEl.textContent = "";
         try{
@@ -3571,7 +3544,8 @@ spec:
         const html = (aiConversation || []).slice(-20).map(m => {
           const role = (m && m.role) ? String(m.role) : "assistant";
           const content = (m && m.content) ? String(m.content) : "";
-          return `<div class="chatLine ${role === "user" ? "user" : "assistant"}"><div class="chatRole">${esc(role)}</div>${esc(content)}</div>`;
+          const isBad = role !== "user" && /\b429\b|too many requests|rate limited|tokenratelimitpolicy|http error|fetch failed|request failed/i.test(content);
+          return `<div class="chatLine ${role === "user" ? "user" : "assistant"}${isBad ? " bad" : ""}"><div class="chatRole">${esc(role)}</div>${esc(content)}</div>`;
         }).join("");
         aiChatBoxEl.innerHTML = html || `<div class="sub">(no messages yet)</div>`;
         aiChatBoxEl.scrollTop = aiChatBoxEl.scrollHeight;
@@ -3806,7 +3780,14 @@ spec:
 
       function grafanaBaseUrl(){
         let url = String(localStorage.getItem("rhcl_grafana_url") || "").trim();
-        if (!url) url = `https://grafana-${location.host}`;
+        if (!url){
+          const h = String((location && location.host) ? location.host : "").trim();
+          const parts = h ? h.split(".").filter(Boolean) : [];
+          // Default: grafana.<base-domain> (drop only the first label from current host)
+          // rhcl-workshop.apps.cluster-xxxx.yyyy.example.com -> grafana.apps.cluster-xxxx.yyyy.example.com
+          if (parts.length >= 2) url = `https://grafana.${parts.slice(1).join(".")}`;
+          else url = `https://grafana-${h || "example.com"}`;
+        }
         if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
         return url.replace(/\/+$/g, "");
       }
@@ -3836,7 +3817,7 @@ spec:
       }
 
       function setGrafanaUrl(){
-        const v = prompt("Grafana base URL (example: https://grafana-rhcl-workshop.apps.<cluster>)", grafanaBaseUrl());
+        const v = prompt("Grafana base URL (example: https://grafana.apps.<cluster>)", grafanaBaseUrl());
         if (v === null) return;
         const s = String(v || "").trim();
         if (s) localStorage.setItem("rhcl_grafana_url", s);
@@ -4217,7 +4198,7 @@ spec:
           const r2 = await aiChat({ prompt: heavy, record: false, keepTokens: true, logContent: false, logRequest: false, logAssistantLine: false, timeoutMs: 12000 });
           if (r2 && r2.status === 429){
             aiSetStatus("Rate limited (429)");
-            aiConversation.push({ role: "assistant", content: "Too Many Requests (429) — blocked by TokenRateLimitPolicy at the Gateway." });
+            aiConversation.push({ role: "assistant", content: `HTTP 429 · TokenRateLimitPolicy blocked this request at the Gateway.\n${aiTokensEl ? String(aiTokensEl.textContent || "").trim() : ""}`.trim() });
             renderAiConversation();
             return;
           }
@@ -4232,7 +4213,7 @@ spec:
           const r3 = await aiChat({ prompt: baselinePrompt, record: false, keepTokens: true, logContent: false, logRequest: false, logAssistantLine: false, timeoutMs: 8000 });
           if (r3 && r3.status === 429){
             aiSetStatus("Rate limited (429)");
-            aiConversation.push({ role: "assistant", content: "429 triggered — the previous request consumed the token budget; this follow-up request is now blocked by TokenRateLimitPolicy." });
+            aiConversation.push({ role: "assistant", content: `HTTP 429 · TokenRateLimitPolicy blocked the conversation (token budget exceeded).\n${aiTokensEl ? String(aiTokensEl.textContent || "").trim() : ""}`.trim() });
             renderAiConversation();
             return;
           }
@@ -4277,6 +4258,7 @@ spec:
         if (aiTokensEl && !keepTokens) aiTokensEl.textContent = "tokens: —";
         if (aiHttpEl) aiHttpEl.textContent = "HTTP: —";
         const base = aiBaseUrl();
+        refreshAiHostPill();
         if (logRequest) appendTo(aiLogEl, `[${now()}] POST ${base}/ai/v1/chat/completions`, "muted");
 
         const body = {
@@ -4303,18 +4285,63 @@ spec:
           if (aiHttpEl) aiHttpEl.textContent = `HTTP: ${r.status} · ${ms}ms`;
           txt = await r.text();
         } catch (e){
-          aiSetStatus("Error");
-          appendTo(aiLogEl, `[${now()}] error: ${String(e)}`, "bad");
-          return { status: 0, error: String(e) };
+          // Fallback: if the dedicated AI hostname is blocked by browser/proxy, retry same-origin.
+          // Keep the UI tidy: only show the long hint if *both* attempts fail.
+          try{
+            const fallbackBase = String(location.origin || "").trim();
+            if (fallbackBase && fallbackBase !== base){
+              if (logRequest) appendTo(aiLogEl, `[${now()}] retry via same-origin fallback: ${fallbackBase}/ai/v1/chat/completions`, "muted");
+              const ctl2 = new AbortController();
+              const t2 = setTimeout(() => ctl2.abort(), Math.max(3000, timeoutMs));
+              r = await fetch(`${fallbackBase}/ai/v1/chat/completions`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify(body),
+                cache: "no-store",
+                signal: ctl2.signal,
+              });
+              clearTimeout(t2);
+              const ms2 = Math.round(performance.now() - t0);
+              if (aiHttpEl) aiHttpEl.textContent = `HTTP: ${r.status} · ${ms2}ms (fallback)`;
+              txt = await r.text();
+              // Continue normal response handling below (429, !ok, ok).
+            } else {
+              throw e;
+            }
+          } catch (e2){
+            const ms = Math.round(performance.now() - t0);
+            aiSetStatus("Error");
+            if (aiHttpEl) aiHttpEl.textContent = `HTTP: fetch error · ${ms}ms`;
+            appendTo(aiLogEl, `[${now()}] fetch error: ${String(e2)} (endpoint: ${base})`, "bad");
+            if (!aiFetchHintShown){
+              aiFetchHintShown = true;
+              appendTo(aiLogEl, `hint: “Failed to fetch” is usually DNS/TLS/CORS reaching the AI hostname. Verify ${base} resolves and has a valid cert.`, "muted");
+            }
+            if (record){
+              aiConversation = aiConversation || [];
+              const last = aiConversation.length ? aiConversation[aiConversation.length - 1] : null;
+              if (!(last && last.role === "user" && last.content === visiblePrompt)){
+                aiConversation.push({ role: "user", content: visiblePrompt });
+              }
+              aiConversation.push({ role: "assistant", content: `HTTP error (fetch failed) — could not reach ${base}.\n${aiHttpEl ? String(aiHttpEl.textContent || "").trim() : ""}`.trim() });
+              renderAiConversation();
+            }
+            return { status: 0, error: String(e2) };
+          }
         }
 
         if (nonce !== aiClearNonce) return { status: 0, cancelled: true };
         if (r.status === 429){
           aiSetStatus("Rate limited (429)");
           appendTo(aiLogEl, `[${now()}] 429 from Gateway (TokenRateLimitPolicy)`, "bad");
-          if (txt) appendTo(aiLogEl, txt.slice(0, 2000), "bad");
+          appendTo(aiLogEl, `token budget exceeded (demo: 400 tokens / 15s) — wait ~15s and retry`, "bad");
           if (record){
-            aiConversation.push({ role: "assistant", content: "Too Many Requests (429) — blocked by TokenRateLimitPolicy at the Gateway." });
+            aiConversation = aiConversation || [];
+            const last = aiConversation.length ? aiConversation[aiConversation.length - 1] : null;
+            if (!(last && last.role === "user" && last.content === visiblePrompt)){
+              aiConversation.push({ role: "user", content: visiblePrompt });
+            }
+            aiConversation.push({ role: "assistant", content: `HTTP 429 · TokenRateLimitPolicy blocked the conversation (token budget exceeded).\n${aiTokensEl ? String(aiTokensEl.textContent || "").trim() : ""}`.trim() });
             renderAiConversation();
           }
           return { status: 429 };
@@ -4489,6 +4516,7 @@ spec:
       refreshOidcPortalPill();
       refreshKeycloakJwtHostPill();
       refreshMcpHostPill();
+      refreshAiHostPill();
       refreshConsoleGraphLinks();
       if (aiToolSelectEl){
         aiToolSelectEl.disabled = true;

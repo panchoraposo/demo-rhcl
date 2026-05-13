@@ -46,23 +46,6 @@ metadata:
 spec:
   mode: deployment
   serviceAccount: connectivity-link-collector
-  volumes:
-    - name: tempo-client-mtls
-      secret:
-        secretName: tempo-simplest-gateway-mtls
-    - name: tempo-ca-bundle
-      configMap:
-        name: tempo-simplest-ca-bundle
-        items:
-          - key: service-ca.crt
-            path: service-ca.crt
-  volumeMounts:
-    - name: tempo-client-mtls
-      mountPath: /etc/tempo-client
-      readOnly: true
-    - name: tempo-ca-bundle
-      mountPath: /etc/tempo-ca
-      readOnly: true
   config:
     receivers:
       otlp:
@@ -85,16 +68,11 @@ spec:
 
     exporters:
       otlp/tempo:
-        endpoint: tempo-simplest-distributor.rhcl-observability.svc.cluster.local:4317
-        headers:
-          X-Scope-OrgID: dev
+        endpoint: rhcl-tracing-collector.openshift-cluster-observability-operator.svc.cluster.local:4317
         tls:
-          ca_file: /etc/tempo-ca/service-ca.crt
-          cert_file: /etc/tempo-client/tls.crt
-          key_file: /etc/tempo-client/tls.key
-          insecure: false
+          insecure: true
       debug:
-        verbosity: basic
+        verbosity: detailed
 
     service:
       pipelines:

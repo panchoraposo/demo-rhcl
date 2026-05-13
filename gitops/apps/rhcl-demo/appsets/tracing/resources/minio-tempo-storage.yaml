@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tempo-storage
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "25"
+type: Opaque
+stringData:
+  endpoint: http://tempo-minio.rhcl-observability.svc.cluster.local:9000
+  bucket: tempo-traces
+  access_key_id: tempo
+  access_key_secret: tempo-tempo-tempo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo-minio
+  namespace: rhcl-observability
+  labels:
+    app: tempo-minio
+  annotations:
+    argocd.argoproj.io/sync-wave: "24"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo-minio
+  template:
+    metadata:
+      labels:
+        app: tempo-minio
+    spec:
+      containers:
+        - name: minio
+          image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+          args:
+            - server
+            - /data
+            - --console-address
+            - ":9001"
+          env:
+            - name: MINIO_ROOT_USER
+              value: tempo
+            - name: MINIO_ROOT_PASSWORD
+              value: tempo-tempo-tempo
+          ports:
+            - name: s3
+              containerPort: 9000
+            - name: console
+              containerPort: 9001
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo-minio
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "24"
+spec:
+  selector:
+    app: tempo-minio
+  ports:
+    - name: s3
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tempo-minio-make-bucket
+  namespace: rhcl-observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "26"
+spec:
+  backoffLimit: 8
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+          env:
+            # `mc` writes config under $HOME by default. In restricted clusters,
+            # the container filesystem root is not writable, so force a writable location.
+            - name: HOME
+              value: /tmp
+            - name: MC_CONFIG_DIR
+              value: /tmp/.mc
+          command:
+            - /bin/sh
+            - -lc
+            - |
+              set -euo pipefail
+              mkdir -p /tmp/.mc
+              echo "Waiting for MinIO API..."
+              for i in $(seq 1 180); do
+                if mc --config-dir /tmp/.mc alias set tempo http://tempo-minio.rhcl-observability.svc.cluster.local:9000 tempo tempo-tempo-tempo; then
+                  echo "MinIO is reachable."
+                  break
+                fi
+                echo "retry $i/180"
+                sleep 2
+              done
+              echo "Ensuring bucket tempo-traces exists..."
+              mc --config-dir /tmp/.mc mb --ignore-existing tempo/tempo-traces
+              echo "OK"
+

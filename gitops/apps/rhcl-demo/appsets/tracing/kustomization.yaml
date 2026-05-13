@@ -6,23 +6,13 @@ resources:
   - resources/cluster-observability-operator.yaml
   - resources/namespace-tempo-operator.yaml
   - resources/tempo-operator.yaml
+  - resources/namespace-opentelemetry-operator.yaml
+  - resources/opentelemetry-operator.yaml
+  - resources/namespace-opentelemetry.yaml
   # OpenTelemetry operator is already present on many clusters (and OLM will fail if
   # we try to install it twice). We only deploy a collector instance for the demo.
-  - resources/odf-object-bucket.yaml
-  - resources/tempostack.yaml
-  - resources/networkpolicy-allow-mcp-to-tempo-distributor.yaml
-  - resources/networkpolicy-allow-otel-to-tempo-distributor.yaml
-  - resources/networkpolicy-allow-grafana-to-tempo-query-frontend.yaml
-  - resources/tempo-tenant-rbac.yaml
-  - resources/tempo-grafana-rbac.yaml
+  - resources/minio-tempo-storage.yaml
   - resources/otel-collector.yaml
-  - resources/tempo-client-cred-sync.yaml
-  - resources/tempo-jaeger-proxy.yaml
-  - resources/networkpolicy-allow-tempo-jaeger-proxy-to-query-frontend.yaml
-  - resources/networkpolicy-allow-opentelemetry-to-tempo-distributor.yaml
-  - resources/networkpolicy-allow-coo-to-tempo-query-frontend.yaml
-  - resources/service-tempo-jaeger-ui.yaml
-  - resources/route-tempo-jaeger-ui.yaml
   - resources/uiplugin-distributed-tracing.yaml
   - resources/distributed-tracing-auth-proxy.yaml
   - resources/patch-consoleplugin-distributed-tracing-proxy.yaml

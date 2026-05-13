@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../appsets/tracing/resources/minio-tempo-storage.yaml
+  - ../../appsets/tracing/resources/tempostack.yaml
+  - ../../appsets/tracing/resources/networkpolicy-allow-mcp-to-tempo-distributor.yaml
+  - ../../appsets/tracing/resources/networkpolicy-allow-otel-to-tempo-distributor.yaml
+  - ../../appsets/tracing/resources/networkpolicy-allow-grafana-to-tempo-query-frontend.yaml
+  - ../../appsets/tracing/resources/tempo-tenant-rbac.yaml
+  - ../../appsets/tracing/resources/tempo-grafana-rbac.yaml
+  - ../../appsets/tracing/resources/otel-collector.yaml
+  - ../../appsets/tracing/resources/tempo-client-cred-sync.yaml
+  - ../../appsets/tracing/resources/tempo-jaeger-proxy.yaml
+  - ../../appsets/tracing/resources/networkpolicy-allow-tempo-jaeger-proxy-to-query-frontend.yaml
+  - ../../appsets/tracing/resources/networkpolicy-allow-opentelemetry-to-tempo-distributor.yaml
+  - ../../appsets/tracing/resources/networkpolicy-allow-coo-to-tempo-query-frontend.yaml
+  - ../../appsets/tracing/resources/service-tempo-jaeger-ui.yaml
+  - ../../appsets/tracing/resources/route-tempo-jaeger-ui.yaml
+  - ../../appsets/tracing/resources/uiplugin-distributed-tracing.yaml
+  - ../../appsets/tracing/resources/distributed-tracing-auth-proxy.yaml
+  - ../../appsets/tracing/resources/patch-consoleplugin-distributed-tracing-proxy.yaml
+

@@ -53,6 +53,12 @@ data:
     etag off;
     add_header Cache-Control "no-store" always;
 
+    # Start login via browser redirect.
+    # We encode redirect_uri with the current host so it works for both *.apps.* and *.sandbox* hostnames.
+    location = /portal-login {
+      return 302 https://$host/auth/realms/rhcl/protocol/openid-connect/auth?client_id=rhcl-ui&redirect_uri=https%3A%2F%2F$host%2Foidc%2Fcallback&response_type=code&scope=openid;
+    }
+
     # Reuse the same logout endpoint semantics as the main UI.
     location = /logout {
       add_header Content-Type "text/plain" always;

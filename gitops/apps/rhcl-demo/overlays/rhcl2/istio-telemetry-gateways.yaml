@@ -1,0 +1,48 @@
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: rhcl-gw-tracing
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "22"
+spec:
+  selector:
+    matchLabels:
+      service.istio.io/canonical-name: rhcl-gw-istio
+  tracing:
+    - providers:
+        - name: otel-rhcl
+      randomSamplingPercentage: 100
+---
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: rhcl-ai-gw-tracing
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "22"
+spec:
+  selector:
+    matchLabels:
+      service.istio.io/canonical-name: rhcl-ai-gw-istio
+  tracing:
+    - providers:
+        - name: otel-rhcl
+      randomSamplingPercentage: 100
+---
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: rhcl-mcp-gw-tracing
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "22"
+spec:
+  selector:
+    matchLabels:
+      service.istio.io/canonical-name: rhcl-mcp-gw-istio
+  tracing:
+    - providers:
+        - name: otel-rhcl
+      randomSamplingPercentage: 100
+

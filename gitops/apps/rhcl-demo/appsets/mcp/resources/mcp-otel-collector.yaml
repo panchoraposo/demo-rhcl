@@ -28,7 +28,7 @@ spec:
 
     exporters:
       otlp/tempo:
-        endpoint: otel-collector.rhcl-observability.svc.cluster.local:4317
+        endpoint: rhcl-tracing-collector.openshift-cluster-observability-operator.svc.cluster.local:4317
         tls:
           insecure: true
       debug:

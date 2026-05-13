@@ -620,6 +620,16 @@
           return;
         }
         const txt = await r.text();
+        if (r.status === 401 || r.status === 403) {
+          // In this cluster install, the protected endpoint returns 401/403 instead of a browser redirect.
+          // Trigger the explicit login flow so the user doesn't just see an empty scoreboard.
+          try { location.href = "/portal-login"; } catch {}
+          setStatus("warn", "Login required");
+          append(txt.slice(0, 2000));
+          render([]);
+          refreshSession();
+          return;
+        }
         if (r.status !== 200){
           setStatus("bad", "Request failed");
           append(txt.slice(0, 2000));
@@ -641,7 +651,7 @@
         const host = String(location.host || "");
         document.cookie = `target=//${host}/; Path=/; Max-Age=3600; SameSite=Lax; Secure`;
 
-        const redirectUri = encodeURIComponent(`https://${host}/auth/callback`);
+        const redirectUri = encodeURIComponent(`https://${host}/oidc/callback`);
         const url = `/auth/realms/rhcl/protocol/openid-connect/auth?client_id=rhcl-ui&redirect_uri=${redirectUri}&response_type=code&scope=openid`;
         location.href = url;
       }

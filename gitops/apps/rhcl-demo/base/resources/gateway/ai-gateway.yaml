@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: rhcl-ai-gw
+  namespace: openshift-ingress
+  labels:
+    kuadrant.io/gateway: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  gatewayClassName: istio
+  listeners:
+    - name: http-ai
+      port: 80
+      protocol: HTTP
+      hostname: ai.REPLACE_ME_BASE_DOMAIN
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: https-ai-sandbox
+      port: 443
+      protocol: HTTPS
+      hostname: ai.REPLACE_ME_BASE_DOMAIN
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: cert-manager-ingress-cert
+      allowedRoutes:
+        namespaces:
+          from: All
+

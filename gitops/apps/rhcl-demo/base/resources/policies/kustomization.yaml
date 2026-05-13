@@ -15,5 +15,6 @@ resources:
   - oidc-portal-authpolicy.yaml
   - ai-bot-main-authpolicy.yaml
   - ai-bot-main-tokenratelimitpolicy.yaml
+  - ai-bot-ai-tokenratelimitpolicy.yaml
   - route-ratelimitpolicy.yaml
 

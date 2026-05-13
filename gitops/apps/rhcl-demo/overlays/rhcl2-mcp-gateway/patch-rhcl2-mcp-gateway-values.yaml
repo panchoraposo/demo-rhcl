@@ -1,0 +1,55 @@
+apiVersion: mcp.kuadrant.io/v1alpha1
+kind: MCPGatewayExtension
+metadata:
+  name: rhcl-mcp
+  namespace: mcp-system
+spec:
+  publicHost: mcp.sandbox921.opentlc.com
+  privateHost: rhcl-mcp-gw-istio.openshift-ingress.svc.cluster.local:80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-gateway
+  namespace: mcp-system
+spec:
+  hostnames:
+    - mcp.sandbox921.opentlc.com
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mcp-gateway-config
+  namespace: mcp-system
+stringData:
+  config.yaml: |
+    servers:
+      - enabled: true
+        hostname: mcp.sandbox921.opentlc.com
+        name: mcp-system/rhcl-mcp-tools
+        toolPrefix: tools_
+        url: http://rhcl-mcp-tools-bridge.mcp-system.svc.cluster.local:8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+spec:
+  hostnames:
+    - mcp.sandbox921.opentlc.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rhcl-mcp-tools
+  namespace: mcp-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          env:
+            - name: RHCL_AI_ESPN_BASE_URL
+              value: https://external-api.apps.cluster-rjzd5.rjzd5.sandbox921.opentlc.com
+

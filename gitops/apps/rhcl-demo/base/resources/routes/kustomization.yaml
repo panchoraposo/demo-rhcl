@@ -9,6 +9,7 @@ resources:
   - httproute-keycloak.yaml
   - httproute-oidc-portal.yaml
   - httproute-ai-bot-main.yaml
+  - httproute-ai-bot-ai.yaml
   - httproute-jwt-demo.yaml
   - httproute-external-proxy.yaml
   - httproute-external-proxy-public.yaml

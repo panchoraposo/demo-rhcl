@@ -33,7 +33,9 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 - **Policies**: `TokenRateLimitPolicy`
 - **Benefit**: rate limiting based on **token usage** (not just requests), which maps better to LLM cost and abuse prevention.
   - Demo budget is intentionally small (currently **400 tokens / 15s**) so you can trigger `429` reliably.
-  - The bot calls tools via the **RHCL MCP Gateway** using a **same-origin bridge** (`/mcp-tools`) and can switch tools (NBA/EPL/LaLiga/NFL/NHL).
+  - Chat completions run on a **dedicated AI hostname** (`ai.<base-domain>`) so `TokenRateLimitPolicy` (and Traffic Analysis) can be scoped to the AI Gateway.
+  - When the bot needs external data, it calls tools via the **RHCL MCP Gateway** (`mcp.<base-domain>`).
+  - The UI calls MCP tool helpers via a same-origin proxy (`/ai/mcp/*`) so the browser never needs to do cross-origin requests to the MCP hostname.
   - If you need to install the MCP Gateway, see [Installing the MCP Gateway](https://docs.redhat.com/en/documentation/red_hat_connectivity_link/1.3/html/installing_the_mcp_gateway/mcp-gateway-install).
 
 ### AuthPolicy (Keycloak JWT) — token, decode, call with/without
@@ -53,7 +55,10 @@ The goal is simple: one UI, a few modules, and each module highlights **one poli
 - **Connectivity Link / Kuadrant** applies policies to:
   - the **Gateway** (guardrails like deny-by-default)
   - individual **HTTPRoutes** (auth, rate limits, traffic shaping)
-- TLS is handled via `cert-manager` (Certificates/ClusterIssuer) and Gateway listener Secrets.
+- TLS is handled via `cert-manager` and Gateway listener Secrets.
+  - This repo supports both:
+    - **Direct `Certificate` objects** (explicit secrets referenced by listeners)
+    - **Kuadrant `TLSPolicy`** (recommended) to manage cert-manager Certificates for specific listeners/hostnames.
 
 ### Connectivity Link changes in this repo (demo wiring)
 
@@ -96,7 +101,7 @@ Compatibility: `./tools/install-rhcl-workshop.sh` still exists and just delegate
 Defaults:
 - **main demo host**: `rhcl-workshop.<appsDomain>`
 - **OIDC portal host**: `oidc-rhcl-workshop.<appsDomain>`
-- **Grafana host**: `grafana-<DEMO_HOSTNAME>` (anonymous)
+- **Grafana host**: `grafana.<appsDomain>` (anonymous)
 
 Useful overrides:
 - **`APPS_DOMAIN`**: set the cluster apps domain (if autodiscovery fails)
@@ -217,7 +222,8 @@ oc -n rhcl-ai-bot set env deployment/rhcl-ai-bot RHCL_AI_OPENAI_API_KEY='YOUR_KE
 ## Notes (why the dashboards work)
 
 - **Metrics source**: dashboards use Prometheus (OpenShift monitoring + user workload monitoring) and Connectivity Link / Kuadrant metrics.
-- **No tracing required**: this demo does not depend on distributed tracing.
+- **Tracing (optional)**: distributed tracing is not required for the core workshop, but if enabled you can also inspect
+  gateway-level traces for policy-enforced responses (e.g. 401/403/429) because those responses are generated at the Gateway.
 
 ## References
 

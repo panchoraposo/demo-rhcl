@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - resources/namespace-mcp-system.yaml
   - resources/mcp-gateway-olm.yaml
+  - resources/allow-mcp-system-pull-ai-bot-image.yaml
   - resources/mcp-gateway-config-secret.yaml
   - resources/mcp-gateway-authpolicy.yaml
   - resources/mcp-authpolicy.yaml
